@@ -1,0 +1,202 @@
+// TEMPORARY DIALOG STUBS. In UDB the Core opens WinForms dialogs directly (Types handlers, MapManager,
+// General, edit modes). The dialogs do not exist yet in Avalonia, so these stand-ins keep the Core
+// compiling and behave as "user cancelled". Each one becomes a call to an IDialogService method backed
+// by an Avalonia window in Phase 4/5; the list below is that TODO list.
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
+using CodeImp.DoomBuilder.Config;
+using CodeImp.DoomBuilder.Editing;
+using CodeImp.DoomBuilder.Geometry;
+using CodeImp.DoomBuilder.Map;
+
+namespace System.Windows.Forms
+{
+    public enum FormWindowState { Normal, Minimized, Maximized }
+
+    public class Form : Control, IDisposable
+    {
+        public FormWindowState WindowState { get; set; }
+        public bool TopMost { get; set; }
+        public bool IsDisposed => false;
+        public void Close() { }
+        public void Show() { }
+        public void Activate() { }
+        public static Form ActiveForm => null;
+        public DialogResult DialogResult { get; set; }
+        public virtual DialogResult ShowDialog() => DialogResult.Cancel;
+        public virtual DialogResult ShowDialog(IWin32Window owner) => DialogResult.Cancel;
+        public void Dispose() { }
+    }
+
+    public enum ImageLayout { None, Tile, Center, Stretch, Zoom }
+    public enum HelpNavigator { TableOfContents, Index, Find, Topic }
+    public static class Help { public static void ShowHelp(IWin32Window parent, string url) { } public static void ShowHelp(IWin32Window parent, string url, HelpNavigator nav, object p) { } }
+
+    public static class Application
+    {
+        public static string ExecutablePath => Environment.ProcessPath ?? string.Empty;
+        public static string StartupPath => AppContext.BaseDirectory;
+        public static string ProductName => "TheDoomBuilder";
+        public static string ProductVersion => "0.0";
+        public static event Action<object, System.Threading.ThreadExceptionEventArgs> ThreadException { add { } remove { } }
+        public static void DoEvents() { }
+        public static void EnableVisualStyles() { }
+        public static void SetCompatibleTextRenderingDefault(bool v) { }
+        public static void Exit() { }
+        public static void Run(object form) { }
+    }
+
+    public static class MessageBox
+    {
+        // Headless default: log and answer with the dialog's affirmative/neutral choice.
+        public static DialogResult Show(string text) => Show(text, "", MessageBoxButtons.OK);
+        public static DialogResult Show(string text, string caption) => Show(text, caption, MessageBoxButtons.OK);
+        public static DialogResult Show(string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons, MessageBoxIcon.None);
+        public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon) => Show(text, caption, buttons, icon, MessageBoxDefaultButton.Button1);
+        public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton def)
+        {
+            Console.Error.WriteLine($"[MessageBox] {caption}: {text}");
+            return buttons == MessageBoxButtons.YesNo || buttons == MessageBoxButtons.YesNoCancel ? DialogResult.No
+                 : buttons == MessageBoxButtons.OKCancel ? DialogResult.Cancel : DialogResult.OK;
+        }
+        public static DialogResult Show(IWin32Window owner, string text) => Show(text);
+        public static DialogResult Show(IWin32Window owner, string text, string caption) => Show(text, caption);
+        public static DialogResult Show(IWin32Window owner, string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons);
+        public static DialogResult Show(IWin32Window owner, string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon) => Show(text, caption, buttons, icon);
+        public static DialogResult Show(IWin32Window owner, string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton def)
+            => Show(text, caption, buttons, icon, def);
+    }
+
+    public class FileDialog : Form
+    {
+        public string FileName { get; set; } = "";
+        public string[] FileNames => new[] { FileName };
+        public string Filter { get; set; }
+        public int FilterIndex { get; set; }
+        public string InitialDirectory { get; set; }
+        public string Title { get; set; }
+        public bool AddExtension { get; set; }
+        public bool CheckFileExists { get; set; }
+        public bool CheckPathExists { get; set; }
+        public bool RestoreDirectory { get; set; }
+        public string DefaultExt { get; set; }
+        public bool ValidateNames { get; set; }
+        public bool ShowHelp { get; set; }
+    }
+    public class ColorDialog : Form
+    {
+        public bool AllowFullOpen { get; set; }
+        public bool AnyColor { get; set; }
+        public bool FullOpen { get; set; }
+        public Color Color { get; set; }
+    }
+    public class OpenFileDialog : FileDialog { public bool Multiselect { get; set; } }
+    public class SaveFileDialog : FileDialog { public bool OverwritePrompt { get; set; } }
+
+    public static class DataFormats { public const string Text = "Text"; public const string UnicodeText = "UnicodeText"; }
+    public interface IDataObject { object GetData(string format); bool GetDataPresent(string format); }
+    public class DataObject : IDataObject
+    {
+        private readonly Dictionary<string, object> data = new Dictionary<string, object>();
+        public void SetData(string format, object value) => data[format] = value;
+        public object GetData(string format) => data.TryGetValue(format, out var v) ? v : null;
+        public bool GetDataPresent(string format) => data.ContainsKey(format);
+    }
+    /// <summary>In-process clipboard. Replaced by the Avalonia clipboard service in Phase 5.</summary>
+    public static class Clipboard
+    {
+        private static DataObject current = new DataObject();
+        public static void SetDataObject(object d, bool copy) { current = d as DataObject ?? new DataObject(); }
+        public static void SetDataObject(object d, bool copy, int retries, int delay) => SetDataObject(d, copy);
+        public static void SetText(string text) { current = new DataObject(); current.SetData(DataFormats.Text, text); }
+        public static string GetText() => current.GetData(DataFormats.Text) as string ?? string.Empty;
+        public static bool ContainsData(string format) => current.GetDataPresent(format);
+        public static bool ContainsText() => current.GetDataPresent(DataFormats.Text);
+        public static object GetData(string format) => current.GetData(format);
+        public static IDataObject GetDataObject() => current;
+    }
+
+    public static class TextRenderer { public static Size MeasureText(string text, Font font) => new Size((int)Math.Ceiling(font.SizeInPixels * 0.6f * (text?.Length ?? 0)), font.Height); }
+
+    public class KeysConverter
+    {
+        public string ConvertToString(object value) => value?.ToString() ?? string.Empty;
+        public object ConvertFromString(string text) => Enum.TryParse(text.Replace("+", ","), true, out Keys k) ? k : Keys.None;
+    }
+}
+
+namespace CodeImp.DoomBuilder
+{
+    public enum DebugMessageType { LOG = 1, INFO = 2, WARNING = 4, ERROR = 8, SPECIAL = 16 }
+
+    /// <summary>Stub of the debug console control: messages go to stderr.</summary>
+    public static class DebugConsole
+    {
+        public static void Write(DebugMessageType type, string message) => Console.Error.Write(message);
+        public static void WriteLine(string message) => Console.Error.WriteLine(message);
+        public static void WriteLine(DebugMessageType type, string message) => Console.Error.WriteLine(message);
+        public static void Clear() { }
+    }
+
+}
+
+namespace CodeImp.DoomBuilder.Controls
+{
+    public static class ImageSelectorPanel { public static void ClearCachedPreviews() { } }
+}
+
+namespace CodeImp.DoomBuilder.Windows
+{
+    public class MapOptionsForm : Form
+    {
+        public MapOptions Options { get; }
+        public MapOptionsForm(MapOptions options, bool newmap) { Options = options; }
+    }
+    public class OpenMapOptionsForm : Form
+    {
+        public MapOptions Options { get; }
+        public OpenMapOptionsForm(string filename) { }
+        public OpenMapOptionsForm(string filename, MapOptions options) { Options = options; }
+    }
+    public class ChangeMapForm : Form
+    {
+        public MapOptions Options { get; }
+        public ChangeMapForm(string filename, MapOptions options) { Options = options; }
+    }
+    public class CenterOnCoordinatesForm : Form { public Vector2D Coordinates { get; } }
+    public class PasteOptionsForm : Form { public PasteOptions Options { get; } }
+    public class GridSetupForm : Form { }
+    public class ThingsFiltersForm : Form { }
+    public class LinedefColorPresetsForm : Form { }
+    public class ExceptionDialog : Form
+    {
+        public ExceptionDialog(Exception e) { }
+        public ExceptionDialog(System.Threading.ThreadExceptionEventArgs e) { }
+        public ExceptionDialog(UnhandledExceptionEventArgs e) { }
+        public void Setup() { }
+    }
+    public class RunExternalCommandForm : Form { public RunExternalCommandForm(ProcessStartInfo info, object settings) { } }
+    public class ThingBrowserForm : Form
+    {
+        public int SelectedType { get; }
+        public ThingBrowserForm(int type) { }
+        public static int BrowseThing(IWin32Window parent, int value) => value;
+    }
+    public static class AngleForm { public static int ShowDialog(IWin32Window parent, int value) => value; }
+    public static class TextureBrowserForm { public static string Browse(IWin32Window parent, string value, bool flats) => value; }
+    public static class TextEditForm { public static string ShowDialog(IWin32Window parent, string value) => value; }
+    public static class EffectBrowserForm { public static int BrowseEffect(IWin32Window parent, int value) => value; }
+    public static class ActionBrowserForm { public static int BrowseAction(IWin32Window parent, int value) => value; }
+    public static class BitFlagsForm { public static int ShowDialog(IWin32Window parent, object list, int value) => value; }
+    public static class BitFlagsAndOptionsForm { public static int ShowDialog(IWin32Window parent, object list, object flags, int value) => value; }
+}
+
+namespace CodeImp.DoomBuilder.Controls
+{
+    internal enum ScriptStyleType { PlainText = 0, Keyword = 1, Constant = 2, Comment = 3, Literal = 4, LineNumber = 5, String = 6, Include = 7, Property = 8 }
+    public class ScriptLumpDocumentTab : ScriptDocumentTab { }
+}
