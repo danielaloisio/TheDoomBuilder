@@ -14,135 +14,136 @@ namespace CodeImp.DoomBuilder.Windows
 	/// IMainWindow implementation with no UI. Used by tests and command-line tools that run the Core
 	/// without the Avalonia shell. Every UI request is a no-op; dialogs answer "cancel".
 	/// </summary>
-	internal sealed class HeadlessMainWindow : IMainWindow
+	internal class HeadlessMainWindow : IMainWindow
 	{
 		private readonly Font font = new Font("sans-serif", 9f);
 		private StatusInfo status = new StatusInfo(StatusType.Ready, "Ready.");
 		private int processingcount;
 
-		public IntPtr Handle { get { return IntPtr.Zero; } }
-		public Font Font { get { return font; } }
-		public StatusInfo Status { get { return status; } }
+		public virtual IntPtr Handle { get { return IntPtr.Zero; } }
+		public virtual Font Font { get { return font; } }
+		public virtual StatusInfo Status { get { return status; } }
 
-		public bool AltState { get { return false; } }
-		public bool CtrlState { get { return false; } }
-		public bool ShiftState { get { return false; } }
-		public bool MouseInDisplay { get { return false; } }
-		public bool AutoMerge { get { return false; } }
-		public bool SnapToGrid { get { return false; } }
-		public bool MouseExclusive { get { return false; } }
-		public MouseButtons MouseButtons { get { return MouseButtons.None; } }
-		public bool IsActiveWindow { get { return false; } }
-		public string ActiveDockerTabName { get { return string.Empty; } }
-		public RenderTargetControl Display { get { return null; } }
-		public int ProcessingCount { get { return processingcount; } }
+		public virtual bool AltState { get { return false; } }
+		public virtual bool CtrlState { get { return false; } }
+		public virtual bool ShiftState { get { return false; } }
+		public virtual bool MouseInDisplay { get { return false; } }
+		public virtual bool AutoMerge { get { return false; } }
+		public virtual bool SnapToGrid { get { return false; } }
+		public virtual bool MouseExclusive { get { return false; } }
+		public virtual MouseButtons MouseButtons { get { return MouseButtons.None; } }
+		public virtual bool IsActiveWindow { get { return false; } }
+		public virtual string ActiveDockerTabName { get { return string.Empty; } }
+		public virtual RenderTargetControl Display { get { return null; } }
+		public virtual int ProcessingCount { get { return processingcount; } }
 		public event EventHandler OnEditFormValuesChanged { add { } remove { } }
 
-		public void DisplayReady() { status = new StatusInfo(StatusType.Ready, "Ready."); }
-		public void DisplayStatus(StatusType type, string message) { status = new StatusInfo(type, message); }
-		public void DisplayStatus(StatusInfo newstatus) { status = newstatus; }
-		public void RedrawDisplay() { }
+		public virtual void DisplayReady() { status = new StatusInfo(StatusType.Ready, "Ready."); }
+		public virtual void DisplayStatus(StatusType type, string message) { status = new StatusInfo(type, message); }
+		public virtual void DisplayStatus(StatusInfo newstatus) { status = newstatus; }
+		public virtual void RedrawDisplay() { }
 
-		public DialogResult ShowEditVertices(ICollection<Vertex> vertices) { return DialogResult.Cancel; }
-		public DialogResult ShowEditVertices(ICollection<Vertex> vertices, bool allowPositionChange) { return DialogResult.Cancel; }
-		public DialogResult ShowEditLinedefs(ICollection<Linedef> lines) { return DialogResult.Cancel; }
-		public DialogResult ShowEditLinedefs(ICollection<Linedef> lines, bool selectfront, bool selectback) { return DialogResult.Cancel; }
-		public DialogResult ShowEditSectors(ICollection<Sector> sectors) { return DialogResult.Cancel; }
-		public DialogResult ShowEditThings(ICollection<Thing> things) { return DialogResult.Cancel; }
-		public void ShowLinedefInfo(Linedef l) { }
-		public void ShowLinedefInfo(Linedef l, Sidedef highlightside) { }
-		public void ShowSectorInfo(Sector s) { }
-		public void ShowSectorInfo(Sector s, bool highlightceiling, bool highlightfloor) { }
-		public void ShowThingInfo(Thing t) { }
-		public void ShowVertexInfo(Vertex v) { }
-		public void HideInfo() { }
-		public void ShowHints(string hints) { }
-		public void ClearHints() { }
-		public void RefreshInfo() { }
-		public void UpdateCoordinates(Vector2D coords) { }
-		public void UpdateCoordinates(Vector2D coords, bool snaptogrid) { }
-		public bool Focus() { return false; }
-		public bool FocusDisplay() { return false; }
-		public void EnableProcessing() { processingcount = Math.Max(0, processingcount - 1); }
-		public void DisableProcessing() { processingcount++; }
-		public void StartExclusiveMouseInput() { }
-		public void StopExclusiveMouseInput() { }
-		public void BreakExclusiveMouseInput() { }
-		public void ResumeExclusiveMouseInput() { }
-		public void SetCursor(Cursor cursor) { }
-		public void MessageBeep(MessageBeepType type) { }
+		public virtual DialogResult ShowEditVertices(ICollection<Vertex> vertices) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditVertices(ICollection<Vertex> vertices, bool allowPositionChange) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditLinedefs(ICollection<Linedef> lines) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditLinedefs(ICollection<Linedef> lines, bool selectfront, bool selectback) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditSectors(ICollection<Sector> sectors) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditThings(ICollection<Thing> things) { return DialogResult.Cancel; }
+		public virtual void ShowLinedefInfo(Linedef l) { }
+		public virtual void ShowLinedefInfo(Linedef l, Sidedef highlightside) { }
+		public virtual void ShowSectorInfo(Sector s) { }
+		public virtual void ShowSectorInfo(Sector s, bool highlightceiling, bool highlightfloor) { }
+		public virtual void ShowThingInfo(Thing t) { }
+		public virtual void ShowVertexInfo(Vertex v) { }
+		public virtual void HideInfo() { }
+		public virtual void ShowHints(string hints) { }
+		public virtual void ClearHints() { }
+		public virtual void RefreshInfo() { }
+		public virtual void UpdateCoordinates(Vector2D coords) { }
+		public virtual void UpdateCoordinates(Vector2D coords, bool snaptogrid) { }
+		public virtual bool Focus() { return false; }
+		public virtual bool FocusDisplay() { return false; }
+		public virtual void EnableProcessing() { processingcount = Math.Max(0, processingcount - 1); }
+		public virtual void DisableProcessing() { processingcount++; }
+		public virtual void StartExclusiveMouseInput() { }
+		public virtual void StopExclusiveMouseInput() { }
+		public virtual void BreakExclusiveMouseInput() { }
+		public virtual void ResumeExclusiveMouseInput() { }
+		public virtual void SetCursor(Cursor cursor) { }
+		public virtual void MessageBeep(MessageBeepType type) { }
 
-		public SizeF MeasureString(string text, Font f) { return MeasureString(text, f, int.MaxValue, null); }
-		public SizeF MeasureString(string text, Font f, int width, StringFormat format)
+		public virtual SizeF MeasureString(string text, Font f) { return MeasureString(text, f, int.MaxValue, null); }
+		public virtual SizeF MeasureString(string text, Font f, int width, StringFormat format)
 		{
 			using(Bitmap bmp = new Bitmap(1, 1))
 			using(Graphics g = Graphics.FromImage(bmp))
 				return g.MeasureString(text, f);
 		}
 
-		public int BrowseLinedefActions(IWin32Window owner, int initialvalue) { return initialvalue; }
-		public int BrowseLinedefActions(IWin32Window owner, int initialvalue, bool addanyaction) { return initialvalue; }
-		public int BrowseSectorEffect(IWin32Window owner, int initialvalue) { return initialvalue; }
-		public int BrowseSectorEffect(IWin32Window owner, int initialvalue, bool addanyeffect) { return initialvalue; }
-		public string BrowseTexture(IWin32Window owner, string initialvalue) { return initialvalue; }
-		public string BrowseFlat(IWin32Window owner, string initialvalue) { return initialvalue; }
-		public int BrowseThingType(IWin32Window owner, int initialvalue) { return initialvalue; }
+		public virtual int BrowseLinedefActions(IWin32Window owner, int initialvalue) { return initialvalue; }
+		public virtual int BrowseLinedefActions(IWin32Window owner, int initialvalue, bool addanyaction) { return initialvalue; }
+		public virtual int BrowseSectorEffect(IWin32Window owner, int initialvalue) { return initialvalue; }
+		public virtual int BrowseSectorEffect(IWin32Window owner, int initialvalue, bool addanyeffect) { return initialvalue; }
+		public virtual string BrowseTexture(IWin32Window owner, string initialvalue) { return initialvalue; }
+		public virtual string BrowseFlat(IWin32Window owner, string initialvalue) { return initialvalue; }
+		public virtual int BrowseThingType(IWin32Window owner, int initialvalue) { return initialvalue; }
 
-		public void AddMenu(ToolStripItem menu) { }
-		public void AddMenu(ToolStripItem menu, MenuSection section) { }
-		public void AddModesMenu(ToolStripItem menu, string group) { }
-		public void RemoveMenu(ToolStripItem menu) { }
-		public void InvokeTaggedAction(object sender, EventArgs e) { }
-		public void AddButton(ToolStripItem button) { }
-		public void AddButton(ToolStripItem button, ToolbarSection section) { }
-		public void AddModesButton(ToolStripItem toolbarButton, string group) { }
-		public void RemoveButton(ToolStripItem button) { }
-		public void BeginToolbarUpdate() { }
-		public void EndToolbarUpdate() { }
-		public void AddDocker(Docker d) { }
-		public void AddDocker(Docker d, bool notify) { }
-		public bool RemoveDocker(Docker d) { return false; }
-		public bool SelectDocker(Docker d) { return false; }
-		public void SelectPreviousDocker() { }
+		public virtual void AddMenu(ToolStripItem menu) { }
+		public virtual void AddMenu(ToolStripItem menu, MenuSection section) { }
+		public virtual void AddModesMenu(ToolStripItem menu, string group) { }
+		public virtual void RemoveMenu(ToolStripItem menu) { }
+		public virtual void InvokeTaggedAction(object sender, EventArgs e) { }
+		public virtual void AddButton(ToolStripItem button) { }
+		public virtual void AddButton(ToolStripItem button, ToolbarSection section) { }
+		public virtual void AddModesButton(ToolStripItem toolbarButton, string group) { }
+		public virtual void RemoveButton(ToolStripItem button) { }
+		public virtual void BeginToolbarUpdate() { }
+		public virtual void EndToolbarUpdate() { }
+		public virtual void AddDocker(Docker d) { }
+		public virtual void AddDocker(Docker d, bool notify) { }
+		public virtual bool RemoveDocker(Docker d) { return false; }
+		public virtual bool SelectDocker(Docker d) { return false; }
+		public virtual void SelectPreviousDocker() { }
 
 		// IMainWindow
-		public void SetupInterface() { }
-		public void UpdateInterface() { }
-		public void UpdateStatus() { }
-		public void UpdateThingsFilters() { }
-		public void UpdateMapChangedStatus() { }
-		public void UpdateGZDoomPanel() { }
-		public void UpdateLinedefColorPresets() { }
-		public void UpdateZoom(float scale) { }
-		public void UpdateGrid(double gridsize) { }
-		public void ReflectThingsFilter() { }
-		public void EditModeChanged() { }
-		public void CheckEditModeButton(string modeclassname) { }
-		public void AddEditModeButton(EditModeInfo modeinfo) { }
-		public void AddEditModeSeperator(string group) { }
-		public void RemoveEditModeButtons() { }
-		public void ApplyShortcutKeys() { }
-		public void AddRecentFile(string filename) { }
-		public void AddHintsDocker() { }
-		public void RemoveHintsDocker() { }
-		public void ShowSplashDisplay() { }
-		public void ClearDisplay() { }
-		public void SetWarningsCount(int count, bool blink) { }
-		public void ResetClock() { }
-		public void DisableDynamicGridResize() { }
-		public void StopProcessing() { }
-		public void ShowErrors() { }
-		public void ShowConfiguration() { }
-		public void ShowConfigurationPage(int pageindex) { }
-		public void PerformAutoMapLoading() { }
-		public void ProcessQueuedUIActions() { }
-		public void RunOnUIThread(Action action) { action(); }
-		public void SpriteDataLoaded(string spritename) { }
-		public void ImageDataLoaded(string imagename) { }
-		public void ImageDataLoaded(ImageData img) { }
-		public void Show() { }
-		public void Update() { }
-		public void Close() { }
-		public void Dispose() { font.Dispose(); }
+		public virtual CodeImp.DoomBuilder.Rendering.IRenderBackend CreateRenderBackend() { return new CodeImp.DoomBuilder.Rendering.NullRenderBackend(); }
+		public virtual void SetupInterface() { }
+		public virtual void UpdateInterface() { }
+		public virtual void UpdateStatus() { }
+		public virtual void UpdateThingsFilters() { }
+		public virtual void UpdateMapChangedStatus() { }
+		public virtual void UpdateGZDoomPanel() { }
+		public virtual void UpdateLinedefColorPresets() { }
+		public virtual void UpdateZoom(float scale) { }
+		public virtual void UpdateGrid(double gridsize) { }
+		public virtual void ReflectThingsFilter() { }
+		public virtual void EditModeChanged() { }
+		public virtual void CheckEditModeButton(string modeclassname) { }
+		public virtual void AddEditModeButton(EditModeInfo modeinfo) { }
+		public virtual void AddEditModeSeperator(string group) { }
+		public virtual void RemoveEditModeButtons() { }
+		public virtual void ApplyShortcutKeys() { }
+		public virtual void AddRecentFile(string filename) { }
+		public virtual void AddHintsDocker() { }
+		public virtual void RemoveHintsDocker() { }
+		public virtual void ShowSplashDisplay() { }
+		public virtual void ClearDisplay() { }
+		public virtual void SetWarningsCount(int count, bool blink) { }
+		public virtual void ResetClock() { }
+		public virtual void DisableDynamicGridResize() { }
+		public virtual void StopProcessing() { }
+		public virtual void ShowErrors() { }
+		public virtual void ShowConfiguration() { }
+		public virtual void ShowConfigurationPage(int pageindex) { }
+		public virtual void PerformAutoMapLoading() { General.PerformAutoMapLoading(); }
+		public virtual void ProcessQueuedUIActions() { }
+		public virtual void RunOnUIThread(Action action) { action(); }
+		public virtual void SpriteDataLoaded(string spritename) { }
+		public virtual void ImageDataLoaded(string imagename) { }
+		public virtual void ImageDataLoaded(ImageData img) { }
+		public virtual void Show() { }
+		public virtual void Update() { }
+		public virtual void Close() { }
+		public virtual void Dispose() { font.Dispose(); }
 	}
 }

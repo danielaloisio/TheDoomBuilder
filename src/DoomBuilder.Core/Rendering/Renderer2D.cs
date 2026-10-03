@@ -371,8 +371,8 @@ namespace CodeImp.DoomBuilder.Rendering
 			DestroyRendertargets();
 
 			// Get new width and height
-			windowsize.Width = graphics.RenderTarget.ClientSize.Width;
-			windowsize.Height = graphics.RenderTarget.ClientSize.Height;
+			windowsize.Width = graphics.ClientSize.Width;
+			windowsize.Height = graphics.ClientSize.Height;
 
 			// Create rendertargets textures
 			plotter = new Plotter(windowsize.Width, windowsize.Height);
@@ -1614,7 +1614,7 @@ namespace CodeImp.DoomBuilder.Rendering
 			renderlayer = RenderLayers.Surface;
 
             // Recreate render targets if the window was resized
-            if (windowsize.Width != graphics.RenderTarget.ClientSize.Width || windowsize.Height != graphics.RenderTarget.ClientSize.Height)
+            if (windowsize.Width != graphics.ClientSize.Width || windowsize.Height != graphics.ClientSize.Height)
                 CreateRendertargets();
 
 			// Rendertargets available?

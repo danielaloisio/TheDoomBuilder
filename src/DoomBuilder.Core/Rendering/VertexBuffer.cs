@@ -1,39 +1,29 @@
-﻿using System;
-using System.Runtime.InteropServices;
+using System;
 
 namespace CodeImp.DoomBuilder.Rendering
 {
+    /// <summary>Vertex buffer handle. The GPU storage is owned by the <see cref="IRenderBackend"/> that fills it.</summary>
     public class VertexBuffer : IDisposable
     {
-        public VertexBuffer()
-        {
-            Handle = VertexBuffer_New();
-            if (Handle == IntPtr.Zero)
-                throw new Exception("VertexBuffer_New failed");
-        }
-
         ~VertexBuffer()
         {
             Dispose();
         }
 
-        public bool Disposed { get { return Handle == IntPtr.Zero; } }
+        public bool Disposed { get; private set; }
 
         public void Dispose()
         {
             if (!Disposed)
             {
-                VertexBuffer_Delete(Handle);
-                Handle = IntPtr.Zero;
+                Disposed = true;
+                Backend?.ReleaseResource(BackendData);
+                BackendData = null;
             }
         }
 
-        internal IntPtr Handle;
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern IntPtr VertexBuffer_New();
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void VertexBuffer_Delete(IntPtr handle);
+        /// <summary>Set by the backend that owns the GPU object (backend implementations live in another assembly).</summary>
+        public IRenderBackend Backend;
+        public object BackendData;
     }
 }

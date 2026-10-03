@@ -411,6 +411,13 @@ namespace CodeImp.DoomBuilder
 		/// <param name="message">Message to show</param>
 		private void CreateToast(ToastType type, string title, string message)
 		{ 
+			// No control to show toasts on (headless shell, or the Avalonia notification area is not wired up yet)
+			if(bindcontrol == null)
+			{
+				General.WriteLogLine("[toast] " + title + ": " + message);
+				return;
+			}
+
 			ToastControl tc = new ToastControl(type, title, message, duration);
 
 			// Set the initial y position of the control so that it's outside of the control the toast manager is bound to.

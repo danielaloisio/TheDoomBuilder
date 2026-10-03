@@ -258,8 +258,8 @@ namespace CodeImp.DoomBuilder.Editing
 			if(newscale < SCALE_MIN) newscale = SCALE_MIN;
 			
 			// Get the dimensions of the display
-			Vector2D clientsize = new Vector2D(General.Map.Graphics.RenderTarget.ClientSize.Width,
-			                                   General.Map.Graphics.RenderTarget.ClientSize.Height);
+			Vector2D clientsize = new Vector2D(General.Map.Graphics.ClientSize.Width,
+			                                   General.Map.Graphics.ClientSize.Height);
 			
 			// When mouse is inside display
 			if(mouseinside)
@@ -307,8 +307,8 @@ namespace CodeImp.DoomBuilder.Editing
 			if(!General.Settings.DynamicGridSize) return;
 
 			// Get the dimensions of the display
-			Vector2D clientsize = new Vector2D(General.Map.Graphics.RenderTarget.ClientSize.Width,
-											   General.Map.Graphics.RenderTarget.ClientSize.Height);
+			Vector2D clientsize = new Vector2D(General.Map.Graphics.ClientSize.Width,
+											   General.Map.Graphics.ClientSize.Height);
 
 			Vector2D clientscale = clientsize / renderer2d.Scale;
 
@@ -406,8 +406,8 @@ namespace CodeImp.DoomBuilder.Editing
 			area.Inflate(area.Width * padding, area.Height * padding);
 			
 			// Calculate scale to view map at
-			float scalew = General.Map.Graphics.RenderTarget.ClientSize.Width / area.Width;
-			float scaleh = General.Map.Graphics.RenderTarget.ClientSize.Height / area.Height;
+			float scalew = General.Map.Graphics.ClientSize.Width / area.Width;
+			float scaleh = General.Map.Graphics.ClientSize.Height / area.Height;
 			float scale = scalew < scaleh ? scalew : scaleh;
 			
 			//mxd. Change the view to see the whole map

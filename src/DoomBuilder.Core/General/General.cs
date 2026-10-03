@@ -202,6 +202,9 @@ namespace CodeImp.DoomBuilder
 		/// <summary>Set by the host application (Avalonia shell, tests) to create the main window implementation.</summary>
 		internal static Func<IMainWindow> MainWindowFactory;
 
+		/// <summary>Assemblies the host loaded itself that contain plugins (edit modes, a Plug class). Set before Startup.</summary>
+		internal static readonly List<Assembly> BuiltInPluginAssemblies = new List<Assembly>();
+
 		/// <summary>
 		/// Headless mode: sets up only the static services the map readers/writers touch
 		/// (error logger and a map manager), without UI, settings or game configurations.
@@ -245,6 +248,11 @@ namespace CodeImp.DoomBuilder
 
 		internal static void ShutdownHeadless()
 		{
+			// Release what holds files open (the map's WAD and temporary files). Windows refuses to delete open files.
+			if(map != null) { try { map.Dispose(); } catch(Exception e) { WriteLogLine("Error disposing the map: " + e.Message); } }
+			if(editing != null) { try { editing.Dispose(); } catch(Exception e) { WriteLogLine("Error disposing the editing manager: " + e.Message); } editing = null; }
+			if(plugins != null) { try { plugins.Dispose(); } catch(Exception e) { WriteLogLine("Error disposing plugins: " + e.Message); } plugins = null; }
+
 			map = null;
 			errorlogger = null;
 			mainwindow = null;
@@ -673,7 +681,8 @@ namespace CodeImp.DoomBuilder
 		/// <param name="mainwindowfactory">Creates the host's main window implementation.</param>
 		/// <param name="applicationdirectory">Folder holding the configuration assets; defaults to the application's base directory.</param>
 		/// <param name="settingsdirectory">Folder for user settings and the log; defaults to the user's local application data.</param>
-		/// <returns>True when startup succeeded and the host should run its event loop.</returns>
+		/// <returns>True when startup succeeded and the host should run its event loop. Once its window is shown the host must
+		/// call <c>MainWindow.PerformAutoMapLoading()</c> (what MainForm.Shown did), unless -delaywindow was given.</returns>
 		internal static bool Startup(string[] args, Func<IMainWindow> mainwindowfactory, string applicationdirectory = null, string settingsdirectory = null)
 		{
 			MainWindowFactory = mainwindowfactory;
@@ -897,6 +906,81 @@ namespace CodeImp.DoomBuilder
 			return false;
 		}
 
+		/// <summary>
+		/// Opens the map given on the command line (file, -map, -cfg ...). Shells call this once the main window is up.
+		/// Moved here from the WinForms MainForm: it only uses Core services.
+		/// </summary>
+		internal static void PerformAutoMapLoading()
+		{
+			// Check if the command line arguments tell us to load something
+			if(AutoLoadFile == null) return;
+
+			bool showdialog = false;
+			MapOptions options = new MapOptions();
+
+			// Any of the options already given?
+			if(AutoLoadMap != null)
+			{
+				Configuration mapsettings;
+
+				// Try to find existing options in the settings file
+				string dbsfile = Path.ChangeExtension(AutoLoadFile, "dbs");
+				if(File.Exists(dbsfile))
+					try { mapsettings = new Configuration(dbsfile, true); }
+					catch(Exception) { mapsettings = new Configuration(true); }
+				else
+					mapsettings = new Configuration(true);
+
+				//mxd. Get proper configuration file
+				bool longtexturenamessupported = false;
+				string configfile = null;
+				string compiler = null;
+
+				// Set the script type of the map if provided.
+				if(AutoLoadScriptConfig != null && CompiledScriptConfigs.ContainsKey(AutoLoadScriptConfig))
+					compiler = AutoLoadScriptConfig;
+
+				// Make sure the config file exists
+				if(GetConfigurationInfo(AutoLoadConfig) != null)
+					configfile = AutoLoadConfig;
+
+				if(string.IsNullOrEmpty(configfile)) configfile = mapsettings.ReadSetting("gameconfig", "");
+				if(configfile.Trim().Length == 0 || !ConfigurationInfoExist(configfile))
+				{
+					showdialog = true;
+				}
+				else
+				{
+					// Get if long texture names are supported from the game configuration
+					ConfigurationInfo configinfo = GetConfigurationInfo(configfile);
+					longtexturenamessupported = configinfo.Configuration.ReadSetting("longtexturenames", false);
+				}
+
+				// Set map name and other options
+				options = new MapOptions(mapsettings, AutoLoadMap, longtexturenamessupported);
+
+				// Set resource data locations
+				options.CopyResources(AutoLoadResources);
+
+				// Set strict patches
+				options.StrictPatches = AutoLoadStrictPatches;
+
+				// Set configuration file (constructor already does this, but we want this info from the cmd args if possible)
+				options.ConfigFile = configfile;
+
+				if(compiler != null) options.ScriptCompiler = compiler;
+			}
+			else
+			{
+				// No options given
+				showdialog = true;
+			}
+
+			// Show the open map dialog, or open directly with the options
+			if(showdialog) OpenMapFile(AutoLoadFile, null);
+			else OpenMapFileWithOptions(AutoLoadFile, options);
+		}
+
 		private static void RegisterToasts()
 		{
 			toastmanager.RegisterToast("resourcewarningsanderrors", "Resource warnings and errors", "When there are errors or warning while (re)loading the resources");
@@ -906,6 +990,16 @@ namespace CodeImp.DoomBuilder
 		// This parses the command line arguments
 		private static void ParseCommandLineArgs(string[] args)
 		{
+			// Start clean: the host may call Startup more than once in a process (tests do)
+			autoloadfile = null;
+			autoloadmap = null;
+			autoloadconfig = null;
+			autoloadscriptconfig = null;
+			autoloadstrictpatches = false;
+			delaymainwindow = false;
+			nosettings = false;
+			debugrenderdevice = false;
+
 			autoloadresources = new DataLocationList();
 			
 			// Keep a copy

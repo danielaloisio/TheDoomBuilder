@@ -2,10 +2,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:DoomBuilder.App"
         x:Class="DoomBuilder.App.MainWindow"
-        Width="900" Height="600"
-        Title="DoomBuilder - Fase 0">
+        Width="1100" Height="750"
+        Title="TheDoomBuilder">
     <DockPanel>
-        <TextBlock x:Name="InfoText" DockPanel.Dock="Bottom" Margin="8" TextWrapping="Wrap" Text="Aguardando contexto OpenGL..." />
+        <Border DockPanel.Dock="Bottom" Padding="8,4" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <TextBlock x:Name="StatusText" Text="Starting..." />
+        </Border>
         <local:MapViewport x:Name="Viewport" />
     </DockPanel>
 </Window>

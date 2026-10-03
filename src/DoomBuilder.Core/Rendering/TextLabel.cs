@@ -324,7 +324,7 @@ namespace CodeImp.DoomBuilder.Rendering
 
 					//mxd. Skip when not on screen...
 					RectangleF abssize = new RectangleF((float)beginx, (float)beginy, texturesize.Width, texturesize.Height);
-					Size windowsize = General.Map.Graphics.RenderTarget.ClientSize;
+					Size windowsize = General.Map.Graphics.ClientSize;
 					skiprendering = (abssize.Right < 0.1f) || (abssize.Left > windowsize.Width) || (abssize.Bottom < 0.1f) || (abssize.Top > windowsize.Height);
 					if(skiprendering) return;
 

@@ -14,6 +14,9 @@ namespace CodeImp.DoomBuilder.Windows
 		Font Font { get; }
 		StatusInfo Status { get; }
 
+		/// <summary>Creates the graphics backend for the display (the Avalonia shell binds it to its GL viewport).</summary>
+		CodeImp.DoomBuilder.Rendering.IRenderBackend CreateRenderBackend();
+
 		void SetupInterface();
 		void UpdateCoordinates(CodeImp.DoomBuilder.Geometry.Vector2D coords, bool snaptogrid);
 		void UpdateInterface();
