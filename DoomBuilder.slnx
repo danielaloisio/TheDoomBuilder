@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DoomBuilder.App/DoomBuilder.App.csproj" />
+    <Project Path="src/DoomBuilder.Core/DoomBuilder.Core.csproj" />
+    <Project Path="src/DoomBuilder.Rendering/DoomBuilder.Rendering.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DoomBuilder.Core.Tests/DoomBuilder.Core.Tests.csproj" />
+  </Folder>
+</Solution>
