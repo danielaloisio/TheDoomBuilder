@@ -103,4 +103,21 @@ public class OpenMapTests : IDisposable
         // No editing mode yet: modes come from the BuilderModes plugin, which is ported in Phase 5.
         Assert.Equal("MAP01", General.Map.Options.CurrentName);
     }
+
+    [Fact]
+    public void Shutdown_releases_the_map_file()
+    {
+        string wadpath = WriteSquareRoomWad();
+        string settings = Path.Combine(dir, "settings");
+        Directory.CreateDirectory(settings);
+
+        General.Startup(new[] { wadpath, "-map", "MAP01", "-cfg", "Doom_DoomDoom.cfg", "-nosettings" }, () => new HeadlessMainWindow(), appdir, settings);
+        General.MainWindow.PerformAutoMapLoading();
+        Assert.NotNull(General.Map);
+
+        General.ShutdownHeadless();
+
+        // Windows cannot delete an open file (this broke the CI cleanup); an exclusive open proves nothing holds it on any OS
+        using var exclusive = new FileStream(wadpath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+    }
 }

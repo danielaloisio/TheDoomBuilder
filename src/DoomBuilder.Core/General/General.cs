@@ -248,6 +248,11 @@ namespace CodeImp.DoomBuilder
 
 		internal static void ShutdownHeadless()
 		{
+			// Release what holds files open (the map's WAD and temporary files). Windows refuses to delete open files.
+			if(map != null) { try { map.Dispose(); } catch(Exception e) { WriteLogLine("Error disposing the map: " + e.Message); } }
+			if(editing != null) { try { editing.Dispose(); } catch(Exception e) { WriteLogLine("Error disposing the editing manager: " + e.Message); } editing = null; }
+			if(plugins != null) { try { plugins.Dispose(); } catch(Exception e) { WriteLogLine("Error disposing plugins: " + e.Message); } plugins = null; }
+
 			map = null;
 			errorlogger = null;
 			mainwindow = null;
@@ -985,6 +990,16 @@ namespace CodeImp.DoomBuilder
 		// This parses the command line arguments
 		private static void ParseCommandLineArgs(string[] args)
 		{
+			// Start clean: the host may call Startup more than once in a process (tests do)
+			autoloadfile = null;
+			autoloadmap = null;
+			autoloadconfig = null;
+			autoloadscriptconfig = null;
+			autoloadstrictpatches = false;
+			delaymainwindow = false;
+			nosettings = false;
+			debugrenderdevice = false;
+
 			autoloadresources = new DataLocationList();
 			
 			// Keep a copy
