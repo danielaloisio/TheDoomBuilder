@@ -1,9 +1,30 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>CodeImp.DoomBuilder</RootNamespace>
+    <!-- Symbols already supported by the UDB sources (BuilderMono.csproj) -->
+    <DefineConstants>$(DefineConstants);USE_CSHARP_MATH;NO_WIN32;NO_UPDATER;NO_SCINTILLA;NO_FORMS_DESIGN</DefineConstants>
+    <NoWarn>$(NoWarn);CA2022;CS0067;CS0618;CS0649;CS0169;CS0414;CS0108;CS0659;CS0661;CA1416</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpCompress" Version="0.50.4" />
+    <PackageReference Include="SkiaSharp" Version="4.153.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DoomBuilder.Core.Tests" />
+    <InternalsVisibleTo Include="DoomBuilder.App" />
+  </ItemGroup>
 
 </Project>
