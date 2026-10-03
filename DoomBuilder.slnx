@@ -6,5 +6,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DoomBuilder.Core.Tests/DoomBuilder.Core.Tests.csproj" />
+    <Project Path="tests/DoomBuilder.Rendering.Tests/DoomBuilder.Rendering.Tests.csproj" />
   </Folder>
 </Solution>

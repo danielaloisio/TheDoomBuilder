@@ -1,39 +1,29 @@
-﻿using System;
-using System.Runtime.InteropServices;
+using System;
 
 namespace CodeImp.DoomBuilder.Rendering
 {
+    /// <summary>Index buffer handle. The GPU object is owned by the <see cref="IRenderBackend"/> that fills it.</summary>
     public class IndexBuffer : IDisposable
     {
-        public IndexBuffer()
-        {
-            Handle = IndexBuffer_New();
-            if (Handle == IntPtr.Zero)
-                throw new Exception("IndexBuffer_New failed");
-        }
-
         ~IndexBuffer()
         {
             Dispose();
         }
 
-        public bool Disposed { get { return Handle == IntPtr.Zero; } }
+        public bool Disposed { get; private set; }
 
         public void Dispose()
         {
             if (!Disposed)
             {
-                IndexBuffer_Delete(Handle);
-                Handle = IntPtr.Zero;
+                Disposed = true;
+                Backend?.ReleaseResource(BackendData);
+                BackendData = null;
             }
         }
 
-        internal IntPtr Handle;
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern IntPtr IndexBuffer_New();
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void IndexBuffer_Delete(IntPtr handle);
+        /// <summary>Set by the backend that owns the GPU object (backend implementations live in another assembly).</summary>
+        public IRenderBackend Backend;
+        public object BackendData;
     }
 }

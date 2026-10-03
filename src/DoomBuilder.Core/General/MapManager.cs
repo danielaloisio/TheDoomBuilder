@@ -277,7 +277,7 @@ namespace CodeImp.DoomBuilder
 
 			// Initiate graphics
 			General.WriteLogLine("Initializing graphics device...");
-			graphics = new RenderDevice(General.MainWindow.Display);
+			graphics = new RenderDevice(General.MainWindow.CreateRenderBackend());
 
 			// Create renderers
 			renderer2d = new Renderer2D(graphics);
@@ -387,7 +387,7 @@ namespace CodeImp.DoomBuilder
 
 			// Initiate graphics
 			General.WriteLogLine("Initializing graphics device...");
-			graphics = new RenderDevice(General.MainWindow.Display);
+			graphics = new RenderDevice(General.MainWindow.CreateRenderBackend());
 
 			// Create renderers
 			renderer2d = new Renderer2D(graphics);

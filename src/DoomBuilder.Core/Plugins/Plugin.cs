@@ -79,6 +79,28 @@ namespace CodeImp.DoomBuilder.Plugins
 				throw new InvalidProgramException();
 			}
 			
+			FindAndCreatePlug(shortfilename);
+
+			// We have no destructor
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>
+		/// Creates a plugin from an assembly that is already loaded in this process (for example the host application, or a
+		/// plugin that ships statically linked) instead of loading a DLL from the Plugins folder.
+		/// </summary>
+		public Plugin(Assembly assembly)
+		{
+			name = assembly.GetName().Name;
+			asm = assembly;
+			General.WriteLogLine("Loading built-in plugin \"" + name + "\"...");
+			FindAndCreatePlug(name);
+			GC.SuppressFinalize(this);
+		}
+
+		// Finds the Plug class in the assembly and creates it, verifying the revision requirements
+		private void FindAndCreatePlug(string shortfilename)
+		{
 			// Find the class that inherits from Plugin
 			Type t = FindSingleClass(typeof(Plug));
 			if(t != null)
@@ -131,9 +153,6 @@ namespace CodeImp.DoomBuilder.Plugins
 				General.ErrorLogger.Add(ErrorType.Error, "Could not load plugin \"" + shortfilename + "\", plugin is missing the Plug class. This file is not supposed to be in the Plugins subdirectory.");
 				throw new InvalidProgramException();
 			}
-			
-			// We have no destructor
-			GC.SuppressFinalize(this);
 		}
 
 		// Disposer

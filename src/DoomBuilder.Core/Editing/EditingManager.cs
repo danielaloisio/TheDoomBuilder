@@ -405,6 +405,15 @@ namespace CodeImp.DoomBuilder.Editing
 		public void ChangeMode(string classname, params object[] args)
 		{
 			EditModeInfo emi = GetEditModeInfo(classname);
+
+			// The game configuration names a start mode that may not be available (its plugin is not loaded): use the first mode we have
+			if(emi == null && usedmodes.Count > 0 && mode == null)
+			{
+				General.WriteLogLine("Edit mode \"" + classname + "\" is not available, using \"" + usedmodes[0].Type.Name + "\" instead.");
+				emi = usedmodes[0];
+				args = new object[0];
+			}
+
 			if(emi != null) emi.SwitchToMode(args);
 		}
 

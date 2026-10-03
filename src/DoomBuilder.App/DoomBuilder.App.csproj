@@ -2,9 +2,21 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <!-- The editor's game configurations, scripts, snippets, sprites... (the same layout UDB ships next to its executable) -->
+  <ItemGroup>
+    <Content Include="..\..\assets\Common\**\*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\Linux\**\*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+    <Content Include="..\..\assets\samples\*" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.3" />
@@ -19,5 +31,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DoomBuilder.Rendering\DoomBuilder.Rendering.csproj" />
+    <ProjectReference Include="..\DoomBuilder.Core\DoomBuilder.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Actions.cfg" />
+  </ItemGroup>
+
 </Project>

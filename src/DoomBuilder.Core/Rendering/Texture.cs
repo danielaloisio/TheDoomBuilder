@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+using System;
 
 namespace CodeImp.DoomBuilder.Rendering
 {
@@ -17,13 +16,16 @@ namespace CodeImp.DoomBuilder.Rendering
         D24_S8
     }
 
-    public class BaseTexture : IDisposable
+    /// <summary>Texture handle. The GPU object is owned by the <see cref="IRenderBackend"/> that fills it.</summary>
+    public abstract class BaseTexture : IDisposable
     {
-        public BaseTexture()
+        protected BaseTexture(int width, int height, TextureFormat format, bool cube)
         {
-            Handle = Texture_New();
-            if (Handle == IntPtr.Zero)
-                throw new Exception("Texture_New failed");
+            // The native renderer silently turned bad sizes into 16, so callers never had to care.
+            Width = width < 1 ? 16 : width;
+            Height = height < 1 ? 16 : height;
+            Format = format;
+            IsCube = cube;
         }
 
         ~BaseTexture()
@@ -31,66 +33,47 @@ namespace CodeImp.DoomBuilder.Rendering
             Dispose();
         }
 
-        public bool Disposed { get { return Handle == IntPtr.Zero; } }
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+        public TextureFormat Format { get; private set; }
+        public bool IsCube { get; private set; }
+
+        public bool Disposed { get; private set; }
 
         public void Dispose()
         {
             if (!Disposed)
             {
-                Texture_Delete(Handle);
-                Handle = IntPtr.Zero;
+                Disposed = true;
+                Backend?.ReleaseResource(BackendData);
+                BackendData = null;
             }
         }
 
-        internal IntPtr Handle;
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        protected static extern IntPtr Texture_New();
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        protected static extern void Texture_Delete(IntPtr handle);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        protected static extern void Texture_Set2DImage(IntPtr handle, int width, int height, TextureFormat format);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        protected static extern void Texture_SetCubeImage(IntPtr handle, int size, TextureFormat format);
+        /// <summary>Set by the backend that owns the GPU object (backend implementations live in another assembly).</summary>
+        public IRenderBackend Backend;
+        public object BackendData;
     }
 
     public class Texture : BaseTexture
     {
-        public Texture(int width, int height, TextureFormat format)
+        public Texture(int width, int height, TextureFormat format) : base(width, height, format, false)
         {
-            Width = width;
-            Height = height;
-            Format = format;
-            Texture_Set2DImage(Handle, Width, Height, Format);
         }
 
-        public Texture(RenderDevice device, System.Drawing.Bitmap bitmap)
+        public Texture(RenderDevice device, System.Drawing.Bitmap bitmap) : base(bitmap.Width, bitmap.Height, TextureFormat.Bgra8, false)
         {
-            Width = bitmap.Width;
-            Height = bitmap.Height;
-            Format = TextureFormat.Bgra8;
-            Texture_Set2DImage(Handle, Width, Height, Format);
             device.SetPixels(this, bitmap);
         }
 
-        public Texture(RenderDevice device, System.Drawing.Image image)
+        public Texture(RenderDevice device, System.Drawing.Image image) : this(device, ToBitmap(image))
         {
-            using (var bitmap = new System.Drawing.Bitmap(image))
-            {
-                Width = bitmap.Width;
-                Height = bitmap.Height;
-                Format = TextureFormat.Bgra8;
-                Texture_Set2DImage(Handle, Width, Height, Format);
-                device.SetPixels(this, bitmap);
-            }
         }
 
-        public int Width { get; private set; }
-        public int Height { get; private set; }
-        public TextureFormat Format { get; private set; }
+        private static System.Drawing.Bitmap ToBitmap(System.Drawing.Image image)
+        {
+            return new System.Drawing.Bitmap(image);
+        }
 
         public object Tag { get; set; }
         public int UserData { get; set; }
@@ -98,9 +81,8 @@ namespace CodeImp.DoomBuilder.Rendering
 
     public class CubeTexture : BaseTexture
     {
-        public CubeTexture(RenderDevice device, int size)
+        public CubeTexture(RenderDevice device, int size) : base(size, size, TextureFormat.Bgra8, true)
         {
-            Texture_SetCubeImage(Handle, size, TextureFormat.Bgra8);
         }
     }
 

@@ -7,6 +7,8 @@
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>CodeImp.DoomBuilder</RootNamespace>
+    <!-- Must stay "Builder": action names are "<assembly>_<action>" (builder_showerrors...) and are stored in user settings and referenced by plugins. -->
+    <AssemblyName>Builder</AssemblyName>
     <!-- Symbols already supported by the UDB sources (BuilderMono.csproj) -->
     <DefineConstants>$(DefineConstants);USE_CSHARP_MATH;NO_WIN32;NO_UPDATER;NO_SCINTILLA;NO_FORMS_DESIGN</DefineConstants>
     <NoWarn>$(NoWarn);CA2022;CS0067;CS0618;CS0649;CS0169;CS0414;CS0108;CS0659;CS0661;CA1416</NoWarn>
@@ -14,8 +16,9 @@
 
   <ItemGroup>
     <PackageReference Include="SharpCompress" Version="0.50.4" />
-    <PackageReference Include="SkiaSharp" Version="4.153.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
+    <!-- Keep in step with the SkiaSharp that Avalonia.Skia brings: two native libSkiaSharp versions cannot coexist in one process -->
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +28,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="DoomBuilder.Core.Tests" />
     <InternalsVisibleTo Include="DoomBuilder.App" />
+    <InternalsVisibleTo Include="DoomBuilder.Rendering.Tests" />
   </ItemGroup>
 
 </Project>

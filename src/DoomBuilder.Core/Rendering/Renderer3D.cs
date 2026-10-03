@@ -266,8 +266,8 @@ namespace CodeImp.DoomBuilder.Rendering
 		internal void CreateProjection()
 		{
 			// Calculate aspect
-			float screenheight = General.Map.Graphics.RenderTarget.ClientSize.Height * (General.Settings.GZStretchView ? General.Map.Data.InvertedVerticalViewStretch : 1.0f); //mxd
-			float aspect = General.Map.Graphics.RenderTarget.ClientSize.Width / screenheight;
+			float screenheight = General.Map.Graphics.ClientSize.Height * (General.Settings.GZStretchView ? General.Map.Data.InvertedVerticalViewStretch : 1.0f); //mxd
+			float aspect = General.Map.Graphics.ClientSize.Width / screenheight;
 			
 			// The DirectX PerspectiveFovRH matrix method calculates the scaling in X and Y as follows:
 			// yscale = 1 / tan(fovY / 2)
@@ -333,7 +333,7 @@ namespace CodeImp.DoomBuilder.Rendering
 		// This creates 2D view matrix
 		private void CreateMatrices2D()
 		{
-			windowsize = graphics.RenderTarget.ClientSize;
+			windowsize = graphics.ClientSize;
 			Matrix scaling = Matrix.Scaling((1f / windowsize.Width) * 2f, (1f / windowsize.Height) * -2f, 1f);
 			Matrix translate = Matrix.Translation(-(float)windowsize.Width * 0.5f, -(float)windowsize.Height * 0.5f, 0f);
 			view2d = translate * scaling;

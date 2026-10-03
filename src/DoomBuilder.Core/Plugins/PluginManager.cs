@@ -99,8 +99,24 @@ namespace CodeImp.DoomBuilder.Plugins
 		
 		
 		// This loads all plugins
+		/// <summary>Registers an assembly that is already loaded (the host app, a statically linked plugin) as a plugin.</summary>
+		public void LoadBuiltInPlugin(Assembly assembly)
+		{
+			try
+			{
+				Plugin p = new Plugin(assembly);
+				plugins.Add(p);
+				General.Actions.LoadActions(p.Assembly);
+				General.Hints.LoadHints(p.Assembly);
+				p.Plug.OnInitialize();
+			}
+			catch(InvalidProgramException) { }   // already reported to the error logger
+		}
+
 		public void LoadAllPlugins()
 		{
+			foreach(Assembly builtin in General.BuiltInPluginAssemblies) LoadBuiltInPlugin(builtin);
+
 			IDictionary loadorderfiles = new ListDictionary();
 			
 			try
