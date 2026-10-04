@@ -28,6 +28,18 @@ namespace CodeImp.DoomBuilder.Windows
 		/// <summary>The list of errors and warnings the editor has collected (<see cref="ErrorLogger"/>).</summary>
 		void ShowErrors();
 
+		/// <summary>
+		/// The game configurations (resources, nodebuilders, test program, editing modes), opened on a page (-1 for the first).
+		/// On OK the changes are already applied and saved; <paramref name="reloadresources"/> tells whether the open map must reload its resources.
+		/// </summary>
+		DialogResult ShowConfiguration(int page, out bool reloadresources);
+
+		/// <summary>
+		/// The program preferences. On OK they are already applied to the settings; <paramref name="reloadresources"/> tells whether the
+		/// open map must load its resources again.
+		/// </summary>
+		DialogResult ShowPreferences(out bool reloadresources);
+
 		/// <summary>Program name, version and links.</summary>
 		void ShowAbout();
 	}
@@ -49,6 +61,8 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual DialogResult ShowMapOptions(MapOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowOpenMapOptions(OpenMapOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowChangeMap(ChangeMapForm form) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowConfiguration(int page, out bool reloadresources) { reloadresources = false; return DialogResult.Cancel; }
+		public virtual DialogResult ShowPreferences(out bool reloadresources) { reloadresources = false; return DialogResult.Cancel; }
 		public virtual void ShowErrors() { }
 		public virtual void ShowAbout() { }
 	}
@@ -65,6 +79,8 @@ namespace CodeImp.DoomBuilder.Windows
 		public Func<MapOptionsForm, DialogResult> OnMapOptions;
 		public Func<OpenMapOptionsForm, DialogResult> OnOpenMapOptions;
 		public Func<ChangeMapForm, DialogResult> OnChangeMap;
+		public Func<int, DialogResult> OnConfiguration;
+		public Func<DialogResult> OnPreferences;
 		public int ErrorsShown;
 		public int AboutShown;
 
@@ -85,6 +101,8 @@ namespace CodeImp.DoomBuilder.Windows
 		public override DialogResult ShowMapOptions(MapOptionsForm form) { return OnMapOptions != null ? OnMapOptions(form) : DialogResult.Cancel; }
 		public override DialogResult ShowOpenMapOptions(OpenMapOptionsForm form) { return OnOpenMapOptions != null ? OnOpenMapOptions(form) : DialogResult.Cancel; }
 		public override DialogResult ShowChangeMap(ChangeMapForm form) { return OnChangeMap != null ? OnChangeMap(form) : DialogResult.Cancel; }
+		public override DialogResult ShowConfiguration(int page, out bool reloadresources) { reloadresources = false; return OnConfiguration != null ? OnConfiguration(page) : DialogResult.Cancel; }
+		public override DialogResult ShowPreferences(out bool reloadresources) { reloadresources = false; return OnPreferences != null ? OnPreferences() : DialogResult.Cancel; }
 		public override void ShowErrors() { ErrorsShown++; }
 		public override void ShowAbout() { AboutShown++; }
 	}

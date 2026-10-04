@@ -38,6 +38,21 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
         viewport.SizeChanged += (s, e) => display.ClientSize = new System.Drawing.Size(viewport.PixelSize.Width, viewport.PixelSize.Height);
     }
 
+    /// <summary>The "opencommandpalette" action ran.</summary>
+    public event Action CommandPaletteRequested;
+
+    // Ends the action (not begins it) because of how keys are stored while it runs: a key still held would otherwise stay pressed
+    [CodeImp.DoomBuilder.Actions.EndAction("opencommandpalette", BaseAction = true)]
+    public void OpenCommandPalette() => CommandPaletteRequested?.Invoke();
+
+    /// <summary>The tabs of the side panel.</summary>
+    public DockerModel Dockers { get; } = new DockerModel();
+
+    private Docker hintsDocker;
+
+    /// <summary>The panel of the "Help" docker.</summary>
+    public Shell.HintsPanel HintsPanel { get; } = new Shell.HintsPanel();
+
     /// <summary>Keyboard and mouse go through here.</summary>
     public InputDispatcher Input { get; }
 
@@ -94,6 +109,47 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     public override void UpdateGrid(double gridsize) => GridChanged?.Invoke(gridsize);
     public override void SetWarningsCount(int count, bool blink) => RunOnUIThread(() => WarningsChanged?.Invoke(count, blink));
 
+    /// <summary>The game configurations dialog; on OK the interface, edit modes and plugins are refreshed and resources reloaded if needed.</summary>
+    [CodeImp.DoomBuilder.Actions.BeginAction("configuration", BaseAction = true)]
+    public override void ShowConfiguration() => ShowConfigurationPage(-1);
+
+    public override void ShowConfigurationPage(int pageindex)
+    {
+        if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => ShowConfigurationPage(pageindex)); return; }
+
+        if (General.Dialogs.ShowConfiguration(pageindex, out bool reload) != System.Windows.Forms.DialogResult.OK) return;
+
+        UpdateInterface();
+        General.Editing.UpdateCurrentEditModes();
+        General.Plugins.ProgramReconfigure();
+        General.SaveSettings();
+        if (General.Map != null && reload) General.Actions.InvokeAction("builder_reloadresources");
+        RedrawDisplay();
+    }
+
+    /// <summary>The preferences dialog; on OK the interface, colors, plugins and the open map are brought up to date.</summary>
+    [CodeImp.DoomBuilder.Actions.BeginAction("preferences", BaseAction = true)]
+    public void ShowPreferences()
+    {
+        if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(ShowPreferences); return; }
+
+        if (General.Dialogs.ShowPreferences(out bool reload) != System.Windows.Forms.DialogResult.OK) return;
+
+        UpdateInterface();
+        ApplyShortcutKeys();
+        General.Colors.CreateCorrectionTable();
+        General.Plugins.ProgramReconfigure();
+        General.SaveSettings();
+
+        if (General.Map != null)
+        {
+            General.Map.Graphics.SetupSettings();
+            General.Map.UpdateConfiguration();
+            if (reload) General.Actions.InvokeAction("builder_reloadresources");
+        }
+        RedrawDisplay();
+    }
+
     /// <summary>Shows the list of errors and warnings (the "showerrors" action, the status bar indicator and the settings that open it on errors).</summary>
     [CodeImp.DoomBuilder.Actions.BeginAction("showerrors", BaseAction = true)]
     public override void ShowErrors()
@@ -110,9 +166,65 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     public override void EditModeChanged() => InterfaceChanged?.Invoke();
     public override void CheckEditModeButton(string modeclassname) => InterfaceChanged?.Invoke();
 
-    public override void ShowHints(string hints) => HintsChanged?.Invoke(hints);
+    public override void ShowHints(string hints)
+    {
+        if (string.IsNullOrEmpty(hints)) HintsPanel.ClearHints(); else HintsPanel.SetHints(hints);
+        HintsChanged?.Invoke(hints);
+    }
 
-    public override void ClearHints() => HintsChanged?.Invoke(string.Empty);
+    public override void ClearHints()
+    {
+        HintsPanel.ClearHints();
+        HintsChanged?.Invoke(string.Empty);
+    }
+
+    // ---- dockers. A plugin's docker is named after the plugin (prefix_name), found from the assembly that calls us
+
+    private static string PrefixOf(System.Reflection.Assembly caller)
+    {
+        string name = General.Plugins?.FindPluginByAssembly(caller)?.Name ?? caller.GetName().Name;
+        return name.ToLowerInvariant();
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddDocker(Docker d) => Dockers.Add(d, false, PrefixOf(System.Reflection.Assembly.GetCallingAssembly()));
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddDocker(Docker d, bool notify) => Dockers.Add(d, notify, PrefixOf(System.Reflection.Assembly.GetCallingAssembly()));
+
+    public override bool RemoveDocker(Docker d)
+    {
+        if (!Dockers.Contains(d)) return true;      // already removed or never added
+        Input.ReleaseAllKeys();                      // the focus may move to the docker that takes over
+        return Dockers.Remove(d);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override bool SelectDocker(Docker d)
+    {
+        if (!Dockers.Contains(d)) return false;
+        Input.ReleaseAllKeys();
+        return Dockers.Select(d, PrefixOf(System.Reflection.Assembly.GetCallingAssembly()));
+    }
+
+    public override void SelectPreviousDocker()
+    {
+        Input.ReleaseAllKeys();
+        Dockers.SelectPrevious();
+    }
+
+    public override string ActiveDockerTabName => Dockers.SelectedTitle;
+
+    public override void AddHintsDocker()
+    {
+        hintsDocker ??= Shell.AvaloniaDocker.Create("hints", "Help", HintsPanel);
+        if (!Dockers.Contains(hintsDocker)) Dockers.Add(hintsDocker, false);
+    }
+
+    public override void RemoveHintsDocker()
+    {
+        if (hintsDocker != null) Dockers.Remove(hintsDocker);
+    }
 
     // ---- input state (what edit modes ask the main window)
 

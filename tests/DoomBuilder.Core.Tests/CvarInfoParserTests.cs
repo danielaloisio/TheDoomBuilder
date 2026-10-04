@@ -86,7 +86,7 @@ namespace DoomBuilder.Core.Tests
 			}
 			else if (expectedValue is string)
 			{
-				bool cvarExists = parser.Cvars.Strings.TryGetValue(varName, out string? stringValue);
+				bool cvarExists = parser.Cvars.Strings.TryGetValue(varName, out string stringValue);
 				Assert.True(cvarExists, "CVAR exists, but is not a string");
 				Assert.Equal(expectedValue, stringValue);
 			}

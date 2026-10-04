@@ -35,6 +35,8 @@ namespace System.Windows.Forms
         public void Focus() { }
         public Point PointToClient(Point p) => p;
         public Point PointToScreen(Point p) => p;
+        /// <summary>The Avalonia control that really shows this one (typed object: the Core has no UI reference). Dockers use it.</summary>
+        public object NativeControl { get; set; }
     }
     public class Panel : Control { }
     public class ComboBox : Control { public List<object> Items { get; } = new List<object>(); }
