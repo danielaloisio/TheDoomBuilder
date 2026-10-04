@@ -24,7 +24,7 @@ public class UiModelTests
         Assert.Contains(model["statusbar"].AllItems(), i => i.Name == "zoomlabel");
     }
 
-    [Fact]
+    [AvaloniaFact]     // decodes bitmaps, which needs the Avalonia rendering platform (headless) up
     public void Every_item_that_invokes_an_action_names_one_and_every_icon_exists()
     {
         var model = UiModel.Load();
