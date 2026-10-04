@@ -26,6 +26,9 @@ public class ViewerMode : ClassicMode
     {
         base.OnEngage();
         renderer.SetPresentation(Presentation.Standard);
+
+        // Fit the map in the window (the edit modes of UDB do this through the same action)
+        CenterInScreen();
     }
 
     public override void OnRedrawDisplay()

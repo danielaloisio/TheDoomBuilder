@@ -11,7 +11,6 @@ namespace CodeImp.DoomBuilder.Rendering
         public float M31, M32, M33, M34;
         public float M41, M42, M43, M44;
 
-#if USE_CSHARP_MATH
 
         public static Matrix Null
         {
@@ -161,116 +160,6 @@ namespace CodeImp.DoomBuilder.Rendering
             return Matrix.Multiply(a, b);
         }
 
-#else
-
-        public static Matrix Null
-        {
-            get
-            {
-                Matrix result = new Matrix();
-                Matrix_Null(out result);
-                return result;
-            }
-        }
-
-        public static Matrix Identity
-        {
-            get
-            {
-                Matrix result = new Matrix();
-                Matrix_Identity(out result);
-                return result;
-            }
-        }
-
-        public static Matrix Translation(Vector3f v)
-        {
-            Matrix result = new Matrix();
-            Matrix_Translation(v.X, v.Y, v.Z, out result);
-            return result;
-        }
-
-        public static Matrix Translation(float x, float y, float z)
-        {
-            Matrix result = new Matrix();
-            Matrix_Translation(x, y, z, out result);
-            return result;
-        }
-
-        public static Matrix RotationX(float angle)
-        {
-            Matrix result = new Matrix();
-            Matrix_RotationX(angle, out result);
-            return result;
-        }
-
-        public static Matrix RotationY(float angle)
-        {
-            Matrix result = new Matrix();
-            Matrix_RotationY(angle, out result);
-            return result;
-        }
-
-        public static Matrix RotationZ(float angle)
-        {
-            Matrix result = new Matrix();
-            Matrix_RotationZ(angle, out result);
-            return result;
-        }
-
-        public static Matrix Scaling(float x, float y, float z)
-        {
-            Matrix result = new Matrix();
-            Matrix_Scaling(x, y, z, out result);
-            return result;
-        }
-
-        public static Matrix Scaling(Vector3f v)
-        {
-            Matrix result = new Matrix();
-            Matrix_Scaling(v.X, v.Y, v.Z, out result);
-            return result;
-        }
-
-        public static Matrix Multiply(Matrix left, Matrix right)
-        {
-            Matrix result = new Matrix();
-            Matrix_Multiply(ref left, ref right, out result);
-            return result;
-        }
-
-        public static Matrix operator *(Matrix a, Matrix b)
-        {
-            Matrix result = new Matrix();
-            Matrix_Multiply(ref a, ref b, out result);
-            return result;
-        }
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_Null(out Matrix c);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_Identity(out Matrix c);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_Translation(float x, float y, float z, out Matrix c);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_RotationX(float angle, out Matrix c);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_RotationY(float angle, out Matrix c);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_RotationZ(float angle, out Matrix c);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_Scaling(float x, float y, float z, out Matrix c);
-
-        [DllImport("BuilderNative", CallingConvention = CallingConvention.Cdecl)]
-        static extern void Matrix_Multiply(ref Matrix a, ref Matrix b, out Matrix c);
-
-#endif
 
         public static Matrix LookAt(Vector3f eye, Vector3f target, Vector3f up)
         {

@@ -5,6 +5,7 @@
     <Project Path="src/DoomBuilder.Rendering/DoomBuilder.Rendering.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DoomBuilder.App.Tests/DoomBuilder.App.Tests.csproj" />
     <Project Path="tests/DoomBuilder.Core.Tests/DoomBuilder.Core.Tests.csproj" />
     <Project Path="tests/DoomBuilder.Rendering.Tests/DoomBuilder.Rendering.Tests.csproj" />
   </Folder>

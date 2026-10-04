@@ -10,7 +10,7 @@
     <!-- Must stay "Builder": action names are "<assembly>_<action>" (builder_showerrors...) and are stored in user settings and referenced by plugins. -->
     <AssemblyName>Builder</AssemblyName>
     <!-- Symbols already supported by the UDB sources (BuilderMono.csproj) -->
-    <DefineConstants>$(DefineConstants);USE_CSHARP_MATH;NO_WIN32;NO_UPDATER;NO_SCINTILLA;NO_FORMS_DESIGN</DefineConstants>
+    <DefineConstants>$(DefineConstants);NO_WIN32;NO_UPDATER;NO_SCINTILLA;NO_FORMS_DESIGN</DefineConstants>
     <NoWarn>$(NoWarn);CA2022;CS0067;CS0618;CS0649;CS0169;CS0414;CS0108;CS0659;CS0661;CA1416</NoWarn>
   </PropertyGroup>
 
@@ -29,6 +29,7 @@
     <InternalsVisibleTo Include="DoomBuilder.Core.Tests" />
     <InternalsVisibleTo Include="DoomBuilder.App" />
     <InternalsVisibleTo Include="DoomBuilder.Rendering.Tests" />
+    <InternalsVisibleTo Include="DoomBuilder.App.Tests" />
   </ItemGroup>
 
 </Project>

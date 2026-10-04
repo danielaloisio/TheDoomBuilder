@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -25,6 +25,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DoomBuilder.Core\DoomBuilder.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Actions.cfg" />
   </ItemGroup>
 
 </Project>

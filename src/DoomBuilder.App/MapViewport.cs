@@ -32,6 +32,12 @@ public class MapViewport : OpenGlControlBase
 
     public string GlInfo { get { return Backend.GlInfo; } }
 
+    /// <summary>
+    /// The element that receives the pointer events for this display. A GL control is not hit-testable on its own, so the
+    /// window puts a transparent panel around it; anything that listens to the pointer (exclusive mouse mode) must use this.
+    /// </summary>
+    public Control InputSurface { get; set; }
+
     public MapViewport()
     {
         ClipToBounds = true;

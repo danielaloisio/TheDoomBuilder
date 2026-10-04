@@ -37,4 +37,8 @@
     <EmbeddedResource Include="Actions.cfg" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="DoomBuilder.App.Tests" />
+  </ItemGroup>
+
 </Project>
