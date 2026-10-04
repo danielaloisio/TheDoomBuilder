@@ -44,9 +44,13 @@ public partial class MainWindow : Avalonia.Controls.Window
         shell.GridChanged += size => GridText.Text = size == 0 ? "--" : size + " mp";
         shell.CoordinatesChanged += (coords, snapped) => CoordsText.Text = $"{coords.x:0}, {coords.y:0}";
         shell.WarningsChanged += (count, blink) => WarningsText.Text = count.ToString();
+        WarningsText.Cursor = new Avalonia.Input.Cursor(StandardCursorType.Hand);
+        WarningsText.PointerPressed += (s, e) => { if (EditorRunning) shell.ShowErrors(); };
         shell.InterfaceChanged += RefreshInterface;
         shell.RecentFilesChanged += ShowRecentFiles;
         Closing += OnClosing;
+        PositionChanged += (s, e) => RememberNormalBounds();
+        PropertyChanged += (s, e) => { if (e.Property == WidthProperty || e.Property == HeightProperty) RememberNormalBounds(); };
         Closed += (s, e) => General.ExitRequested -= OnExitRequested;
 
         Viewport.Paint += OnPaint;
@@ -135,6 +139,7 @@ public partial class MainWindow : Avalonia.Controls.Window
                 shell.Input.StopExclusiveMouseInput();
                 shell.Input.StopProcessing();
                 shell.Recent.Save();
+                CapturePlacement().Save();
 
                 closeapproved = true;
                 General.Terminate(true);
@@ -143,6 +148,39 @@ public partial class MainWindow : Avalonia.Controls.Window
             }
             finally { closeinprogress = false; }
         });
+    }
+
+    // The size and position of the last session, on a screen that still exists
+    private void RestorePlacement()
+    {
+        var saved = CodeImp.DoomBuilder.Windows.WindowPlacement.Load();
+        if (saved == null) return;
+
+        var screens = new System.Collections.Generic.List<int[]>();
+        foreach (var screen in Screens.All) screens.Add(new[] { screen.WorkingArea.X, screen.WorkingArea.Y, screen.WorkingArea.Width, screen.WorkingArea.Height });
+        var fit = saved.FitTo(screens);
+
+        WindowState = WindowState.Normal;
+        Position = new PixelPoint(fit.X, fit.Y);
+        Width = fit.Width / RenderScaling;
+        Height = fit.Height / RenderScaling;
+        if (fit.Maximized) WindowState = WindowState.Maximized;
+    }
+
+    // The restored bounds (not the maximized ones) are what comes back next time
+    private CodeImp.DoomBuilder.Windows.WindowPlacement CapturePlacement()
+    {
+        bool maximized = WindowState == WindowState.Maximized;
+        if (maximized && lastNormal != null) return new CodeImp.DoomBuilder.Windows.WindowPlacement(lastNormal.X, lastNormal.Y, lastNormal.Width, lastNormal.Height, true);
+        return new CodeImp.DoomBuilder.Windows.WindowPlacement(Position.X, Position.Y, (int)Math.Round(Width * RenderScaling), (int)Math.Round(Height * RenderScaling), maximized);
+    }
+
+    private CodeImp.DoomBuilder.Windows.WindowPlacement lastNormal;   // bounds of the window while it was not maximized
+
+    private void RememberNormalBounds()
+    {
+        if (WindowState == WindowState.Normal)
+            lastNormal = new CodeImp.DoomBuilder.Windows.WindowPlacement(Position.X, Position.Y, (int)Math.Round(Width * RenderScaling), (int)Math.Round(Height * RenderScaling), false);
     }
 
     // What MainForm.RedrawDisplay did: let the active edit mode draw
@@ -171,6 +209,8 @@ public partial class MainWindow : Avalonia.Controls.Window
             return;
         }
 
+        RestorePlacement();
+        General.Actions.BindMethods(shell);                                 // "showerrors" lives in the shell, like MainForm's actions
         shell.Recent.Load();
         ShowRecentFiles();
 

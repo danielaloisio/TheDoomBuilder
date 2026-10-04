@@ -24,6 +24,12 @@ namespace CodeImp.DoomBuilder.Windows
 
 		/// <summary>Switch to another map of the same WAD.</summary>
 		DialogResult ShowChangeMap(ChangeMapForm form);
+
+		/// <summary>The list of errors and warnings the editor has collected (<see cref="ErrorLogger"/>).</summary>
+		void ShowErrors();
+
+		/// <summary>Program name, version and links.</summary>
+		void ShowAbout();
 	}
 
 	/// <summary>
@@ -43,6 +49,8 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual DialogResult ShowMapOptions(MapOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowOpenMapOptions(OpenMapOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowChangeMap(ChangeMapForm form) { return DialogResult.Cancel; }
+		public virtual void ShowErrors() { }
+		public virtual void ShowAbout() { }
 	}
 
 	/// <summary>
@@ -57,6 +65,8 @@ namespace CodeImp.DoomBuilder.Windows
 		public Func<MapOptionsForm, DialogResult> OnMapOptions;
 		public Func<OpenMapOptionsForm, DialogResult> OnOpenMapOptions;
 		public Func<ChangeMapForm, DialogResult> OnChangeMap;
+		public int ErrorsShown;
+		public int AboutShown;
 
 		public override DialogResult ShowMessage(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton defaultbutton)
 		{
@@ -75,5 +85,7 @@ namespace CodeImp.DoomBuilder.Windows
 		public override DialogResult ShowMapOptions(MapOptionsForm form) { return OnMapOptions != null ? OnMapOptions(form) : DialogResult.Cancel; }
 		public override DialogResult ShowOpenMapOptions(OpenMapOptionsForm form) { return OnOpenMapOptions != null ? OnOpenMapOptions(form) : DialogResult.Cancel; }
 		public override DialogResult ShowChangeMap(ChangeMapForm form) { return OnChangeMap != null ? OnChangeMap(form) : DialogResult.Cancel; }
+		public override void ShowErrors() { ErrorsShown++; }
+		public override void ShowAbout() { AboutShown++; }
 	}
 }

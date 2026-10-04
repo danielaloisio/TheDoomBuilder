@@ -49,6 +49,8 @@ public sealed class ShellCommands
                 if (General.Map == null || General.Editing.Mode == null) return false;
                 General.Editing.Mode.OnHelp();
                 return true;
+            case "itemhelpabout_Click": General.Dialogs.ShowAbout(); return true;
+            case "warnsLabel_Click": General.MainWindow.ShowErrors(); return true;
             case "itemopenconfigfolder_Click": return OpenFolder(General.SettingsPath);
             default: return false;
         }

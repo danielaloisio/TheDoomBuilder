@@ -94,6 +94,15 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     public override void UpdateGrid(double gridsize) => GridChanged?.Invoke(gridsize);
     public override void SetWarningsCount(int count, bool blink) => RunOnUIThread(() => WarningsChanged?.Invoke(count, blink));
 
+    /// <summary>Shows the list of errors and warnings (the "showerrors" action, the status bar indicator and the settings that open it on errors).</summary>
+    [CodeImp.DoomBuilder.Actions.BeginAction("showerrors", BaseAction = true)]
+    public override void ShowErrors()
+    {
+        if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(ShowErrors); return; }
+        General.Dialogs.ShowErrors();
+        SetWarningsCount(General.ErrorLogger.ErrorsCount, false);
+    }
+
     public override void UpdateInterface() => InterfaceChanged?.Invoke();
     public override void SetupInterface() => InterfaceChanged?.Invoke();
     public override void UpdateMapChangedStatus() => InterfaceChanged?.Invoke();

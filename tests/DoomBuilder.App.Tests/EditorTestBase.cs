@@ -26,8 +26,28 @@ public abstract class EditorTestBase : IDisposable
     protected readonly string dir = Path.Combine(Path.GetTempPath(), "udb-app-" + Guid.NewGuid().ToString("N"));
     protected MainWindow window;
 
+    private readonly System.Collections.Generic.List<DispatcherTimer> timers = new System.Collections.Generic.List<DispatcherTimer>();
+
+    /// <summary>When a dialog of type T appears over the main window, runs <paramref name="act"/> on it (once).</summary>
+    protected void WhenShown<T>(Action<T> act) where T : Window
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5) };
+        timers.Add(timer);
+        timer.Tick += (s, e) =>
+        {
+            var dialog = window.OwnedWindows.OfType<T>().FirstOrDefault();
+            if (dialog == null || !dialog.IsVisible) return;
+            timer.Stop();
+            act(dialog);
+        };
+        timer.Start();
+    }
+
+    protected static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+
     public virtual void Dispose()
     {
+        foreach (var t in timers) t.Stop();
         // Closing asks to save a changed map; a test that left changes behind must not hang its teardown on that question
         // (IsChanged can be recomputed, so also swap in a service that answers "No" without showing anything)
         if (General.Map != null) General.Map.IsChanged = false;
@@ -74,6 +94,11 @@ public abstract class EditorTestBase : IDisposable
             : new[] { "-nosettings" };
 
         window = new MainWindow();
+
+        // Startup warnings open the (modal) errors window by default, like in the application: nobody is there to read it
+        var startup = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5) };
+        startup.Tick += (s, e) => window.OwnedWindows.OfType<DoomBuilder.App.Dialogs.ErrorsWindow>().FirstOrDefault()?.Close();
+        startup.Start();
         window.Show();
 
         // StartEditor is posted from Opened; it opens the map synchronously
@@ -89,6 +114,8 @@ public abstract class EditorTestBase : IDisposable
         }
         Assert.NotNull(General.Actions);
         Dispatcher.UIThread.RunJobs();
+        startup.Stop();
+        if (General.Settings != null) General.Settings.ShowErrorsWindow = false;   // later maps would open it too; tests that want it call ShowErrors()
     }
 
     /// <summary>A position in the display (viewport) as the window's coordinates, which is what synthetic input uses.</summary>
