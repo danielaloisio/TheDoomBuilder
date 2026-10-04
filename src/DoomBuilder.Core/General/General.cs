@@ -202,6 +202,10 @@ namespace CodeImp.DoomBuilder
 		/// <summary>Set by the host application (Avalonia shell, tests) to create the main window implementation.</summary>
 		internal static Func<IMainWindow> MainWindowFactory;
 
+		/// <summary>The host's dialogs (message boxes, file dialogs, map options). Cancels everything until a host provides one.</summary>
+		public static IDialogService Dialogs { get { return dialogs; } set { dialogs = value ?? new NoDialogs(); } }
+		private static IDialogService dialogs = new NoDialogs();
+
 		/// <summary>Assemblies the host loaded itself that contain plugins (edit modes, a Plug class). Set before Startup.</summary>
 		internal static readonly List<Assembly> BuiltInPluginAssemblies = new List<Assembly>();
 
@@ -1241,17 +1245,16 @@ namespace CodeImp.DoomBuilder
 
 				// Application ends here and now
 				General.WriteLogLine("Termination done");
-				ExitRequested?.Invoke(true);
 			}
 			else
 			{
 				// Just end now
 				General.WriteLogLine("Immediate program termination");
-				ExitRequested?.Invoke(false);
 			}
 
-			// Die.
-			Process.GetCurrentProcess().Kill();
+			// A host (the Avalonia shell) closes its own windows and ends the program. Without one (a command-line tool), die.
+			if(ExitRequested != null) ExitRequested(properexit);
+			else Process.GetCurrentProcess().Kill();
 		}
 		
 #endregion

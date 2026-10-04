@@ -2,16 +2,25 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:DoomBuilder.App"
         x:Class="DoomBuilder.App.MainWindow"
-        Width="1100" Height="750"
+        Width="1200" Height="800"
         Title="TheDoomBuilder">
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" Padding="8,4" BorderThickness="0,1,0,0"
+        <ContentControl x:Name="MenuHost" DockPanel.Dock="Top" />
+        <ContentControl x:Name="ToolbarHost" DockPanel.Dock="Top" />
+
+        <Border DockPanel.Dock="Bottom" Padding="8,3" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-            <DockPanel LastChildFill="True">
-                <TextBlock x:Name="HintsText" DockPanel.Dock="Right" Margin="16,0,0,0" Opacity="0.7" TextWrapping="NoWrap" />
-                <TextBlock x:Name="StatusText" Text="Starting..." />
-            </DockPanel>
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="14">
+                <TextBlock x:Name="StatusText" Grid.Column="0" Text="Starting..." TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="HintsText" Grid.Column="1" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxWidth="420" />
+                <TextBlock x:Name="ConfigText" Grid.Column="2" Opacity="0.8" />
+                <TextBlock x:Name="GridText" Grid.Column="3" Text="--" MinWidth="50" />
+                <TextBlock x:Name="ZoomText" Grid.Column="4" Text="100%" MinWidth="44" />
+                <TextBlock x:Name="CoordsText" Grid.Column="5" Text="0, 0" MinWidth="80" />
+                <TextBlock x:Name="WarningsText" Grid.Column="6" Text="0" MinWidth="24" />
+            </Grid>
         </Border>
+
         <!-- The transparent panel is what receives the pointer: a GL control is not hit-testable on its own -->
         <Panel x:Name="InputSurface" Background="Transparent">
             <local:MapViewport x:Name="Viewport" />

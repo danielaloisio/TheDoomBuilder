@@ -52,17 +52,12 @@ namespace System.Windows.Forms
 
     public static class MessageBox
     {
-        // Headless default: log and answer with the dialog's affirmative/neutral choice.
         public static DialogResult Show(string text) => Show(text, "", MessageBoxButtons.OK);
         public static DialogResult Show(string text, string caption) => Show(text, caption, MessageBoxButtons.OK);
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons, MessageBoxIcon.None);
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon) => Show(text, caption, buttons, icon, MessageBoxDefaultButton.Button1);
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton def)
-        {
-            Console.Error.WriteLine($"[MessageBox] {caption}: {text}");
-            return buttons == MessageBoxButtons.YesNo || buttons == MessageBoxButtons.YesNoCancel ? DialogResult.No
-                 : buttons == MessageBoxButtons.OKCancel ? DialogResult.Cancel : DialogResult.OK;
-        }
+            => CodeImp.DoomBuilder.General.Dialogs.ShowMessage(text, caption, buttons, icon, def);
         public static DialogResult Show(IWin32Window owner, string text) => Show(text);
         public static DialogResult Show(IWin32Window owner, string text, string caption) => Show(text, caption);
         public static DialogResult Show(IWin32Window owner, string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons);
@@ -74,7 +69,10 @@ namespace System.Windows.Forms
     public class FileDialog : Form
     {
         public string FileName { get; set; } = "";
-        public string[] FileNames => new[] { FileName };
+        public string[] FileNames { get { return _filenames ?? new[] { FileName }; } set { _filenames = value; } }
+        private string[] _filenames;
+        public override DialogResult ShowDialog() => CodeImp.DoomBuilder.General.Dialogs.ShowFileDialog(this);
+        public override DialogResult ShowDialog(IWin32Window owner) => CodeImp.DoomBuilder.General.Dialogs.ShowFileDialog(this);
         public string Filter { get; set; }
         public int FilterIndex { get; set; }
         public string InitialDirectory { get; set; }
@@ -153,19 +151,27 @@ namespace CodeImp.DoomBuilder.Windows
 {
     public class MapOptionsForm : Form
     {
-        public MapOptions Options { get; }
-        public MapOptionsForm(MapOptions options, bool newmap) { Options = options; }
+        /// <summary>The options being edited; after OK, the result.</summary>
+        public MapOptions Options { get; set; }
+        /// <summary>True when creating a new map, false when editing the open one.</summary>
+        public bool NewMap { get; }
+        public MapOptionsForm(MapOptions options, bool newmap) { Options = options; NewMap = newmap; }
+        public override DialogResult ShowDialog(IWin32Window owner) => CodeImp.DoomBuilder.General.Dialogs.ShowMapOptions(this);
     }
     public class OpenMapOptionsForm : Form
     {
-        public MapOptions Options { get; }
-        public OpenMapOptionsForm(string filename) { }
-        public OpenMapOptionsForm(string filename, MapOptions options) { Options = options; }
+        public string FileName { get; }
+        public MapOptions Options { get; set; }
+        public OpenMapOptionsForm(string filename) { FileName = filename; }
+        public OpenMapOptionsForm(string filename, MapOptions options) { FileName = filename; Options = options; }
+        public override DialogResult ShowDialog(IWin32Window owner) => CodeImp.DoomBuilder.General.Dialogs.ShowOpenMapOptions(this);
     }
     public class ChangeMapForm : Form
     {
-        public MapOptions Options { get; }
-        public ChangeMapForm(string filename, MapOptions options) { Options = options; }
+        public string FileName { get; }
+        public MapOptions Options { get; set; }
+        public ChangeMapForm(string filename, MapOptions options) { FileName = filename; Options = options; }
+        public override DialogResult ShowDialog(IWin32Window owner) => CodeImp.DoomBuilder.General.Dialogs.ShowChangeMap(this);
     }
     public class CenterOnCoordinatesForm : Form { public Vector2D Coordinates { get; } }
     public class PasteOptionsForm : Form { public PasteOptions Options { get; } }

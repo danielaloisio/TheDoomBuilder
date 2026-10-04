@@ -47,6 +47,25 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     /// <summary>Raised when an edit mode shows hints about its keys (null/empty clears them).</summary>
     public event Action<string> HintsChanged;
 
+    /// <summary>The map, the mode or the settings changed: menus, toolbar and title must be refreshed.</summary>
+    public event Action InterfaceChanged;
+
+    public event Action<float> ZoomChanged;
+    public event Action<double> GridChanged;
+    public event Action<Vector2D, bool> CoordinatesChanged;
+    public event Action<int, bool> WarningsChanged;
+
+    /// <summary>The recent files list changed.</summary>
+    public event Action RecentFilesChanged;
+
+    public CodeImp.DoomBuilder.Windows.RecentFiles Recent { get; } = new CodeImp.DoomBuilder.Windows.RecentFiles();
+
+    public override void AddRecentFile(string filename)
+    {
+        Recent.Add(filename);
+        RecentFilesChanged?.Invoke();
+    }
+
     // ---- rendering / threading
 
     public override IRenderBackend CreateRenderBackend() => viewport.Backend;
@@ -71,7 +90,16 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     public override void DisplayReady() => DisplayStatus(StatusType.Ready, "Ready.");
 
-    public override void UpdateZoom(float scale) => StatusChanged?.Invoke("Zoom " + (int)Math.Round(scale * 100) + "%");
+    public override void UpdateZoom(float scale) => ZoomChanged?.Invoke(scale);
+    public override void UpdateGrid(double gridsize) => GridChanged?.Invoke(gridsize);
+    public override void SetWarningsCount(int count, bool blink) => RunOnUIThread(() => WarningsChanged?.Invoke(count, blink));
+
+    public override void UpdateInterface() => InterfaceChanged?.Invoke();
+    public override void SetupInterface() => InterfaceChanged?.Invoke();
+    public override void UpdateMapChangedStatus() => InterfaceChanged?.Invoke();
+    public override void UpdateThingsFilters() => InterfaceChanged?.Invoke();
+    public override void EditModeChanged() => InterfaceChanged?.Invoke();
+    public override void CheckEditModeButton(string modeclassname) => InterfaceChanged?.Invoke();
 
     public override void ShowHints(string hints) => HintsChanged?.Invoke(hints);
 
@@ -111,10 +139,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     public override void UpdateCoordinates(Vector2D coords) => UpdateCoordinates(coords, false);
 
-    public override void UpdateCoordinates(Vector2D coords, bool snaptogrid)
-    {
-        StatusChanged?.Invoke($"{coords.x:0}, {coords.y:0}");
-    }
+    public override void UpdateCoordinates(Vector2D coords, bool snaptogrid) => CoordinatesChanged?.Invoke(coords, snaptogrid);
 
     // ---- IInputHost
 
