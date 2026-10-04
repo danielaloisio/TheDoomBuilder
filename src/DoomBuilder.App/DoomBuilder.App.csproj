@@ -37,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Actions.cfg" />
+    <EmbeddedResource Include="Resources\mainform-ui.json" />
   </ItemGroup>
 
   <ItemGroup>

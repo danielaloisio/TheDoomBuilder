@@ -1,0 +1,1622 @@
+{
+ "menumain": {
+  "kind": "MenuStrip",
+  "items": [
+   {
+    "type": "menu",
+    "name": "menufile",
+    "text": "&File",
+    "items": [
+     {
+      "type": "menu",
+      "name": "itemnewmap",
+      "text": "&New Map",
+      "action": "builder_newmap",
+      "image": "File",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemopenmap",
+      "text": "&Open Map...",
+      "action": "builder_openmap",
+      "image": "OpenMap",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemopenmapincurwad",
+      "text": "Open Map in Current &WAD...",
+      "action": "builder_openmapincurrentwad",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemclosemap",
+      "text": "&Close Map",
+      "action": "builder_closemap",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorfileopen"
+     },
+     {
+      "type": "menu",
+      "name": "itemsavemap",
+      "text": "&Save Map",
+      "action": "builder_savemap",
+      "image": "SaveMap",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemsavemapas",
+      "text": "Save Map &As...",
+      "action": "builder_savemapas",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemsavemapinto",
+      "text": "Save Map &Into...",
+      "action": "builder_savemapinto",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorfilesave"
+     },
+     {
+      "type": "menu",
+      "name": "itemimport",
+      "text": "Import"
+     },
+     {
+      "type": "menu",
+      "name": "itemexport",
+      "text": "Export"
+     },
+     {
+      "type": "separator",
+      "name": "separatorio"
+     },
+     {
+      "type": "menu",
+      "name": "itemnorecent",
+      "text": "No recently opened files"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorfilerecent"
+     },
+     {
+      "type": "menu",
+      "name": "itemexit",
+      "text": "E&xit",
+      "handler": "itemexit_Click"
+     }
+    ]
+   },
+   {
+    "type": "menu",
+    "name": "menuedit",
+    "text": "&Edit",
+    "items": [
+     {
+      "type": "menu",
+      "name": "itemundo",
+      "text": "&Undo",
+      "action": "builder_undo",
+      "image": "Undo",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemredo",
+      "text": "&Redo",
+      "action": "builder_redo",
+      "image": "Redo",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatoreditundo"
+     },
+     {
+      "type": "menu",
+      "name": "itemcut",
+      "text": "Cu&t",
+      "action": "builder_cutselection",
+      "image": "Cut",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemcopy",
+      "text": "&Copy",
+      "action": "builder_copyselection",
+      "image": "Copy",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itempaste",
+      "text": "&Paste",
+      "action": "builder_pasteselection",
+      "image": "Paste",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itempastespecial",
+      "text": "Paste Special...",
+      "action": "builder_pasteselectionspecial",
+      "image": "PasteSpecial",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatoreditcopypaste"
+     },
+     {
+      "type": "menu",
+      "name": "itemmergegeoclassic",
+      "text": "Merge Dragged Vertices Only",
+      "action": "builder_geomergeclassic",
+      "image": "MergeGeoClassic",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemmergegeo",
+      "text": "Merge Dragged Geometry",
+      "action": "builder_geomerge",
+      "image": "MergeGeo",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemreplacegeo",
+      "text": "Replace with Dragged Geometry",
+      "action": "builder_georeplace",
+      "image": "MergeGeoRemoveLines",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "separatorgeomerge"
+     },
+     {
+      "type": "menu",
+      "name": "itemsnaptogrid",
+      "text": "&Snap to Grid",
+      "action": "builder_togglesnap",
+      "image": "Grid4",
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemdynamicgridsize",
+      "text": "Dynamic Grid Size",
+      "action": "builder_toggledynamicgrid",
+      "image": "GridDynamic",
+      "checkonclick": true,
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemautomerge",
+      "text": "Snap to &Geometry",
+      "action": "builder_toggleautomerge",
+      "image": "mergegeometry2",
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemsplitjoinedsectors",
+      "text": "Split &Joined Sectors when Drawing Lines",
+      "action": "builder_togglejoinedsectorssplitting",
+      "image": "SplitSectors",
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemautoclearsidetextures",
+      "text": "&Auto Clear Sidedef Textures",
+      "action": "builder_toggleautoclearsidetextures",
+      "image": "ClearTextures",
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatoreditgeometry"
+     },
+     {
+      "type": "menu",
+      "name": "itemgridinc",
+      "text": "&Increase Grid Size",
+      "action": "builder_griddec",
+      "image": "GridIncrease",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemgriddec",
+      "text": "&Decrease Grid Size",
+      "action": "builder_gridinc",
+      "image": "GridDecrease",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemdosnaptogrid",
+      "text": "Snap Selection to Grid",
+      "action": "builder_snapvertstogrid",
+      "image": "SnapVerts",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemaligngridtolinedef",
+      "text": "Align Grid To Selected Linedef",
+      "action": "builder_aligngridtolinedef",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemsetgridorigintovertex",
+      "text": "Set Grid Origin To Selected Vertex",
+      "action": "builder_setgridorigintovertex",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemresetgrid",
+      "text": "Reset Grid Transform",
+      "action": "builder_resetgrid",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemgridsetup",
+      "text": "&Grid and Backdrop Setup...",
+      "action": "builder_gridsetup",
+      "image": "Grid2",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "toolStripSeparator5"
+     },
+     {
+      "type": "menu",
+      "name": "addToGroup",
+      "text": "Add Selection to Group",
+      "image": "GroupAdd"
+     },
+     {
+      "type": "menu",
+      "name": "selectGroup",
+      "text": "Select Group",
+      "image": "Group"
+     },
+     {
+      "type": "menu",
+      "name": "clearGroup",
+      "text": "Clear Group",
+      "image": "GroupRemove"
+     },
+     {
+      "type": "separator",
+      "name": "seperatoreditgrid"
+     },
+     {
+      "type": "menu",
+      "name": "itemmapoptions",
+      "text": "Map &Options...",
+      "action": "builder_mapoptions",
+      "image": "Properties",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemviewusedtags",
+      "text": "View Used Tags...",
+      "action": "builder_viewusedtags",
+      "image": "TagStatistics",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemviewthingtypes",
+      "text": "View Thing Types...",
+      "action": "builder_viewthingtypes",
+      "image": "ThingStatistics",
+      "handler": "InvokeTaggedAction"
+     }
+    ]
+   },
+   {
+    "type": "menu",
+    "name": "menuview",
+    "text": "&View",
+    "items": [
+     {
+      "type": "menu",
+      "name": "itemthingsfilter",
+      "text": "Configure &Things Filters...",
+      "action": "builder_thingsfilterssetup",
+      "image": "Filter",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemlinedefcolors",
+      "text": "Configure &Linedef Colors...",
+      "action": "builder_linedefcolorssetup",
+      "image": "LinedefColorPresets",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorviewthings"
+     },
+     {
+      "type": "menu",
+      "name": "itemviewnormal",
+      "text": "&Wireframe",
+      "action": "builder_viewmodenormal",
+      "image": "ViewNormal",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemviewbrightness",
+      "text": "&Brightness Levels",
+      "action": "builder_viewmodebrightness",
+      "image": "ViewBrightness",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemviewfloors",
+      "text": "&Floor Textures",
+      "action": "builder_viewmodefloors",
+      "image": "ViewTextureFloor",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemviewceilings",
+      "text": "&Ceiling Textures",
+      "action": "builder_viewmodeceilings",
+      "image": "ViewTextureCeiling",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorviewviews"
+     },
+     {
+      "type": "menu",
+      "name": "itemfullbrightness",
+      "text": "Full Brightness",
+      "action": "builder_togglebrightness",
+      "image": "Brightness",
+      "checkonclick": true,
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtogglegrid",
+      "text": "&Render Grid",
+      "action": "builder_togglegrid",
+      "image": "Grid2",
+      "checkonclick": true,
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtogglecomments",
+      "text": "Show Comments",
+      "action": "builder_togglecomments",
+      "image": "Comment",
+      "checkonclick": true,
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtogglefixedthingsscale",
+      "text": "Fixed Things Scale",
+      "action": "builder_togglefixedthingsscale",
+      "image": "FixedThingsScale",
+      "checkonclick": true,
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtogglealwaysshowvertices",
+      "text": "Always Show Vertices",
+      "action": "builder_togglealwaysshowvertices",
+      "checkonclick": true,
+      "checked": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "separatorrendering"
+     },
+     {
+      "type": "menu",
+      "name": "itemdynlightmodes",
+      "text": "Dynamic light rendering mode",
+      "image": "Light",
+      "items": [
+       {
+        "type": "menu",
+        "name": "itemnodynlights",
+        "text": "Don't show dynamic lights",
+        "action": "0",
+        "image": "LightDisabled",
+        "checkonclick": true,
+        "handler": "ChangeLightRenderingMode"
+       },
+       {
+        "type": "menu",
+        "name": "itemdynlights",
+        "text": "Show dynamic lights",
+        "action": "1",
+        "image": "Light",
+        "checkonclick": true,
+        "handler": "ChangeLightRenderingMode"
+       },
+       {
+        "type": "menu",
+        "name": "itemdynlightsanim",
+        "text": "Show animated dynamic lights",
+        "action": "2",
+        "image": "Light_animate",
+        "checkonclick": true,
+        "handler": "ChangeLightRenderingMode"
+       }
+      ]
+     },
+     {
+      "type": "menu",
+      "name": "itemmodelmodes",
+      "text": "Model rendering mode",
+      "image": "Model",
+      "items": [
+       {
+        "type": "menu",
+        "name": "itemnomdl",
+        "text": "Don't show models",
+        "action": "0",
+        "image": "ModelDisabled",
+        "checkonclick": true,
+        "handler": "ChangeModelRenderingMode"
+       },
+       {
+        "type": "menu",
+        "name": "itemselmdl",
+        "text": "Show models for selected Things only",
+        "action": "1",
+        "image": "Model_selected",
+        "checkonclick": true,
+        "handler": "ChangeModelRenderingMode"
+       },
+       {
+        "type": "menu",
+        "name": "itemfiltermdl",
+        "text": "Show models for current Things Filter only",
+        "action": "2",
+        "image": "ModelFiltered",
+        "checkonclick": true,
+        "handler": "ChangeModelRenderingMode"
+       },
+       {
+        "type": "menu",
+        "name": "itemallmdl",
+        "text": "Always show models",
+        "action": "3",
+        "image": "Model",
+        "checkonclick": true,
+        "handler": "ChangeModelRenderingMode"
+       }
+      ]
+     },
+     {
+      "type": "menu",
+      "name": "itemtogglefog",
+      "text": "Render fog (Visual mode)",
+      "action": "builder_gztogglefog",
+      "image": "fog",
+      "checkonclick": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtogglesky",
+      "text": "Render sky (Visual mode)",
+      "action": "builder_gztogglesky",
+      "image": "Sky",
+      "checkonclick": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtoggleclassicrendering",
+      "text": "Classic rendering (Visual mode)",
+      "action": "builder_toggleclassicrendering",
+      "image": "ClassicRendering",
+      "checkonclick": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtoggleeventlines",
+      "text": "Show Event Lines",
+      "action": "builder_gztoggleeventlines",
+      "image": "InfoLine",
+      "checkonclick": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtogglevisualverts",
+      "text": "Show Editable Vertices (Visual mode)",
+      "action": "builder_gztogglevisualvertices",
+      "image": "VisualVertices",
+      "checkonclick": true,
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "separatorhelpers"
+     },
+     {
+      "type": "menu",
+      "name": "menuzoom",
+      "text": "&Zoom",
+      "image": "Zoom",
+      "items": [
+       {
+        "type": "menu",
+        "name": "item2zoom800",
+        "text": "800%",
+        "action": "800",
+        "handler": "itemzoomto_Click"
+       },
+       {
+        "type": "menu",
+        "name": "item2zoom400",
+        "text": "400%",
+        "action": "400",
+        "handler": "itemzoomto_Click"
+       },
+       {
+        "type": "menu",
+        "name": "item2zoom200",
+        "text": "200%",
+        "action": "200",
+        "handler": "itemzoomto_Click"
+       },
+       {
+        "type": "menu",
+        "name": "item2zoom100",
+        "text": "100%",
+        "action": "100",
+        "handler": "itemzoomto_Click"
+       },
+       {
+        "type": "menu",
+        "name": "item2zoom50",
+        "text": "50%",
+        "action": "50",
+        "handler": "itemzoomto_Click"
+       },
+       {
+        "type": "menu",
+        "name": "item2zoom25",
+        "text": "25%",
+        "action": "25",
+        "handler": "itemzoomto_Click"
+       },
+       {
+        "type": "menu",
+        "name": "item2zoom10",
+        "text": "10%",
+        "action": "10",
+        "handler": "itemzoomto_Click"
+       },
+       {
+        "type": "menu",
+        "name": "item2zoom5",
+        "text": "5%",
+        "action": "5",
+        "handler": "itemzoomto_Click"
+       }
+      ]
+     },
+     {
+      "type": "menu",
+      "name": "itemgotocoords",
+      "text": "Go To Coordinates...",
+      "action": "builder_centeroncoordinates",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemfittoscreen",
+      "text": "Fit to Screen",
+      "action": "builder_centerinscreen",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemtoggleinfo",
+      "text": "&Expanded Info Panel",
+      "action": "builder_toggleinfopanel",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorviewzoom"
+     },
+     {
+      "type": "menu",
+      "name": "itemscripteditor",
+      "text": "&Script Editor...",
+      "action": "builder_openscripteditor",
+      "image": "Script2",
+      "handler": "InvokeTaggedAction"
+     }
+    ]
+   },
+   {
+    "type": "menu",
+    "name": "menumode",
+    "text": "&Mode",
+    "items": [
+     {
+      "type": "separator",
+      "name": "separatorDrawModes"
+     },
+     {
+      "type": "separator",
+      "name": "separatorTransformModes"
+     }
+    ]
+   },
+   {
+    "type": "menu",
+    "name": "menuprefabs",
+    "text": "&Prefabs",
+    "items": [
+     {
+      "type": "menu",
+      "name": "iteminsertprefabfile",
+      "text": "&Insert Prefab from File...",
+      "action": "builder_insertprefabfile",
+      "image": "Prefab",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "iteminsertpreviousprefab",
+      "text": "Insert &Previous Prefab",
+      "action": "builder_insertpreviousprefab",
+      "image": "Prefab2",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorprefabsinsert"
+     },
+     {
+      "type": "menu",
+      "name": "itemcreateprefab",
+      "text": "&Create From Selection...",
+      "action": "builder_createprefab",
+      "handler": "InvokeTaggedAction"
+     }
+    ]
+   },
+   {
+    "type": "menu",
+    "name": "menutools",
+    "text": "&Tools",
+    "items": [
+     {
+      "type": "menu",
+      "name": "itemreloadresources",
+      "text": "&Reload Resources",
+      "action": "builder_reloadresources",
+      "image": "Reload",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemReloadModedef",
+      "text": "Reload MODELDEF/VOXELDEF",
+      "action": "builder_gzreloadmodeldef",
+      "image": "Reload",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemReloadGldefs",
+      "text": "Reload GLDEFS",
+      "action": "builder_gzreloadgldefs",
+      "image": "Reload",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemshowerrors",
+      "text": "&Errors and Warnings...",
+      "action": "builder_showerrors",
+      "image": "Warning",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatortoolsresources"
+     },
+     {
+      "type": "menu",
+      "name": "configurationToolStripMenuItem",
+      "text": "&Game Configurations...",
+      "action": "builder_configuration",
+      "image": "Configuration",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "preferencesToolStripMenuItem",
+      "text": "Preferences...",
+      "action": "builder_preferences",
+      "image": "Preferences",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "seperatortoolsconfig"
+     },
+     {
+      "type": "menu",
+      "name": "itemsavescreenshot",
+      "text": "Save Screenshot",
+      "action": "builder_savescreenshot",
+      "image": "Screenshot",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "menu",
+      "name": "itemsaveeditareascreenshot",
+      "text": "Save Screenshot (active window)",
+      "action": "builder_saveeditareascreenshot",
+      "image": "ScreenshotActiveWindow",
+      "handler": "InvokeTaggedAction"
+     },
+     {
+      "type": "separator",
+      "name": "separatortoolsscreenshots"
+     },
+     {
+      "type": "menu",
+      "name": "itemtestmap",
+      "text": "&Test Map",
+      "action": "builder_testmap",
+      "image": "Test",
+      "handler": "InvokeTaggedAction"
+     }
+    ]
+   },
+   {
+    "type": "menu",
+    "name": "menuhelp",
+    "text": "&Help",
+    "items": [
+     {
+      "type": "menu",
+      "name": "itemhelprefmanual",
+      "text": "Reference &Manual",
+      "image": "Help",
+      "handler": "itemhelprefmanual_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemShortcutReference",
+      "text": "Keyboard Shortcuts Reference",
+      "image": "Keyboard",
+      "handler": "itemShortcutReference_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemopenconfigfolder",
+      "text": "Program Configuration Folder",
+      "image": "FolderExplore",
+      "handler": "itemopenconfigfolder_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemhelpeditmode",
+      "text": "About this &Editing Mode",
+      "image": "Question",
+      "handler": "itemhelpeditmode_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemhelpissues",
+      "text": "&GitHub issues tracker",
+      "image": "Github",
+      "handler": "itemhelpissues_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemhelpcheckupdates",
+      "text": "&Check for updates...",
+      "image": "Update",
+      "handler": "itemhelpcheckupdates_Click"
+     },
+     {
+      "type": "separator",
+      "name": "seperatorhelpmanual"
+     },
+     {
+      "type": "menu",
+      "name": "itemhelpabout",
+      "text": "&About Ultimate Doom Builder...",
+      "image": "About",
+      "handler": "itemhelpabout_Click"
+     }
+    ]
+   }
+  ]
+ },
+ "toolbar": {
+  "kind": "ToolStrip",
+  "items": [
+   {
+    "type": "button",
+    "name": "buttonnewmap",
+    "text": "New Map",
+    "action": "builder_newmap",
+    "image": "NewMap",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonopenmap",
+    "text": "Open Map",
+    "action": "builder_openmap",
+    "image": "OpenMap",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonsavemap",
+    "text": "Save Map",
+    "action": "builder_savemap",
+    "image": "SaveMap",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "seperatorfile"
+   },
+   {
+    "type": "button",
+    "name": "buttonscripteditor",
+    "text": "Open Script Editor",
+    "action": "builder_openscripteditor",
+    "image": "Script2",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "seperatorscript"
+   },
+   {
+    "type": "button",
+    "name": "buttonundo",
+    "text": "Undo",
+    "action": "builder_undo",
+    "image": "Undo",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonredo",
+    "text": "Redo",
+    "action": "builder_redo",
+    "image": "Redo",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "seperatorundo"
+   },
+   {
+    "type": "button",
+    "name": "buttoncut",
+    "text": "Cut Selection",
+    "action": "builder_cutselection",
+    "image": "Cut",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttoncopy",
+    "text": "Copy Selection",
+    "action": "builder_copyselection",
+    "image": "Copy",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonpaste",
+    "text": "Paste Selection",
+    "action": "builder_pasteselection",
+    "image": "Paste",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "seperatorcopypaste"
+   },
+   {
+    "type": "button",
+    "name": "buttoninsertprefabfile",
+    "text": "Insert Prefab from File",
+    "action": "builder_insertprefabfile",
+    "image": "Prefab",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttoninsertpreviousprefab",
+    "text": "Insert Previous Prefab",
+    "action": "builder_insertpreviousprefab",
+    "image": "Prefab2",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "seperatorprefabs"
+   },
+   {
+    "type": "button",
+    "name": "buttonthingsfilter",
+    "text": "Configure Things Filters",
+    "action": "builder_thingsfilterssetup",
+    "image": "Filter",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "dropdown",
+    "name": "thingfilters",
+    "text": "(show all)",
+    "displaystyle": "Text"
+   },
+   {
+    "type": "separator",
+    "name": "separatorlinecolors"
+   },
+   {
+    "type": "button",
+    "name": "buttonlinededfcolors",
+    "text": "Configure Linedef Colors",
+    "action": "builder_linedefcolorssetup",
+    "image": "LinedefColorPresets",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "dropdown",
+    "name": "linedefcolorpresets",
+    "text": "No presets",
+    "displaystyle": "Text",
+    "handler": "linedefcolorpresets_MouseLeave"
+   },
+   {
+    "type": "separator",
+    "name": "separatorfilters"
+   },
+   {
+    "type": "button",
+    "name": "buttonfullbrightness",
+    "text": "Full Brightness",
+    "action": "builder_togglebrightness",
+    "image": "Brightness",
+    "checkonclick": true,
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontogglegrid",
+    "text": "Render Grid",
+    "action": "builder_togglegrid",
+    "image": "Grid2",
+    "checkonclick": true,
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontogglecomments",
+    "text": "Show Comments",
+    "action": "builder_togglecomments",
+    "image": "Comment",
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontogglefixedthingsscale",
+    "text": "Fixed Things Scale",
+    "action": "builder_togglefixedthingsscale",
+    "image": "FixedThingsScale",
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "separatorfullbrightness"
+   },
+   {
+    "type": "button",
+    "name": "buttonviewnormal",
+    "text": "View Wireframe",
+    "action": "builder_viewmodenormal",
+    "image": "ViewNormal",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonviewbrightness",
+    "text": "View Brightness Levels",
+    "action": "builder_viewmodebrightness",
+    "image": "ViewBrightness",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonviewfloors",
+    "text": "View Floor Textures",
+    "action": "builder_viewmodefloors",
+    "image": "ViewTextureFloor",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonviewceilings",
+    "text": "View Ceiling Textures",
+    "action": "builder_viewmodeceilings",
+    "image": "ViewTextureCeiling",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "separatorgeomergemodes"
+   },
+   {
+    "type": "button",
+    "name": "buttonmergegeoclassic",
+    "text": "Merge Dragged Vertices Only",
+    "action": "builder_geomergeclassic",
+    "image": "MergeGeoClassic",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonmergegeo",
+    "text": "Merge Dragged Geometry",
+    "action": "builder_geomerge",
+    "image": "MergeGeo",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonplacegeo",
+    "text": "Replace with Dragged Geometry",
+    "action": "builder_georeplace",
+    "image": "MergeGeoRemoveLines",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "seperatorviews"
+   },
+   {
+    "type": "button",
+    "name": "buttonsnaptogrid",
+    "text": "Snap to Grid",
+    "action": "builder_togglesnap",
+    "image": "Grid4",
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontoggledynamicgrid",
+    "text": "Dynamic Grid Size",
+    "action": "builder_toggledynamicgrid",
+    "image": "GridDynamic",
+    "checkonclick": true,
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonautomerge",
+    "text": "Snap to Geometry",
+    "action": "builder_toggleautomerge",
+    "image": "mergegeometry2",
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonsplitjoinedsectors",
+    "text": "Split Joined Sectors when Drawing Lines",
+    "action": "builder_togglejoinedsectorssplitting",
+    "image": "SplitSectors",
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttonautoclearsidetextures",
+    "text": "Auto Clear Sidedef Textures",
+    "action": "builder_toggleautoclearsidetextures",
+    "image": "ClearTextures",
+    "checked": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "seperatorgeometry"
+   },
+   {
+    "type": "split",
+    "name": "dynamiclightmode",
+    "text": "Dynamic light mode",
+    "action": "builder_gztogglelights",
+    "image": "Light",
+    "displaystyle": "Image",
+    "items": [
+     {
+      "type": "menu",
+      "name": "sightsdontshow",
+      "text": "Don't show dynamic lights",
+      "action": "0",
+      "image": "LightDisabled",
+      "checkonclick": true,
+      "handler": "ChangeLightRenderingMode"
+     },
+     {
+      "type": "menu",
+      "name": "lightsshow",
+      "text": "Show dynamic lights",
+      "action": "1",
+      "image": "Light",
+      "checkonclick": true,
+      "handler": "ChangeLightRenderingMode"
+     },
+     {
+      "type": "menu",
+      "name": "lightsshowanimated",
+      "text": "Show animated dynamic lights",
+      "action": "2",
+      "image": "Light_animate",
+      "checkonclick": true,
+      "handler": "ChangeLightRenderingMode"
+     }
+    ]
+   },
+   {
+    "type": "split",
+    "name": "modelrendermode",
+    "text": "Model rendering mode",
+    "action": "builder_gztogglemodels",
+    "image": "Model",
+    "displaystyle": "Image",
+    "items": [
+     {
+      "type": "menu",
+      "name": "modelsdontshow",
+      "text": "Don't show models",
+      "action": "0",
+      "image": "ModelDisabled",
+      "checkonclick": true,
+      "handler": "ChangeModelRenderingMode"
+     },
+     {
+      "type": "menu",
+      "name": "modelsshowselection",
+      "text": "Show models for selected things only",
+      "action": "1",
+      "image": "Model_selected",
+      "checkonclick": true,
+      "handler": "ChangeModelRenderingMode"
+     },
+     {
+      "type": "menu",
+      "name": "modelsshowfiltered",
+      "text": "Show models for current things filter only",
+      "action": "2",
+      "image": "ModelFiltered",
+      "checkonclick": true,
+      "handler": "ChangeModelRenderingMode"
+     },
+     {
+      "type": "menu",
+      "name": "modelsshowall",
+      "text": "Always show models",
+      "action": "3",
+      "image": "Model",
+      "checkonclick": true,
+      "handler": "ChangeModelRenderingMode"
+     }
+    ]
+   },
+   {
+    "type": "button",
+    "name": "buttontogglefog",
+    "text": "Render Fog (Visual mode)",
+    "action": "builder_gztogglefog",
+    "image": "fog",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontogglesky",
+    "text": "Render Sky (Visual mode)",
+    "action": "builder_gztogglesky",
+    "image": "Sky",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontoggleclassicrendering",
+    "text": "Classic Rendering (Visual mode)",
+    "action": "builder_toggleclassicrendering",
+    "image": "ClassicRendering",
+    "checkonclick": true,
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontoggleeventlines",
+    "text": "Show Event Lines",
+    "action": "builder_gztoggleeventlines",
+    "image": "InfoLine",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "button",
+    "name": "buttontogglevisualvertices",
+    "text": "Show Editable Vertices (Visual mode)",
+    "action": "builder_gztogglevisualvertices",
+    "image": "VisualVertices",
+    "displaystyle": "Image",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "separator",
+    "name": "separatorgzmodes"
+   },
+   {
+    "type": "split",
+    "name": "buttontest",
+    "text": "Test Map",
+    "action": "builder_testmap",
+    "image": "Test",
+    "displaystyle": "Image"
+   },
+   {
+    "type": "separator",
+    "name": "seperatortesting"
+   }
+  ]
+ },
+ "statusbar": {
+  "kind": "StatusStrip",
+  "items": [
+   {
+    "type": "statuslabel",
+    "name": "statuslabel",
+    "text": "Initializing user interface...",
+    "image": "Status2"
+   },
+   {
+    "type": "statuslabel",
+    "name": "configlabel",
+    "text": "ZDoom (Doom in Hexen Format)",
+    "tooltip": "Current Game Configuration"
+   },
+   {
+    "type": "statuslabel",
+    "name": "gridlabel",
+    "text": "32 mp",
+    "tooltip": "Grid size"
+   },
+   {
+    "type": "dropdown",
+    "name": "buttongrid",
+    "text": "Grid",
+    "image": "Grid2_arrowup",
+    "displaystyle": "Image",
+    "items": [
+     {
+      "type": "menu",
+      "name": "itemgrid1024",
+      "text": "1024 mp",
+      "action": "1024",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid512",
+      "text": "512 mp",
+      "action": "512",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid256",
+      "text": "256 mp",
+      "action": "256",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid128",
+      "text": "128 mp",
+      "action": "128",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid64",
+      "text": "64 mp",
+      "action": "64",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid32",
+      "text": "32 mp",
+      "action": "32",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid16",
+      "text": "16 mp",
+      "action": "16",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid8",
+      "text": "8 mp",
+      "action": "8",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid4",
+      "text": "4 mp",
+      "action": "4",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid1",
+      "text": "1 mp",
+      "action": "1",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid05",
+      "text": "0.5 mp",
+      "action": "0.5",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid025",
+      "text": "0.25 mp",
+      "action": "0.25",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgrid0125",
+      "text": "0.125 mp",
+      "action": "0.125",
+      "handler": "itemgridsize_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemgridcustom",
+      "text": "Customize...",
+      "handler": "itemgridcustom_Click"
+     }
+    ]
+   },
+   {
+    "type": "statuslabel",
+    "name": "zoomlabel",
+    "text": "50%",
+    "tooltip": "Zoom level"
+   },
+   {
+    "type": "dropdown",
+    "name": "buttonzoom",
+    "text": "Zoom",
+    "image": "Zoom_arrowup",
+    "displaystyle": "Image",
+    "items": [
+     {
+      "type": "menu",
+      "name": "itemzoom800",
+      "text": "800%",
+      "action": "800",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoom400",
+      "text": "400%",
+      "action": "400",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoom200",
+      "text": "200%",
+      "action": "200",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoom100",
+      "text": "100%",
+      "action": "100",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoom50",
+      "text": "50%",
+      "action": "50",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoom25",
+      "text": "25%",
+      "action": "25",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoom10",
+      "text": "10%",
+      "action": "10",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoom5",
+      "text": "5%",
+      "action": "5",
+      "handler": "itemzoomto_Click"
+     },
+     {
+      "type": "menu",
+      "name": "itemzoomfittoscreen",
+      "text": "Fit to screen",
+      "handler": "itemzoomfittoscreen_Click"
+     }
+    ]
+   },
+   {
+    "type": "statuslabel",
+    "name": "xposlabel",
+    "text": "0",
+    "tooltip": "Current X, Y coordinates on map.\r\nClick to set specific coordinates.",
+    "action": "builder_centeroncoordinates",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "statuslabel",
+    "name": "poscommalabel",
+    "text": ",",
+    "tooltip": "Current X, Y coordinates on map.\r\nClick to set specific coordinates.",
+    "action": "builder_centeroncoordinates",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "statuslabel",
+    "name": "yposlabel",
+    "text": "0",
+    "tooltip": "Current X, Y coordinates on map.\r\nClick to set specific coordinates.",
+    "action": "builder_centeroncoordinates",
+    "handler": "InvokeTaggedAction"
+   },
+   {
+    "type": "statuslabel",
+    "name": "warnsLabel",
+    "text": "0",
+    "image": "WarningOff",
+    "handler": "warnsLabel_Click"
+   }
+  ]
+ },
+ "modestoolbar": {
+  "kind": "ToolStrip",
+  "items": []
+ },
+ "modecontrolsloolbar": {
+  "kind": "ToolStrip",
+  "items": []
+ }
+}

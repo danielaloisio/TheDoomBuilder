@@ -8,6 +8,8 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using CodeImp.DoomBuilder;
 using DoomBuilder.App.Input;
+using DoomBuilder.App.Shell;
+using DoomBuilder.App.Dialogs;
 using Silk.NET.OpenGL;
 using SkiaSharp;
 using KeyEventArgs = Avalonia.Input.KeyEventArgs;
@@ -18,6 +20,7 @@ namespace DoomBuilder.App;
 public partial class MainWindow : Avalonia.Controls.Window
 {
     private readonly AvaloniaShell shell;
+    private readonly ShellUi ui;
     private bool started;
     private int framecount;
 
@@ -31,8 +34,20 @@ public partial class MainWindow : Avalonia.Controls.Window
         InitializeComponent();
 
         shell = new AvaloniaShell(Viewport);
+        ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
+        MenuHost.Content = ui.Menu;
+        ToolbarHost.Content = ui.Toolbar;
+
         shell.StatusChanged += text => StatusText.Text = text;
-        shell.HintsChanged += text => HintsText.Text = text;
+        shell.HintsChanged += text => HintsText.Text = RtfText.ToPlain(text).Replace('\n', ' ');
+        shell.ZoomChanged += scale => ZoomText.Text = (int)Math.Round(scale * 100) + "%";
+        shell.GridChanged += size => GridText.Text = size == 0 ? "--" : size + " mp";
+        shell.CoordinatesChanged += (coords, snapped) => CoordsText.Text = $"{coords.x:0}, {coords.y:0}";
+        shell.WarningsChanged += (count, blink) => WarningsText.Text = count.ToString();
+        shell.InterfaceChanged += RefreshInterface;
+        shell.RecentFilesChanged += ShowRecentFiles;
+        Closing += OnClosing;
+        Closed += (s, e) => General.ExitRequested -= OnExitRequested;
 
         Viewport.Paint += OnPaint;
         Viewport.ContextFailed += reason => StatusText.Text = "OpenGL is not available: " + reason;
@@ -41,7 +56,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         // Keyboard: tunnel so keys reach the editor wherever the focus is inside the window
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
-        Deactivated += (s, e) => { if (started) shell.Input.ReleaseAllKeys(); };
+        Deactivated += (s, e) => { if (EditorRunning) shell.Input.ReleaseAllKeys(); };
 
         // Mouse
         Viewport.InputSurface = InputSurface;
@@ -53,6 +68,81 @@ public partial class MainWindow : Avalonia.Controls.Window
         InputSurface.PointerWheelChanged += OnPointerWheel;
 
         if (startEditor) Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
+    }
+
+    // MainForm.UpdateInterface: title, menus, toolbar and the status bar's config label
+    private void RefreshInterface()
+    {
+        ui.Refresh();
+
+        string program = "TheDoomBuilder";
+        if (General.Map != null)
+        {
+            string maptitle = !string.IsNullOrEmpty(General.Map.Data?.MapInfo?.Title) ? ": " + General.Map.Data.MapInfo.Title : "";
+            Title = (General.Map.IsChanged ? "\u25CF " : "") + General.Map.FileTitle + " (" + General.Map.Options.CurrentName + maptitle + ") - " + program;
+            ConfigText.Text = General.Map.ConfigSettings?.Name ?? "";
+        }
+        else
+        {
+            Title = program;
+            ConfigText.Text = "";
+        }
+    }
+
+    // Terminate(true) comes from our own close (already closing); Terminate(false) is a fatal error: close the window
+    private void OnExitRequested(bool proper)
+    {
+        if (!proper) { terminating = true; Dispatcher.UIThread.Post(Close); }
+    }
+
+    private void ShowRecentFiles() => ui.SetRecentFiles(shell.Recent.Files, OpenRecent);
+
+    // MainForm.recentitem_Click
+    private static void OpenRecent(string filename)
+    {
+        string existing = CodeImp.DoomBuilder.Windows.RecentFiles.FindExistingFile(filename);
+        if (existing == null)
+        {
+            General.Interface.DisplayStatus(CodeImp.DoomBuilder.Windows.StatusType.Warning, $"The file '{filename}' could not be found.");
+            return;
+        }
+        General.OpenMapFile(existing, null);
+    }
+
+    // MainForm.OnFormClosing: the map must be closed (asking to save) before the program ends. A modal question cannot be
+    // asked from inside Closing (the window is already on its way out), so the close is cancelled, asked about from the
+    // dispatcher, and requested again once the user agreed.
+    private bool terminating, closeapproved, closeinprogress;
+
+    // The core exists between a successful Startup and Terminate; input arriving outside that has nothing to talk to
+    private bool EditorRunning => started && !terminating && General.Actions != null;
+
+    private void OnClosing(object sender, WindowClosingEventArgs e)
+    {
+        if (!started || terminating || closeapproved) return;
+
+        e.Cancel = true;
+        if (closeinprogress) return;       // already asking
+        closeinprogress = true;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                if (!General.CloseMap()) return;       // the user chose Cancel (or saving failed): stay open
+
+                General.WriteLogLine("Closing main interface window...");
+                shell.Input.StopExclusiveMouseInput();
+                shell.Input.StopProcessing();
+                shell.Recent.Save();
+
+                closeapproved = true;
+                General.Terminate(true);
+                terminating = true;
+                Close();
+            }
+            finally { closeinprogress = false; }
+        });
     }
 
     // What MainForm.RedrawDisplay did: let the active edit mode draw
@@ -71,6 +161,8 @@ public partial class MainWindow : Avalonia.Controls.Window
         string settingsdir = Program.SettingsDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TheDoomBuilder");
         Directory.CreateDirectory(settingsdir);
 
+        General.ExitRequested += OnExitRequested;                           // the core wants the program to end (fatal errors, Terminate)
+        General.Dialogs = new AvaloniaDialogs(() => this);                  // the real message boxes, file pickers and map options
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
 
         if (!General.Startup(Program.Arguments, () => shell, appdir, settingsdir))
@@ -78,6 +170,9 @@ public partial class MainWindow : Avalonia.Controls.Window
             StatusText.Text = "Startup failed, see the log in " + settingsdir;
             return;
         }
+
+        shell.Recent.Load();
+        ShowRecentFiles();
 
         // What MainForm.Shown did: open the map from the command line now that the window is up
         General.MainWindow.PerformAutoMapLoading();
@@ -88,7 +183,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (!started || FocusIsInTextInput()) return;
+        if (!EditorRunning || FocusIsInTextInput()) return;
 
         Keys data = KeyMap.ToKeyData(e.Key, e.KeyModifiers);
         if (data == Keys.None) return;
@@ -98,7 +193,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     private void OnKeyUp(object sender, KeyEventArgs e)
     {
-        if (!started || FocusIsInTextInput()) return;
+        if (!EditorRunning || FocusIsInTextInput()) return;
 
         Keys data = KeyMap.ToKeyData(e.Key, e.KeyModifiers);
         if (data == Keys.None) return;
@@ -133,14 +228,14 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     private void OnPointerEntered(object sender, PointerEventArgs e)
     {
-        if (!started) return;
+        if (!EditorRunning) return;
         shell.Input.MouseEnter(EventArgs.Empty);
         if (IsActive) Viewport.Focus();     // like UDB: the display takes the keyboard when the mouse is over it
     }
 
     private void OnPointerPressed(object sender, PointerPressedEventArgs e)
     {
-        if (!started) return;
+        if (!EditorRunning) return;
 
         MouseButtons button = ToButton(e.GetCurrentPoint(InputSurface).Properties.PointerUpdateKind);
         if (button == MouseButtons.None) return;
@@ -155,7 +250,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     private void OnPointerReleased(object sender, PointerReleasedEventArgs e)
     {
-        if (!started) return;
+        if (!EditorRunning) return;
 
         MouseButtons button = ToButton(e.InitialPressMouseButton switch
         {
@@ -176,13 +271,13 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     private void OnPointerMoved(object sender, PointerEventArgs e)
     {
-        if (!started) return;
+        if (!EditorRunning) return;
         shell.Input.MouseMove(ToMouseArgs(e, shell.Input.MouseButtons, 0, 0));
     }
 
     private void OnPointerWheel(object sender, PointerWheelEventArgs e)
     {
-        if (!started) return;
+        if (!EditorRunning) return;
 
         if (e.Delta.Y != 0) shell.Input.Wheel(e.Delta.Y > 0 ? 120 : -120);
         if (e.Delta.X != 0) shell.Input.HorizontalWheel(e.Delta.X > 0 ? 120 : -120);
@@ -213,6 +308,17 @@ public partial class MainWindow : Avalonia.Controls.Window
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         using (var file = File.Create(path)) data.SaveTo(file);
         Console.WriteLine("[screenshot] " + path);
+
+        // The window's own UI (menus, toolbar, status bar) too: the GL content is not part of what Avalonia renders here
+        try
+        {
+            var size2 = new PixelSize((int)Bounds.Width, (int)Bounds.Height);
+            using var rtb = new Avalonia.Media.Imaging.RenderTargetBitmap(size2);
+            rtb.Render(this);
+            rtb.Save(Path.ChangeExtension(path, ".ui.png"));
+            Console.WriteLine("[screenshot] " + Path.ChangeExtension(path, ".ui.png"));
+        }
+        catch (Exception e) { Console.Error.WriteLine("[screenshot] UI capture failed: " + e.Message); }
         Dispatcher.UIThread.Post(() => (Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Shutdown());
     }
 }

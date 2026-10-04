@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<TestSequence>
+  <Test Name="DoomBuilder.App.Tests.DialogTests.Open_map_shows_the_wad_maps_and_the_matching_game_configuration" DisplayName="DoomBuilder.App.Tests.DialogTests.Open_map_shows_the_wad_maps_and_the_matching_game_configuration" Source="/home/m3t4l/Projects/dotnet-project/TheDoomBuilder/tests/DoomBuilder.App.Tests/bin/Debug/net10.0/DoomBuilder.App.Tests.dll" Completed="False" />
+</TestSequence>
