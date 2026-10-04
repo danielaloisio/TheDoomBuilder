@@ -21,7 +21,12 @@ public partial class MainWindow : Avalonia.Controls.Window
     private bool started;
     private int framecount;
 
-    public MainWindow()
+    public MainWindow() : this(true)
+    {
+    }
+
+    /// <param name="startEditor">False builds the window (viewport, input wiring) without starting the editor core: for tests of the UI parts alone.</param>
+    public MainWindow(bool startEditor)
     {
         InitializeComponent();
 
@@ -47,7 +52,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         InputSurface.PointerMoved += OnPointerMoved;
         InputSurface.PointerWheelChanged += OnPointerWheel;
 
-        Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
+        if (startEditor) Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
     }
 
     // What MainForm.RedrawDisplay did: let the active edit mode draw

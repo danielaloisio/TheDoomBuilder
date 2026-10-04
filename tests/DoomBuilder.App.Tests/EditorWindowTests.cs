@@ -53,7 +53,7 @@ public class EditorWindowTests : IDisposable
         // The packaging layout: assets/Common + the platform folder, in one folder
         string app = Path.Combine(dir, "app");
         CopyDirectory(FindRepoFile("assets", "Common"), app);
-        CopyDirectory(FindRepoFile("assets", "Linux"), app);
+        CopyDirectory(FindRepoFile("assets", OperatingSystem.IsWindows() ? "Windows" : "Linux"), app);
 
         Program.ApplicationDirectory = app;
         Program.SettingsDirectory = Path.Combine(dir, "settings");
@@ -168,7 +168,7 @@ public class MouseCaptureTests : IDisposable
     [AvaloniaFact]
     public void Exclusive_mode_reports_relative_movement_and_recenters_the_pointer()
     {
-        window = new MainWindow { Width = 600, Height = 400 };
+        window = new MainWindow(startEditor: false) { Width = 600, Height = 400 };   // only the viewport and input wiring are under test
         window.Show();
         Dispatcher.UIThread.RunJobs();
 

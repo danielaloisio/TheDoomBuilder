@@ -437,7 +437,7 @@ namespace CodeImp.DoomBuilder
 			configs = new List<ConfigurationInfo>();
 
 			// Go for all cfg files in the configurations directory
-			string[] filenames = Directory.GetFiles(configspath, "*.cfg", SearchOption.TopDirectoryOnly);
+			string[] filenames = GetConfigurationFiles(configspath, SearchOption.TopDirectoryOnly, "game configurations");
 
 			foreach(string filepath in filenames)
 			{
@@ -468,7 +468,7 @@ namespace CodeImp.DoomBuilder
 			nodebuilders = new List<NodebuilderInfo>();
 
 			// Go for all cfg files in the compilers directory
-			string[] filenames = Directory.GetFiles(compilerspath, "*.cfg", SearchOption.AllDirectories);
+			string[] filenames = GetConfigurationFiles(compilerspath, SearchOption.AllDirectories, "compiler and nodebuilder configurations");
 			foreach(string filepath in filenames)
 			{
 				try
@@ -528,7 +528,7 @@ namespace CodeImp.DoomBuilder
 			compiledscriptconfigs = new Dictionary<string, ScriptConfiguration>(StringComparer.Ordinal); //mxd
 			
 			// Go for all cfg files in the scripts directory
-			string[] filenames = Directory.GetFiles(scriptspath, "*.cfg", SearchOption.TopDirectoryOnly);
+			string[] filenames = GetConfigurationFiles(scriptspath, SearchOption.TopDirectoryOnly, "script configurations");
 			foreach(string filepath in filenames)
 			{
 				try
@@ -572,6 +572,19 @@ namespace CodeImp.DoomBuilder
 			}
 		}
 
+		// Lists the .cfg files of an assets folder. A missing folder is reported but is not fatal: the editor still starts
+		// (a platform without the compiler tools installed, for example), just without those configurations.
+		private static string[] GetConfigurationFiles(string path, SearchOption option, string what)
+		{
+			if(string.IsNullOrEmpty(path) || !Directory.Exists(path))
+			{
+				errorlogger.Add(ErrorType.Warning, "The folder for " + what + " was not found (\"" + path + "\"), so none are available.");
+				return new string[0];
+			}
+
+			return Directory.GetFiles(path, "*.cfg", option);
+		}
+
 		// This loads all compiler configurations
 		private static void LoadAllCompilerConfigurations()
 		{
@@ -584,7 +597,7 @@ namespace CodeImp.DoomBuilder
 			compilers = new List<CompilerInfo>();
 
 			// Go for all cfg files in the compilers directory
-			string[] filenames = Directory.GetFiles(compilerspath, "*.cfg", SearchOption.AllDirectories);
+			string[] filenames = GetConfigurationFiles(compilerspath, SearchOption.AllDirectories, "compiler and nodebuilder configurations");
 			foreach(string filepath in filenames)
 			{
 				try

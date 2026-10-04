@@ -20,7 +20,7 @@ internal static class TestAssets
     }
 
     /// <summary>Compiler/nodebuilder configurations (the real executables are platform specific and not needed by the tests).</summary>
-    public static string Compilers => Path.Combine(Common, "..", "Linux", "Compilers");
+    public static string Compilers => Path.Combine(Common, "..", OperatingSystem.IsWindows() ? "Windows" : "Linux", "Compilers");
 
     /// <summary>
     /// Builds an application folder the way packaging will: assets/Common overlaid with the platform folder.
@@ -30,7 +30,7 @@ internal static class TestAssets
     {
         string target = Path.Combine(Path.GetTempPath(), "udb-app-" + Guid.NewGuid().ToString("N"));
         CopyDirectory(Common, target);
-        CopyDirectory(Path.Combine(Common, "..", "Linux"), target);   // TODO: pick the folder of the current OS once the other platforms exist
+        CopyDirectory(Path.Combine(Common, "..", OperatingSystem.IsWindows() ? "Windows" : "Linux"), target);   // the platform folder (macOS uses the Unix layout for now)
         return target;
     }
 

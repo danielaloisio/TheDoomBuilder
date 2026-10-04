@@ -14,7 +14,9 @@
   <!-- The editor's game configurations, scripts, snippets, sprites... (the same layout UDB ships next to its executable) -->
   <ItemGroup>
     <Content Include="..\..\assets\Common\**\*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\assets\Linux\**\*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+    <!-- Platform folder: compiler/nodebuilder configurations. macOS uses the Unix layout until it gets its own tools. -->
+    <Content Include="..\..\assets\Linux\**\*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <Content Include="..\..\assets\Windows\**\*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
     <Content Include="..\..\assets\samples\*" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
