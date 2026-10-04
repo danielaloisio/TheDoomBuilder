@@ -24,31 +24,6 @@ namespace DoomBuilder.App.Tests;
 /// </summary>
 public class DialogTests : EditorTestBase
 {
-    private readonly List<DispatcherTimer> timers = new List<DispatcherTimer>();
-
-    public override void Dispose()
-    {
-        foreach (var t in timers) t.Stop();
-        base.Dispose();
-    }
-
-    /// <summary>When a dialog of type T appears over the main window, runs <paramref name="act"/> on it (once).</summary>
-    private void WhenShown<T>(Action<T> act) where T : Window
-    {
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5) };
-        timers.Add(timer);
-        timer.Tick += (s, e) =>
-        {
-            var dialog = window.OwnedWindows.OfType<T>().FirstOrDefault();
-            if (dialog == null || !dialog.IsVisible) return;
-            timer.Stop();
-            act(dialog);
-        };
-        timer.Start();
-    }
-
-    private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-
     // the level name box (the game configuration combo has a text box of its own inside)
     private static TextBox LevelName(Window dialog) => dialog.GetVisualDescendants().OfType<TextBox>().First(t => t.MaxLength == 8);
 
@@ -235,5 +210,98 @@ public class DialogTests : EditorTestBase
         recent.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
 
         Assert.Contains("sample.wad", title);
+    }
+}
+
+public class ErrorsAndAboutTests : EditorTestBase
+{
+    [AvaloniaFact]
+    public void The_errors_window_lists_what_the_logger_has_and_clears_it()
+    {
+        OpenEditor();
+        General.ErrorLogger.Clear();
+        General.ErrorLogger.Add(CodeImp.DoomBuilder.ErrorType.Error, "first problem");
+        General.ErrorLogger.Add(CodeImp.DoomBuilder.ErrorType.Warning, "second problem");
+        ErrorsWindow seen = null;
+        WhenShown<ErrorsWindow>(w =>
+        {
+            seen = w;
+            Assert.Equal(new[] { "first problem", "second problem" }, w.Items.Select(i => i.Description));
+            Assert.True(w.ClearButton.IsEnabled);
+            Assert.False(w.CopyButton.IsEnabled);
+
+            w.List.SelectedItems.Add(w.List.Items[1]);
+            Assert.True(w.CopyButton.IsEnabled);
+            Assert.Equal("second problem", w.SelectedText());
+            Assert.False(w.ShowSourceButton.IsEnabled);       // plain items have no source to show
+
+            Click(w.ClearButton);
+            Assert.Empty(w.Items);
+            Assert.False(w.ClearButton.IsEnabled);
+            w.Close();
+        });
+
+        General.MainWindow.ShowErrors();
+
+        Assert.NotNull(seen);
+        Assert.False(General.ErrorLogger.HasErrors);
+    }
+
+    [AvaloniaFact]
+    public void The_errors_window_keeps_the_show_on_errors_setting()
+    {
+        OpenEditor();
+        General.Settings.ShowErrorsWindow = true;
+        WhenShown<ErrorsWindow>(w => { w.ShowOnErrors.IsChecked = false; w.Close(); });
+
+        General.MainWindow.ShowErrors();
+
+        Assert.False(General.Settings.ShowErrorsWindow);
+    }
+
+    [AvaloniaFact]
+    public void The_errors_window_picks_up_errors_added_while_it_is_open()
+    {
+        OpenEditor();
+        General.ErrorLogger.Clear();
+        int rows = -1;
+        WhenShown<ErrorsWindow>(w =>
+        {
+            General.ErrorLogger.Add(CodeImp.DoomBuilder.ErrorType.Warning, "late arrival");
+            int waited = 0;
+            var poll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+            poll.Tick += (s, e) =>
+            {
+                if (w.Items.Count == 0 && ++waited < 100) return;
+                poll.Stop();
+                rows = w.Items.Count;
+                w.Close();
+            };
+            poll.Start();
+        });
+
+        General.MainWindow.ShowErrors();
+
+        Assert.Equal(1, rows);
+    }
+
+    [AvaloniaFact]
+    public void Help_About_and_the_warnings_indicator_open_their_windows()
+    {
+        OpenEditor();
+        bool about = false, errors = false;
+        WhenShown<AboutWindow>(w =>
+        {
+            about = w.VersionBlock.Text.StartsWith("TheDoomBuilder v");
+            w.Close();
+        });
+        var model = DoomBuilder.App.Shell.UiModel.Load();
+        var item = model["menumain"].AllItems().First(i => i.Handler == "itemhelpabout_Click");
+        new DoomBuilder.App.Shell.ShellCommands(() => { }, _ => { }).Invoke(item);
+        Assert.True(about);
+
+        WhenShown<ErrorsWindow>(w => { errors = true; w.Close(); });
+        General.Actions.InvokeAction("builder_showerrors");     // the action MainForm bound
+        Assert.True(errors);
     }
 }

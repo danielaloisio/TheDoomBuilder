@@ -198,6 +198,20 @@ internal sealed class AvaloniaDialogs : NoDialogs
         return ShowWindow(window);
     }
 
+    public override void ShowErrors()
+    {
+        if (Owner == null) return;
+        var window = new ErrorsWindow();
+        DialogPump.Run(() => window.ShowDialog<object>(Owner));
+    }
+
+    public override void ShowAbout()
+    {
+        if (Owner == null) return;
+        var window = new AboutWindow();
+        DialogPump.Run(() => window.ShowDialog<object>(Owner));
+    }
+
     private DialogResult ShowWindow(MapOptionsWindow window)
     {
         bool ok = DialogPump.Run(() => window.ShowDialog<bool>(Owner));
