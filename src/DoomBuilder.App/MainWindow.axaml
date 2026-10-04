@@ -7,8 +7,14 @@
     <DockPanel>
         <Border DockPanel.Dock="Bottom" Padding="8,4" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-            <TextBlock x:Name="StatusText" Text="Starting..." />
+            <DockPanel LastChildFill="True">
+                <TextBlock x:Name="HintsText" DockPanel.Dock="Right" Margin="16,0,0,0" Opacity="0.7" TextWrapping="NoWrap" />
+                <TextBlock x:Name="StatusText" Text="Starting..." />
+            </DockPanel>
         </Border>
-        <local:MapViewport x:Name="Viewport" />
+        <!-- The transparent panel is what receives the pointer: a GL control is not hit-testable on its own -->
+        <Panel x:Name="InputSurface" Background="Transparent">
+            <local:MapViewport x:Name="Viewport" />
+        </Panel>
     </DockPanel>
 </Window>

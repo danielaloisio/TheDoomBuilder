@@ -21,6 +21,20 @@ public class StartupTests : IDisposable
     }
 
     [Fact]
+    public void Startup_survives_a_missing_compilers_folder_and_reports_it()
+    {
+        // The CI on Windows and macOS had no Compilers folder next to the executable and Startup crashed
+        Directory.CreateDirectory(settingsdir);
+        Directory.Delete(Path.Combine(appdir, "Compilers"), true);
+
+        bool ok = General.Startup(Array.Empty<string>(), () => new HeadlessMainWindow(), appdir, settingsdir);
+
+        Assert.True(ok);
+        Assert.Empty(General.Compilers);
+        Assert.True(General.ErrorLogger.HasErrors);   // a warning telling the user why there are no compilers
+    }
+
+    [Fact]
     public void Startup_loads_configurations_and_creates_the_core_services()
     {
         Directory.CreateDirectory(settingsdir);

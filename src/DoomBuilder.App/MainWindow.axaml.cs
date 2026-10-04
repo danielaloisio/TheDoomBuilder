@@ -1,47 +1,64 @@
 using System;
 using System.IO;
+using System.Windows.Forms;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using CodeImp.DoomBuilder;
+using DoomBuilder.App.Input;
 using Silk.NET.OpenGL;
 using SkiaSharp;
+using KeyEventArgs = Avalonia.Input.KeyEventArgs;
+using Application = Avalonia.Application;
 
 namespace DoomBuilder.App;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Avalonia.Controls.Window
 {
     private readonly AvaloniaShell shell;
-    private readonly MapViewer viewer = new MapViewer();
     private bool started;
-    private Point? dragstart;
     private int framecount;
 
-    public MainWindow()
+    public MainWindow() : this(true)
+    {
+    }
+
+    /// <param name="startEditor">False builds the window (viewport, input wiring) without starting the editor core: for tests of the UI parts alone.</param>
+    public MainWindow(bool startEditor)
     {
         InitializeComponent();
 
         shell = new AvaloniaShell(Viewport);
         shell.StatusChanged += text => StatusText.Text = text;
+        shell.HintsChanged += text => HintsText.Text = text;
 
         Viewport.Paint += OnPaint;
         Viewport.ContextFailed += reason => StatusText.Text = "OpenGL is not available: " + reason;
         Viewport.FramePainted += OnFramePainted;
 
-        Viewport.PointerWheelChanged += OnWheel;
-        Viewport.PointerPressed += OnPointerPressed;
-        Viewport.PointerMoved += OnPointerMoved;
-        Viewport.PointerReleased += (s, e) => dragstart = null;
+        // Keyboard: tunnel so keys reach the editor wherever the focus is inside the window
+        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
+        Deactivated += (s, e) => { if (started) shell.Input.ReleaseAllKeys(); };
 
-        Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
+        // Mouse
+        Viewport.InputSurface = InputSurface;
+        InputSurface.PointerEntered += OnPointerEntered;
+        InputSurface.PointerExited += (s, e) => shell.Input.MouseLeave(EventArgs.Empty);
+        InputSurface.PointerPressed += OnPointerPressed;
+        InputSurface.PointerReleased += OnPointerReleased;
+        InputSurface.PointerMoved += OnPointerMoved;
+        InputSurface.PointerWheelChanged += OnPointerWheel;
+
+        if (startEditor) Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
     }
 
     // What MainForm.RedrawDisplay did: let the active edit mode draw
     private void OnPaint()
     {
         if (General.Map == null || General.Editing.Mode == null) return;
-        viewer.PrepareFrame();
         General.Editing.Mode.OnRedrawDisplay();
     }
 
@@ -50,14 +67,13 @@ public partial class MainWindow : Window
         if (started) return;
         started = true;
 
-        string appdir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        string settingsdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TheDoomBuilder");
+        string appdir = Program.ApplicationDirectory ?? AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string settingsdir = Program.SettingsDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TheDoomBuilder");
         Directory.CreateDirectory(settingsdir);
 
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
 
-        string[] args = Program.Arguments;
-        if (!General.Startup(args, () => shell, appdir, settingsdir))
+        if (!General.Startup(Program.Arguments, () => shell, appdir, settingsdir))
         {
             StatusText.Text = "Startup failed, see the log in " + settingsdir;
             return;
@@ -68,45 +84,122 @@ public partial class MainWindow : Window
         Viewport.RequestRedraw();
     }
 
-    private void OnWheel(object sender, PointerWheelEventArgs e)
+    // ---- keyboard
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
     {
-        Point p = e.GetPosition(Viewport);
-        double scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
-        viewer.ZoomAt(Math.Pow(1.2, e.Delta.Y), p.X * scaling, p.Y * scaling);
-        Viewport.RequestRedraw();
+        if (!started || FocusIsInTextInput()) return;
+
+        Keys data = KeyMap.ToKeyData(e.Key, e.KeyModifiers);
+        if (data == Keys.None) return;
+
+        if (shell.Input.KeyDown(data)) e.Handled = true;
+    }
+
+    private void OnKeyUp(object sender, KeyEventArgs e)
+    {
+        if (!started || FocusIsInTextInput()) return;
+
+        Keys data = KeyMap.ToKeyData(e.Key, e.KeyModifiers);
+        if (data == Keys.None) return;
+
+        if (shell.Input.KeyUp(data)) e.Handled = true;
+    }
+
+    // Typing into a text box must not trigger editor shortcuts
+    private bool FocusIsInTextInput() => TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox;
+
+    // ---- mouse
+
+    private MouseEventArgs ToMouseArgs(PointerEventArgs e, MouseButtons button, int clicks, int delta)
+    {
+        double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
+        Point p = e.GetPosition(InputSurface);
+        return new MouseEventArgs(button, clicks, (int)(p.X * scale), (int)(p.Y * scale), delta);
+    }
+
+    private static MouseButtons ToButton(PointerUpdateKind kind)
+    {
+        switch (kind)
+        {
+            case PointerUpdateKind.LeftButtonPressed: case PointerUpdateKind.LeftButtonReleased: return MouseButtons.Left;
+            case PointerUpdateKind.RightButtonPressed: case PointerUpdateKind.RightButtonReleased: return MouseButtons.Right;
+            case PointerUpdateKind.MiddleButtonPressed: case PointerUpdateKind.MiddleButtonReleased: return MouseButtons.Middle;
+            case PointerUpdateKind.XButton1Pressed: case PointerUpdateKind.XButton1Released: return MouseButtons.XButton1;
+            case PointerUpdateKind.XButton2Pressed: case PointerUpdateKind.XButton2Released: return MouseButtons.XButton2;
+            default: return MouseButtons.None;
+        }
+    }
+
+    private void OnPointerEntered(object sender, PointerEventArgs e)
+    {
+        if (!started) return;
+        shell.Input.MouseEnter(EventArgs.Empty);
+        if (IsActive) Viewport.Focus();     // like UDB: the display takes the keyboard when the mouse is over it
     }
 
     private void OnPointerPressed(object sender, PointerPressedEventArgs e)
     {
-        PointerPointProperties props = e.GetCurrentPoint(Viewport).Properties;
-        if (props.IsLeftButtonPressed || props.IsMiddleButtonPressed)
+        if (!started) return;
+
+        MouseButtons button = ToButton(e.GetCurrentPoint(InputSurface).Properties.PointerUpdateKind);
+        if (button == MouseButtons.None) return;
+
+        Viewport.Focus();
+        e.Pointer.Capture(InputSurface);       // keep getting the move/release events when dragging outside the view
+
+        var args = ToMouseArgs(e, button, e.ClickCount, 0);
+        shell.Input.MouseDown(args);
+        if (e.ClickCount >= 2) shell.Input.MouseDoubleClick(args);
+    }
+
+    private void OnPointerReleased(object sender, PointerReleasedEventArgs e)
+    {
+        if (!started) return;
+
+        MouseButtons button = ToButton(e.InitialPressMouseButton switch
         {
-            dragstart = e.GetPosition(Viewport);
-            e.Pointer.Capture(Viewport);
-        }
+            MouseButton.Left => PointerUpdateKind.LeftButtonReleased,
+            MouseButton.Right => PointerUpdateKind.RightButtonReleased,
+            MouseButton.Middle => PointerUpdateKind.MiddleButtonReleased,
+            MouseButton.XButton1 => PointerUpdateKind.XButton1Released,
+            MouseButton.XButton2 => PointerUpdateKind.XButton2Released,
+            _ => PointerUpdateKind.Other,
+        });
+        if (button == MouseButtons.None) return;
+
+        e.Pointer.Capture(null);
+        var args = ToMouseArgs(e, button, 1, 0);
+        shell.Input.MouseUp(args);
+        shell.Input.MouseClick(args);
     }
 
     private void OnPointerMoved(object sender, PointerEventArgs e)
     {
-        if (dragstart == null) return;
-        Point p = e.GetPosition(Viewport);
-        double scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
-        viewer.Pan((p.X - dragstart.Value.X) * scaling, (p.Y - dragstart.Value.Y) * scaling);
-        dragstart = p;
-        Viewport.RequestRedraw();
+        if (!started) return;
+        shell.Input.MouseMove(ToMouseArgs(e, shell.Input.MouseButtons, 0, 0));
+    }
+
+    private void OnPointerWheel(object sender, PointerWheelEventArgs e)
+    {
+        if (!started) return;
+
+        if (e.Delta.Y != 0) shell.Input.Wheel(e.Delta.Y > 0 ? 120 : -120);
+        if (e.Delta.X != 0) shell.Input.HorizontalWheel(e.Delta.X > 0 ? 120 : -120);
+        e.Handled = true;
     }
 
     // Test/diagnostic hook: UDB_SCREENSHOT=file.png saves the first settled frame with a map in it and exits.
     private unsafe void OnFramePainted(GL gl, int fb, PixelSize size)
     {
         string path = Environment.GetEnvironmentVariable("UDB_SCREENSHOT");
-        if (string.IsNullOrEmpty(path) || !viewer.HasMap) return;
+        if (string.IsNullOrEmpty(path) || General.Map == null) return;
         if (++framecount < 4) { Viewport.RequestRedraw(); return; }   // let queued GPU work settle
 
         var pixels = new byte[size.Width * size.Height * 4];
         gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)fb);
         fixed (byte* p = pixels)
-            gl.ReadPixels(0, 0, (uint)size.Width, (uint)size.Height, PixelFormat.Rgba, PixelType.UnsignedByte, p);
+            gl.ReadPixels(0, 0, (uint)size.Width, (uint)size.Height, Silk.NET.OpenGL.PixelFormat.Rgba, PixelType.UnsignedByte, p);
 
         // GL rows start at the bottom
         var flipped = new byte[pixels.Length];
