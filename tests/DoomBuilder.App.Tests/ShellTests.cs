@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Headless;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
@@ -159,5 +161,167 @@ public class ShellWindowTests : EditorTestBase
             yield return child;
             foreach (var grand in AllMenuItems(child)) yield return grand;
         }
+    }
+}
+
+public class DockerWindowTests : EditorTestBase
+{
+    [AvaloniaFact]
+    public void A_map_shows_the_Help_docker_with_the_hints_of_the_mode()
+    {
+        OpenEditor();
+        RefreshShell();
+
+        var panel = window.Dockers;
+        Assert.True(panel.IsVisible);
+        Assert.Contains(panel.Tabs, t => (string)t.Header == "Help");
+        Assert.Equal("Help", General.MainWindow.ActiveDockerTabName);
+    }
+
+    [AvaloniaFact]
+    public void Dockers_added_by_plugins_get_a_tab_with_their_control_and_selecting_follows_the_tabs()
+    {
+        OpenEditor();
+        var content = new TextBlock { Text = "tool options" };
+        var docker = DoomBuilder.App.Shell.AvaloniaDocker.Create("tools", "Tools", content);
+
+        General.MainWindow.AddDocker(docker);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        var tab = window.Dockers.Tabs.First(t => (string)t.Header == "Tools");
+        Assert.Same(content, tab.Content);
+        Assert.EndsWith("_tools", docker.FullName);          // prefixed with the name of the adding assembly or plugin
+
+        Assert.True(General.MainWindow.SelectDocker(docker));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Same(tab, window.Dockers.SelectedTab);
+        Assert.Equal("Tools", General.MainWindow.ActiveDockerTabName);
+
+        General.MainWindow.RemoveDocker(docker);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.DoesNotContain(window.Dockers.Tabs, t => (string)t.Header == "Tools");
+        Assert.NotEqual("Tools", General.MainWindow.ActiveDockerTabName);   // back to the previous one
+    }
+
+    [AvaloniaFact]
+    public void Clicking_a_tab_selects_that_docker_and_the_panel_hides_when_dockers_are_off()
+    {
+        OpenEditor();
+        var other = DoomBuilder.App.Shell.AvaloniaDocker.Create("other", "Other", new TextBlock());
+        General.MainWindow.AddDocker(other);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        window.Dockers.Tabs.First(t => (string)t.Header == "Other").IsSelected = true;
+        Assert.Equal("Other", General.MainWindow.ActiveDockerTabName);
+
+        General.Settings.GetType().GetProperty("DockersPosition").SetValue(General.Settings, 2);
+        RefreshShell();
+        Assert.False(window.Dockers.IsVisible);
+    }
+
+    [AvaloniaFact]
+    public void The_hints_panel_shows_the_hints_as_plain_text_and_clears()
+    {
+        var panel = new DoomBuilder.App.Shell.HintsPanel();
+        panel.SetHints(@"{\rtf1 Press {\b F1} to show help}");
+        Assert.Equal("Press F1 to show help", panel.Text);
+        panel.ClearHints();
+        Assert.Equal("", panel.Text);
+    }
+}
+
+public class CommandPaletteWindowTests : EditorTestBase
+{
+    private static PhysicalKey Physical(Key key) => key switch
+    {
+        Key.Enter => PhysicalKey.Enter,
+        Key.Escape => PhysicalKey.Escape,
+        Key.Down => PhysicalKey.ArrowDown,
+        Key.Up => PhysicalKey.ArrowUp,
+        Key.Right => PhysicalKey.ArrowRight,
+        Key.Home => PhysicalKey.Home,
+        _ => throw new ArgumentOutOfRangeException(nameof(key)),
+    };
+
+    private void Press(Key key) => window.KeyPress(key, RawInputModifiers.None, Physical(key), null);
+
+    private void Open()
+    {
+        OpenEditor();
+        General.Actions.InvokeAction("builder_opencommandpalette");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+    }
+
+    [AvaloniaFact]
+    public void The_action_opens_the_palette_with_every_command_listed()
+    {
+        Open();
+
+        var palette = window.Palette;
+        Assert.True(palette.IsVisible);
+        Assert.Equal(General.Actions.GetAllActions().Length, palette.Entries.Count);
+        Assert.Equal(0, palette.List.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void Typing_filters_and_Enter_runs_the_selected_command_and_closes()
+    {
+        Open();
+        var scripted = new CodeImp.DoomBuilder.Windows.ScriptedDialogs();
+        General.Dialogs = scripted;
+
+        window.Palette.SearchBox.Text = "errors and warnings";
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.NotEmpty(window.Palette.Entries);
+        Assert.Equal("builder_showerrors", window.Palette.Selected.ActionName);
+
+        Press(Key.Enter);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.False(window.Palette.IsVisible);
+        Assert.Equal(1, scripted.ErrorsShown);
+    }
+
+    [AvaloniaFact]
+    public void Arrow_keys_move_the_selection_and_Escape_closes_without_running()
+    {
+        Open();
+        var palette = window.Palette;
+
+        Press(Key.Down);
+        Assert.Equal(1, palette.List.SelectedIndex);
+        Press(Key.Up);
+        Press(Key.Up);                                              // wraps to the last one
+        Assert.Equal(palette.Entries.Count - 1, palette.List.SelectedIndex);
+
+        Press(Key.Escape);
+        Assert.False(palette.IsVisible);
+    }
+
+    [AvaloniaFact]
+    public void Nothing_matching_shows_the_message_and_Enter_does_nothing()
+    {
+        Open();
+        window.Palette.SearchBox.Text = "qqqzzzxxx";
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Empty(window.Palette.Entries);
+        Assert.False(window.Palette.List.IsVisible);
+
+        Press(Key.Enter);
+        Assert.True(window.Palette.IsVisible);            // still open, there was nothing to run
+    }
+
+    [AvaloniaFact]
+    public void Typing_in_the_palette_does_not_trigger_editor_shortcuts()
+    {
+        Open();
+        float before = Renderer.Scale;
+
+        Press(Key.Right);                                   // the arrow keys would scroll the map
+        Press(Key.Home);                                    // and Home would fit it
+
+        Assert.Equal(before, Renderer.Scale);
+        Assert.True(window.Palette.IsVisible);
     }
 }

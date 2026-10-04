@@ -53,6 +53,10 @@ public class EditorWindowTests : EditorTestBase
     {
         OpenEditor();
         window.MouseMove(ViewCenter());   // the display must have the keyboard
+
+        // The Help docker appears after the map opens and narrows the display: fit to the size it has now
+        window.KeyPress(Key.Home, RawInputModifiers.None, PhysicalKey.Home, null);
+        window.KeyRelease(Key.Home, RawInputModifiers.None, PhysicalKey.Home, null);
         float fitted = Renderer.TranslateX;
 
         window.KeyPress(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);

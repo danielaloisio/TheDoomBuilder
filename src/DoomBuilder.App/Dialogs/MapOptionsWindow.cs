@@ -116,7 +116,7 @@ public sealed class MapOptionsWindow : Window
             strict.IsChecked = choices.StrictPatches;
             longnames.IsEnabled = choices.LongTextureNamesAvailable;
             longnames.IsChecked = choices.LongTextureNamesAvailable && choices.UseLongTextureNames;
-            resources.Resources = choices.Resources;
+            resources.Locations = choices.Resources;
             resources.SetFixed(choices.FixedResources);
         }
         finally { loading = false; }

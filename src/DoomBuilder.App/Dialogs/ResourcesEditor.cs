@@ -24,6 +24,9 @@ public sealed class ResourcesEditor : UserControl
     private readonly Button addfile = new Button { Content = "Add file..." };
     private readonly Button addfolder = new Button { Content = "Add folder..." };
 
+    /// <summary>The user added, removed or moved a resource.</summary>
+    public event Action Changed;
+
     private DataLocationList resources = new DataLocationList();
     private string startpath;
 
@@ -49,7 +52,7 @@ public sealed class ResourcesEditor : UserControl
     }
 
     /// <summary>The resources being edited (the same list object the model owns).</summary>
-    public DataLocationList Resources
+    public DataLocationList Locations
     {
         get { return resources; }
         set { resources = value ?? new DataLocationList(); Refresh(); }
@@ -100,6 +103,7 @@ public sealed class ResourcesEditor : UserControl
         if (!resources.Contains(location)) resources.Add(location);
         Refresh();
         list.SelectedIndex = resources.Count - 1;
+        Changed?.Invoke();
     }
 
     private void Remove()
@@ -108,6 +112,7 @@ public sealed class ResourcesEditor : UserControl
         if (i < 0) return;
         resources.RemoveAt(i);
         Refresh();
+        Changed?.Invoke();
     }
 
     private void Move(int delta)
@@ -117,6 +122,7 @@ public sealed class ResourcesEditor : UserControl
         (resources[i], resources[j]) = (resources[j], resources[i]);
         Refresh();
         list.SelectedIndex = j;
+        Changed?.Invoke();
     }
 
     private void AddFiles()

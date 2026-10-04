@@ -198,6 +198,28 @@ internal sealed class AvaloniaDialogs : NoDialogs
         return ShowWindow(window);
     }
 
+    public override DialogResult ShowConfiguration(int page, out bool reloadresources)
+    {
+        reloadresources = false;
+        if (Owner == null) return DialogResult.Cancel;
+
+        var window = new ConfigWindow(page);
+        bool ok = DialogPump.Run(() => window.ShowDialog<bool>(Owner));
+        reloadresources = ok && window.ReloadResources;
+        return ok ? DialogResult.OK : DialogResult.Cancel;
+    }
+
+    public override DialogResult ShowPreferences(out bool reloadresources)
+    {
+        reloadresources = false;
+        if (Owner == null) return DialogResult.Cancel;
+
+        var window = new PreferencesWindow();
+        bool ok = DialogPump.Run(() => window.ShowDialog<bool>(Owner));
+        reloadresources = ok && window.ReloadResources;
+        return ok ? DialogResult.OK : DialogResult.Cancel;
+    }
+
     public override void ShowErrors()
     {
         if (Owner == null) return;

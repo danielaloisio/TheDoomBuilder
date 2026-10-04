@@ -305,3 +305,180 @@ public class ErrorsAndAboutTests : EditorTestBase
         Assert.True(errors);
     }
 }
+
+public class ConfigWindowTests : EditorTestBase
+{
+    [AvaloniaFact]
+    public void The_game_configurations_dialog_applies_what_the_user_changed_on_OK()
+    {
+        OpenEditor();
+        var current = General.Configs.First(c => c.Filename == General.Map.ConfigSettings.Filename);
+        string original = current.TestProgram;
+        bool seenselected = false;
+        WhenShown<ConfigWindow>(w =>
+        {
+            seenselected = w.ConfigList.SelectedIndex == General.Configs.IndexOf(current);   // opens on the map's configuration
+            w.Tabs.SelectedIndex = ConfigWindow.TestingPage;
+            w.ProgramBox.Text = "/opt/test/engine/run";
+            Click(w.OkButton);
+        });
+
+        General.MainWindow.ShowConfiguration();
+
+        Assert.True(seenselected);
+        Assert.Equal("/opt/test/engine/run", current.TestProgram);
+        Assert.Equal("engine", current.TestProgramName);
+        current.TestProgram = original;
+    }
+
+    [AvaloniaFact]
+    public void Cancel_throws_the_changes_away()
+    {
+        OpenEditor();
+        var current = General.Configs.First(c => c.Filename == General.Map.ConfigSettings.Filename);
+        string original = current.TestProgram;
+        WhenShown<ConfigWindow>(w =>
+        {
+            w.ProgramBox.Text = "/somewhere/else";
+            Click(w.CancelButton);
+        });
+
+        General.MainWindow.ShowConfiguration();
+
+        Assert.Equal(original, current.TestProgram);
+    }
+
+    [AvaloniaFact]
+    public void A_missing_resource_keeps_the_dialog_open_and_shows_the_warning()
+    {
+        OpenEditor();
+        string asked = null;
+        WhenShown<ConfigWindow>(w =>
+        {
+            w.ResourcesBox.Add("/definitely/not/here.wad");
+            w.Model.Entries[w.ConfigList.SelectedIndex].Enabled = true;      // only enabled configurations are checked
+            General.Dialogs = new CodeImp.DoomBuilder.Windows.ScriptedDialogs();
+            Click(w.OkButton);
+            asked = ((CodeImp.DoomBuilder.Windows.ScriptedDialogs)General.Dialogs).Messages.FirstOrDefault();
+            Assert.True(w.IsVisible);                     // still open
+            w.Close(false);
+        });
+
+        General.MainWindow.ShowConfiguration();
+
+        Assert.Contains("doesn't exist", asked);
+    }
+
+    [AvaloniaFact]
+    public void The_page_asked_for_is_the_one_shown()
+    {
+        OpenEditor();
+        int page = -1;
+        WhenShown<ConfigWindow>(w => { page = w.Tabs.SelectedIndex; Click(w.CancelButton); });
+
+        General.MainWindow.ShowConfigurationPage(ConfigWindow.NodebuildersPage);
+
+        Assert.Equal(ConfigWindow.NodebuildersPage, page);
+    }
+}
+
+public class PreferencesWindowTests : EditorTestBase
+{
+    [Theory]
+    [InlineData("#FF8000", true, unchecked((int)0xFFFF8000))]
+    [InlineData("00ff00", true, unchecked((int)0xFF00FF00))]
+    [InlineData("#FF80", false, 0)]
+    [InlineData("zzzzzz", false, 0)]
+    [InlineData("", false, 0)]
+    public void Hex_color_codes_are_parsed_as_opaque_colors(string text, bool ok, int expected)
+    {
+        Assert.Equal(ok, PreferencesWindow.TryParseHex(text, out int argb));
+        if (ok) Assert.Equal(expected, argb);
+    }
+
+    [AvaloniaFact]
+    public void OK_applies_what_was_edited_to_the_settings_and_the_interface_follows()
+    {
+        OpenEditor();
+        RefreshShell();
+        Assert.True(window.Dockers.IsVisible);
+        WhenShown<PreferencesWindow>(w =>
+        {
+            ((CheckBox)w.EditorOf("showfps")).IsChecked = !General.Settings.ShowFPS;
+            ((Slider)w.EditorOf("fieldofview")).Value = 12;
+            ((ComboBox)w.EditorOf("dockersposition")).SelectedIndex = 2;            // None
+            ((TextBox)w.EditorOf("colorgrid")).Text = "#336699";
+            Click(w.OkButton);
+        });
+        bool fps = General.Settings.ShowFPS;
+
+        General.Actions.InvokeAction("builder_preferences");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(!fps, General.Settings.ShowFPS);
+        Assert.Equal(120, General.Settings.VisualFOV);
+        Assert.Equal(2, General.Settings.DockersPosition);
+        Assert.Equal(unchecked((int)0xFF336699), General.Colors.Grid.ToInt());
+        Assert.False(window.Dockers.IsVisible);                                      // the interface was refreshed
+    }
+
+    [AvaloniaFact]
+    public void Cancel_changes_nothing()
+    {
+        OpenEditor();
+        int fov = General.Settings.VisualFOV;
+        WhenShown<PreferencesWindow>(w =>
+        {
+            ((Slider)w.EditorOf("fieldofview")).Value = (fov / 10 == 5) ? 6 : 5;
+            Click(w.CancelButton);
+        });
+
+        General.Actions.InvokeAction("builder_preferences");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(fov, General.Settings.VisualFOV);
+    }
+
+    [AvaloniaFact]
+    public void A_screenshots_folder_that_does_not_exist_keeps_the_window_open_with_a_message()
+    {
+        OpenEditor();
+        string asked = null;
+        bool stillopen = false;
+        WhenShown<PreferencesWindow>(w =>
+        {
+            General.Dialogs = new CodeImp.DoomBuilder.Windows.ScriptedDialogs();
+            ((TextBox)w.EditorOf("screenshotspath")).Text = "/definitely/not/a/folder";
+            Click(w.OkButton);
+            asked = ((CodeImp.DoomBuilder.Windows.ScriptedDialogs)General.Dialogs).Messages.FirstOrDefault();
+            stillopen = w.IsVisible;
+            w.Close(false);
+        });
+
+        General.Actions.InvokeAction("builder_preferences");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains("does not exist", asked);
+        Assert.True(stillopen);
+    }
+
+    [AvaloniaFact]
+    public void Every_tab_has_its_controls()
+    {
+        OpenEditor();
+        int tabs = 0, editors = 0;
+        WhenShown<PreferencesWindow>(w =>
+        {
+            tabs = w.Tabs.ItemCount;
+            editors = w.Model.Items.Count(i => w.EditorOf(i.Key) != null);
+            Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors" }, w.Tabs.Items.OfType<TabItem>().Select(t => (string)t.Header));
+            Click(w.CancelButton);
+        });
+
+        General.Actions.InvokeAction("builder_preferences");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(4, tabs);
+        Assert.True(editors > 40);
+    }
+}

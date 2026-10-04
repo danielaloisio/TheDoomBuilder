@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using CodeImp.DoomBuilder;
 using DoomBuilder.App.Input;
 using DoomBuilder.App.Shell;
@@ -37,6 +38,22 @@ public partial class MainWindow : Avalonia.Controls.Window
         ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
         MenuHost.Content = ui.Menu;
         ToolbarHost.Content = ui.Toolbar;
+
+        // The side panel goes in front of the display (the last child of a DockPanel takes the rest of the space)
+        dockers = new DockerPanel(shell.Dockers) { IsVisible = false };
+        var layout = (DockPanel)Content;
+        layout.Children.Insert(layout.Children.IndexOf(InputSurface), dockers);
+        shell.Dockers.Changed += () => Dispatcher.UIThread.Post(ApplyDockers);
+
+        // The command palette floats over the top of the display
+        palette = new CommandPalette();
+        InputSurface.Children.Add(palette);
+        shell.CommandPaletteRequested += () => Dispatcher.UIThread.Post(() => { if (EditorRunning) palette.Open(); });
+        palette.Closed += () => Focus();
+        AddHandler(PointerPressedEvent, (s, e) =>
+        {
+            if (palette.IsVisible && e.Source is Visual v && !palette.IsVisualAncestorOf(v) && v != palette) palette.Close();
+        }, RoutingStrategies.Tunnel);
 
         shell.StatusChanged += text => StatusText.Text = text;
         shell.HintsChanged += text => HintsText.Text = RtfText.ToPlain(text).Replace('\n', ' ');
@@ -75,9 +92,32 @@ public partial class MainWindow : Avalonia.Controls.Window
     }
 
     // MainForm.UpdateInterface: title, menus, toolbar and the status bar's config label
+    private readonly DockerPanel dockers;
+    private readonly CommandPalette palette;
+
+    /// <summary>The command palette (tests drive it).</summary>
+    internal CommandPalette Palette => palette;
+
+    /// <summary>The side panel of the dockers (tests look into it).</summary>
+    internal DockerPanel Dockers => dockers;
+
+    // Shown when a map is open and there is at least one docker; on the side the settings say (0 left, 1 right, 2 hidden)
+    private void ApplyDockers()
+    {
+        int position = General.Settings?.DockersPosition ?? 1;
+        bool show = position != 2 && General.Map != null && shell.Dockers.Dockers.Count > 0;
+        dockers.IsVisible = show;
+        if (!show) return;
+
+        DockPanel.SetDock(dockers, position == 0 ? Dock.Left : Dock.Right);
+        dockers.SetSide(position != 0);
+        dockers.Width = Math.Max(160, General.Settings?.DockersWidth ?? 250);
+    }
+
     private void RefreshInterface()
     {
         ui.Refresh();
+        ApplyDockers();
 
         string program = "TheDoomBuilder";
         if (General.Map != null)
@@ -355,7 +395,7 @@ public partial class MainWindow : Avalonia.Controls.Window
             var size2 = new PixelSize((int)Bounds.Width, (int)Bounds.Height);
             using var rtb = new Avalonia.Media.Imaging.RenderTargetBitmap(size2);
             rtb.Render(this);
-            rtb.Save(Path.ChangeExtension(path, ".ui.png"));
+            rtb.Save(Path.ChangeExtension(path, ".ui.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
             Console.WriteLine("[screenshot] " + Path.ChangeExtension(path, ".ui.png"));
         }
         catch (Exception e) { Console.Error.WriteLine("[screenshot] UI capture failed: " + e.Message); }
