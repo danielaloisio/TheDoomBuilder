@@ -195,6 +195,60 @@ public class TestMapTests : EditorTestBase
         Assert.Contains(dialogs.Messages, m => m.Contains("test program"));
     }
 
+    [AvaloniaFact]
+    public void Test_map_builds_the_nodes_with_the_nodebuilder_before_starting_the_engine()
+    {
+        if (OperatingSystem.IsWindows()) return;                              // the stand-ins below are shell scripts
+
+        // A nodebuilder that "builds" by handing back a prepared WAD whose node lumps carry a marker
+        Directory.CreateDirectory(dir);
+        string built = Path.Combine(dir, "built.wad");
+        using (var wad = new CodeImp.DoomBuilder.IO.WAD(built))
+        {
+            int index = 0;
+            foreach (string name in new[] { "MAP01", "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP" })
+            {
+                byte[] data = name == "MAP01" ? Array.Empty<byte>() : System.Text.Encoding.ASCII.GetBytes(name == "NODES" ? "BUILT-NODES" : "data");
+                var lump = wad.Insert(name, index++, data.Length);
+                lump.Stream.Write(data, 0, data.Length);
+            }
+        }
+
+        string nodedir = Path.Combine(dir, "app", "Compilers", "Nodebuilders");
+        Directory.CreateDirectory(nodedir);
+        File.WriteAllText(Path.Combine(nodedir, "fakebsp.cfg"),
+            "compilers { fakebsp { interface = \"NodesCompiler\"; program = \"fakebsp.sh\"; } }\n" +
+            "nodebuilders { fake_normal { title = \"Fake\"; compiler = \"fakebsp\"; parameters = \"-o%FO %FI\"; } }\n");
+        string bsp = Path.Combine(nodedir, "fakebsp.sh");
+        File.WriteAllText(bsp, "#!/bin/sh\nfor a in \"$@\"; do case \"$a\" in -o*) out=\"${a#-o}\";; esac; done\ncp '" + built + "' \"$out\"\n");
+        File.SetUnixFileMode(bsp, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        // An engine that keeps the WAD it was started with
+        string kept = Path.Combine(dir, "kept.wad");
+        string engine = Path.Combine(dir, "engine.sh");
+        File.WriteAllText(engine, "#!/bin/sh\nwhile [ \"$1\" != \"-file\" ] && [ -n \"$1\" ]; do shift; done\ncp \"$2\" '" + kept + "'\n");
+        File.SetUnixFileMode(engine, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        OpenEditor();
+        General.Map.ConfigSettings.NodebuilderTest = "fake_normal";
+        General.Map.ConfigSettings.TestProgram = engine;
+        General.Map.ConfigSettings.CustomParameters = true;
+        General.Map.ConfigSettings.TestParameters = "-file \"%F\"";
+
+        General.Map.IsChanged = true;                                         // (nodes are only rebuilt when the map changed since the last save or test)
+        General.Actions.InvokeAction("builder_testmap");
+        for (int i = 0; i < 300 && !File.Exists(kept); i++) System.Threading.Thread.Sleep(50);
+
+        Assert.True(File.Exists(kept), "the engine did not get a WAD");
+        using (var wad = new CodeImp.DoomBuilder.IO.WAD(kept, true))
+        {
+            var nodes = wad.FindLump("NODES");
+            Assert.NotNull(nodes);                                            // the node lumps came from the nodebuilder
+            Assert.Equal("BUILT-NODES", System.Text.Encoding.ASCII.GetString(nodes.Stream.ReadAllBytes()));
+            Assert.NotNull(wad.FindLump("THINGS"));                           // and the map itself is the edited one
+        }
+    }
+
     [Theory]
     [InlineData("", 0)]
     [InlineData("-file \"C:\\a b\\x.wad\" -skill 3", 4)]

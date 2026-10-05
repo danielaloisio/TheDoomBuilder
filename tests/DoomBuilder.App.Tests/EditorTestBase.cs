@@ -121,7 +121,7 @@ thing { x = 64.0; y = 64.0; type = 1; angle = 90; skill1 = true; skill2 = true; 
     }
 
     /// <summary>Opens the main window on the sample map and waits until the editor has started and loaded it.</summary>
-    protected void OpenEditor(bool withMap = true, string wadPath = null, string config = "Doom_DoomDoom.cfg")
+    protected void OpenEditor(bool withMap = true, string wadPath = null, string config = "Doom_DoomDoom.cfg", string iwad = null, string mapName = "MAP01")
     {
         Directory.CreateDirectory(dir);
 
@@ -133,7 +133,8 @@ thing { x = 64.0; y = 64.0; type = 1; angle = 90; skill1 = true; skill2 = true; 
         Program.ApplicationDirectory = app;
         Program.SettingsDirectory = Path.Combine(dir, "settings");
         Program.Arguments = withMap
-            ? new[] { wadPath ?? FindRepoFile("assets", "samples", "sample.wad"), "-map", "MAP01", "-cfg", config, "-nosettings" }
+            ? new[] { wadPath ?? FindRepoFile("assets", "samples", "sample.wad"), "-map", mapName, "-cfg", config, "-nosettings" }
+                .Concat(iwad == null ? Array.Empty<string>() : new[] { "-resource", "wad", iwad }).ToArray()
             : new[] { "-nosettings" };
 
         window = new MainWindow();
