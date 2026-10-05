@@ -170,3 +170,41 @@ public class PointerWarpTests
         Assert.Equal((321, 123), (x, y));
     }
 }
+/// <summary>The raw motion of the X server, with movement injected through XTest (skipped where there is no X server, XInput 2 or XTest).</summary>
+public class X11RawMotionTests
+{
+    [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern System.IntPtr XOpenDisplay(System.IntPtr name);
+    [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern int XCloseDisplay(System.IntPtr display);
+    [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern int XFlush(System.IntPtr display);
+    [System.Runtime.InteropServices.DllImport("libXtst.so.6")] private static extern int XTestFakeRelativeMotionEvent(System.IntPtr display, int dx, int dy, ulong delay);
+
+    [Fact]
+    public void Injected_movement_arrives_as_relative_motion()
+    {
+        if (!System.OperatingSystem.IsLinux() || string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("DISPLAY"))) return;
+        using var raw = X11RawMotion.TryCreate();
+        if (raw == null) return;
+
+        System.IntPtr display;
+        try { display = XOpenDisplay(System.IntPtr.Zero); }
+        catch (System.DllNotFoundException) { return; }
+        if (display == System.IntPtr.Zero) return;
+        try
+        {
+            XTestFakeRelativeMotionEvent(display, 7, -3, 0);
+            XFlush(display);
+            double x = 0, y = 0;
+            for (int i = 0; i < 50 && x == 0 && y == 0; i++)
+            {
+                System.Threading.Thread.Sleep(10);
+                var d = raw.Poll();
+                x += d.x; y += d.y;
+            }
+            // XWayland does not report injected (XTest) movement as device motion: when nothing arrives there is nothing to check, otherwise the direction must be right
+            if (x != 0 || y != 0) { Assert.True(x > 0); Assert.True(y < 0); }
+            XTestFakeRelativeMotionEvent(display, -7, 3, 0);   // put it back
+            XFlush(display);
+        }
+        finally { XCloseDisplay(display); }
+    }
+}

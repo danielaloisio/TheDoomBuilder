@@ -380,7 +380,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     // ---- IInputHost
 
-    IMouseCapture IInputHost.BeginMouseCapture() => new ViewportMouseCapture(viewport, warp);
+    IMouseCapture IInputHost.BeginMouseCapture() => new ViewportMouseCapture(viewport, warp, OperatingSystem.IsLinux() ? X11RawMotion.TryCreate() : null);
 
     void IInputHost.SetProcessing(bool enabled)
     {
