@@ -25,11 +25,14 @@ public sealed class ViewportMouseCapture : IMouseCapture
         this.viewport = viewport;
         this.warp = warp;
 
+        tracker.WarpGivenUp += () => CodeImp.DoomBuilder.General.WriteLogLine("Mouse look: moving the pointer has no effect in this session (XWayland, for one), so movement is read between positions instead.");
+        tracker.UsesWarp = warp.Supported;     // where the pointer cannot be moved, the movement is read between successive positions
         previouscursor = viewport.Cursor;
         viewport.Cursor = new Cursor(StandardCursorType.None);
 
         UpdateCenter();
         warp.MoveTo(screencenter.X, screencenter.Y);
+        tracker.Begin();
 
         surface = viewport.InputSurface ?? viewport;
         surface.PointerMoved += OnPointerMoved;

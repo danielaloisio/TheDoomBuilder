@@ -131,9 +131,12 @@ public class MouseCaptureTests : IDisposable
 
         Assert.Equal(12, delta.x, 1);
         Assert.Equal(-5, delta.y, 1);
-        Assert.Equal(2, warp.Moves.Count);               // moved away from the center: recentered
+        Assert.Single(warp.Moves);                       // a small move away from the center needs no recentering
 
-        // the event the warp itself causes lands on the center and adds nothing
+        // moved far away: the pointer is brought back, and the jump the warp causes adds nothing
+        window.MouseMove(surface.TranslatePoint(center + new Point(250, 0), window).Value);
+        Assert.Equal(238, capture.Poll().x, 1);
+        Assert.Equal(2, warp.Moves.Count);
         window.MouseMove(surface.TranslatePoint(center, window).Value);
         Assert.Equal(0, capture.Poll().x, 3);
         Assert.Equal(2, warp.Moves.Count);

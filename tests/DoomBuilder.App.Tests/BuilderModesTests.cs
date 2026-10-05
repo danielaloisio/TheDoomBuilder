@@ -466,3 +466,84 @@ public class DisplayToolTipTests : EditorTestBase
         Assert.Equal((float)window.RenderScaling, CodeImp.DoomBuilder.Windows.MainForm.DPIScaler.Width);
     }
 }
+
+/// <summary>What the user sees while a mode draws straight from mouse events.</summary>
+public class DrawingModeFeedbackTests : EditorTestBase
+{
+    private Avalonia.Point DisplayPointOf(double x, double y)
+    {
+        var d = Renderer.MapToDisplay(new CodeImp.DoomBuilder.Geometry.Vector2D(x, y));
+        return InView(d.x, d.y);
+    }
+
+    [AvaloniaFact]
+    public void Moving_the_mouse_while_drawing_asks_for_a_frame_so_the_new_line_shows()
+    {
+        OpenEditor();
+        General.Editing.ChangeMode("DrawGeometryMode");
+        var viewport = window.Viewport;
+
+        // The first point of a new line
+        window.MouseMove(DisplayPointOf(100, 100));
+        window.MouseDown(DisplayPointOf(100, 100), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        window.MouseUp(DisplayPointOf(100, 100), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        // Moving the mouse changes the line that follows it; that is drawn outside a frame, so a frame has to be asked for or it never shows
+        int before = viewport.FrameRequests;
+        window.MouseMove(DisplayPointOf(180, 140));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.True(viewport.FrameRequests > before, "no frame was asked for after the mouse moved");
+    }
+
+    private System.Collections.Generic.List<CodeImp.DoomBuilder.Geometry.DrawnVertex> DrawnPoints()
+    {
+        var field = typeof(CodeImp.DoomBuilder.BuilderModes.DrawGeometryMode).GetField("points", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        return (System.Collections.Generic.List<CodeImp.DoomBuilder.Geometry.DrawnVertex>)field.GetValue(General.Editing.Mode);
+    }
+
+    [AvaloniaFact]
+    public void Snap_to_grid_and_snap_to_geometry_start_on_and_the_toolbar_actions_switch_them()
+    {
+        OpenEditor();
+        Assert.True(General.Interface.SnapToGrid);
+        Assert.True(General.Interface.AutoMerge);
+
+        General.Actions.InvokeAction("builder_togglesnap");
+        Assert.False(General.Interface.SnapToGrid);
+        General.Actions.InvokeAction("builder_togglesnap");
+        Assert.True(General.Interface.SnapToGrid);
+
+        General.Actions.InvokeAction("builder_toggleautomerge");
+        Assert.False(General.Interface.AutoMerge);
+        General.Actions.InvokeAction("builder_toggleautomerge");
+        Assert.True(General.Interface.AutoMerge);
+    }
+
+    [AvaloniaFact]
+    public void A_point_drawn_between_grid_lines_snaps_to_the_grid_unless_snapping_is_off()
+    {
+        OpenEditor();
+        General.Editing.ChangeMode("DrawGeometryMode");
+        double grid = General.Map.Grid.GridSize;
+
+        // Click on a spot that is not on a grid line (in the middle of the room, away from any vertex)
+        var at = DisplayPointOf(grid * 3 + grid * 0.3, grid * 2 + grid * 0.3);
+        window.MouseMove(at);
+        window.MouseDown(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        window.MouseUp(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        var first = DrawnPoints()[0].pos;
+        Assert.Equal(0.0, first.x % grid, 3);                                       // on the grid, not where the pointer was
+        Assert.Equal(0.0, first.y % grid, 3);
+
+        // With snapping off the point goes where the pointer is
+        General.Actions.InvokeAction("builder_cancelmode");
+        General.Editing.ChangeMode("DrawGeometryMode");
+        General.Actions.InvokeAction("builder_togglesnap");
+        window.MouseMove(at);
+        window.MouseDown(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        window.MouseUp(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        var free = DrawnPoints()[0].pos;
+        Assert.NotEqual(0.0, free.x % grid, 1);
+    }
+}

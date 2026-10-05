@@ -40,6 +40,8 @@ public class MapViewport : OpenGlControlBase
 
     public MapViewport()
     {
+        // Modes that draw straight from mouse events present outside a frame: the frame that shows it is asked for here
+        Backend.FrameRequested += () => Dispatcher.UIThread.Post(RequestRedraw);
         ClipToBounds = true;
         Focusable = true;
     }
@@ -67,7 +69,14 @@ public class MapViewport : OpenGlControlBase
         Backend.SetSurfaceSize(new System.Drawing.Size(size.Width, size.Height));
     }
 
-    public void RequestRedraw() => RequestNextFrameRendering();
+    /// <summary>How many frames were asked for (diagnostics and tests).</summary>
+    public int FrameRequests { get; private set; }
+
+    public void RequestRedraw()
+    {
+        FrameRequests++;
+        RequestNextFrameRendering();
+    }
 
     protected override void OnOpenGlInit(GlInterface gl)
     {
