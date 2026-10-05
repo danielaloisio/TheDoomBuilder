@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using CodeImp.DoomBuilder.IO;
 using CodeImp.DoomBuilder.Compilers;
 
@@ -51,6 +52,60 @@ namespace CodeImp.DoomBuilder.Config
 		public string ProgramFile { get { return programfile; } }
 		public string ProgramInterface { get { return programinterface; } }
 		public HashSet<string> Files { get { return files; } }
+
+		/// <summary>
+		/// The program to run: the one in the compiler's folder, or else one of that name on the PATH (the binaries of the compilers are
+		/// not distributed with the editor on Linux and macOS, where they are usually installed system-wide). When none exists, the path
+		/// in the compiler's folder, so that the error message says where the editor looked.
+		/// </summary>
+		public string ProgramPath
+		{
+			get
+			{
+				string local = System.IO.Path.Combine(path, programfile);
+				if(File.Exists(local)) return local;
+				if(OperatingSystem.IsWindows() && File.Exists(local + ".exe")) return local + ".exe";
+
+				string name = programfile;
+				if(!OperatingSystem.IsWindows() && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) name = name.Substring(0, name.Length - 4);
+				string onpath = FindOnPath(name);
+				return onpath ?? local;
+			}
+		}
+
+		/// <summary>The full path of an executable of this name in one of the PATH folders, or null.</summary>
+		internal static string FindOnPath(string name)
+		{
+			if(string.IsNullOrEmpty(name) || name.IndexOfAny(new[] { '/', '\\' }) >= 0) return null;
+			string pathvar = Environment.GetEnvironmentVariable("PATH");
+			if(string.IsNullOrEmpty(pathvar)) return null;
+
+			foreach(string folder in pathvar.Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+			{
+				try
+				{
+					string candidate = System.IO.Path.Combine(folder.Trim('"'), name);
+					if(File.Exists(candidate)) return candidate;
+					if(OperatingSystem.IsWindows() && File.Exists(candidate + ".exe")) return candidate + ".exe";
+				}
+				catch(ArgumentException) { }   // a folder with characters that are not valid in a path
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Files unpacked from an archive lose their execute permission on Linux and macOS: gives it back (to the owner) before running.
+		/// </summary>
+		internal static void EnsureExecutable(string program)
+		{
+			if(OperatingSystem.IsWindows() || !File.Exists(program)) return;
+			try
+			{
+				UnixFileMode mode = File.GetUnixFileMode(program);
+				if((mode & UnixFileMode.UserExecute) == 0) File.SetUnixFileMode(program, mode | UnixFileMode.UserExecute);
+			}
+			catch(Exception) { }   // not ours to change: starting it reports the problem
+		}
 		
 		#endregion
 		

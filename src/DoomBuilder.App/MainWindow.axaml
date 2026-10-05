@@ -23,6 +23,9 @@
             </Grid>
         </Border>
 
+        <!-- The info of the element under the mouse: above the status bar, under the map -->
+        <ContentControl x:Name="InfoHost" DockPanel.Dock="Bottom" IsVisible="False" />
+
         <!-- The transparent panel is what receives the pointer: a GL control is not hit-testable on its own -->
         <Panel x:Name="InputSurface" Background="Transparent">
             <local:MapViewport x:Name="Viewport" />

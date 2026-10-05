@@ -2513,17 +2513,28 @@ namespace CodeImp.DoomBuilder
 		{
 			string filename;
 
+			// The commands are a batch file on Windows and a shell script elsewhere
+			string extension = OperatingSystem.IsWindows() ? ".cmd" : ".sh";
 			do
 			{
-				filename = Path.ChangeExtension(Path.GetTempFileName(), ".cmd");
+				filename = Path.ChangeExtension(Path.GetTempFileName(), extension);
 			}
 			while (File.Exists(filename));
 
 			File.WriteAllText(filename, cmdsettings.Commands);
-			
+
 			ProcessStartInfo startinfo = new ProcessStartInfo();
-			startinfo.FileName = "cmd.exe";
-			startinfo.Arguments = "/C " + filename + " " + arguments;
+			if(OperatingSystem.IsWindows())
+			{
+				startinfo.FileName = "cmd.exe";
+				startinfo.Arguments = "/C " + filename + " " + arguments;
+			}
+			else
+			{
+				startinfo.FileName = "/bin/sh";
+				startinfo.ArgumentList.Add(filename);
+				foreach(string arg in Launcher.SplitArguments(arguments)) startinfo.ArgumentList.Add(arg);
+			}
 			if(!string.IsNullOrWhiteSpace(cmdsettings.WorkingDirectory))
 				startinfo.WorkingDirectory = cmdsettings.WorkingDirectory;
 

@@ -29,6 +29,9 @@ namespace CodeImp.DoomBuilder.Windows
 		/// <summary>"Paste Special": what to do with the tags and actions of the pasted elements. Fills in <see cref="PasteOptionsForm.Options"/>.</summary>
 		DialogResult ShowPasteOptions(PasteOptionsForm form);
 
+		/// <summary>Runs an external command showing its output; OK = continue (it succeeded, or the user chose to go on).</summary>
+		DialogResult ShowRunExternalCommand(RunExternalCommandForm form);
+
 		/// <summary>The list of errors and warnings the editor has collected (<see cref="ErrorLogger"/>).</summary>
 		void ShowErrors();
 
@@ -81,6 +84,9 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual DialogResult ShowOpenMapOptions(OpenMapOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowChangeMap(ChangeMapForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowPasteOptions(PasteOptionsForm form) { return DialogResult.Cancel; }
+
+		// Without a window the command just runs, and it counts as continued when it succeeded
+		public virtual DialogResult ShowRunExternalCommand(RunExternalCommandForm form) { return form.Runner.RunToEnd() ? DialogResult.OK : DialogResult.Cancel; }
 		public virtual DialogResult ShowConfiguration(int page, out bool reloadresources) { reloadresources = false; return DialogResult.Cancel; }
 		public virtual DialogResult ShowPreferences(out bool reloadresources) { reloadresources = false; return DialogResult.Cancel; }
 		public virtual void ShowErrors() { }
