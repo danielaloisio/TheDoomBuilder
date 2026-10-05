@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Actions;
 using CodeImp.DoomBuilder.Controls;
+using CodeImp.DoomBuilder.Editing;
 using CodeImp.DoomBuilder.Geometry;
 using CodeImp.DoomBuilder.Rendering;
 using CodeImp.DoomBuilder.Windows;
@@ -44,6 +45,9 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     // Ends the action (not begins it) because of how keys are stored while it runs: a key still held would otherwise stay pressed
     [CodeImp.DoomBuilder.Actions.EndAction("opencommandpalette", BaseAction = true)]
     public void OpenCommandPalette() => CommandPaletteRequested?.Invoke();
+
+    /// <summary>Draws the menus and buttons the plugins add; set by the window once its menus exist.</summary>
+    internal Shell.PluginUi Plugins { get; set; }
 
     /// <summary>The tabs of the side panel.</summary>
     public DockerModel Dockers { get; } = new DockerModel();
@@ -163,8 +167,13 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     public override void SetupInterface() => InterfaceChanged?.Invoke();
     public override void UpdateMapChangedStatus() => InterfaceChanged?.Invoke();
     public override void UpdateThingsFilters() => InterfaceChanged?.Invoke();
-    public override void EditModeChanged() => InterfaceChanged?.Invoke();
-    public override void CheckEditModeButton(string modeclassname) => InterfaceChanged?.Invoke();
+    public override void EditModeChanged()
+    {
+        // As MainForm did: check the button (and menu entry) of the mode that is active now
+        string button = General.Editing?.Mode?.EditModeButtonName ?? string.Empty;
+        OnUi(() => Plugins?.CheckEditModeButton(button));
+        InterfaceChanged?.Invoke();
+    }
 
     public override void ShowHints(string hints)
     {
@@ -176,6 +185,51 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     {
         HintsPanel.ClearHints();
         HintsChanged?.Invoke(string.Empty);
+    }
+
+    // ---- the menus and toolbar buttons of plugins. The plugin is the one whose code calls us (its actions are "<plugin>_<name>")
+
+    private static string PluginNameOf(System.Reflection.Assembly caller)
+        => (General.Plugins?.FindPluginByAssembly(caller)?.Name ?? caller.GetName().Name).ToLowerInvariant();
+
+    private void OnUi(Action action)
+    {
+        if (Dispatcher.UIThread.CheckAccess()) action(); else Dispatcher.UIThread.Post(action);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddMenu(ToolStripItem menu) { string p = PluginNameOf(System.Reflection.Assembly.GetCallingAssembly()); OnUi(() => Plugins?.AddMenu(menu, MenuSection.Top, p)); }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddMenu(ToolStripItem menu, MenuSection section) { string p = PluginNameOf(System.Reflection.Assembly.GetCallingAssembly()); OnUi(() => Plugins?.AddMenu(menu, section, p)); }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddModesMenu(ToolStripItem menu, string group) { string p = PluginNameOf(System.Reflection.Assembly.GetCallingAssembly()); OnUi(() => Plugins?.AddModesMenu(menu, group, p)); }
+
+    public override void RemoveMenu(ToolStripItem menu) => OnUi(() => Plugins?.RemoveMenu(menu));
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddButton(ToolStripItem button) { string p = PluginNameOf(System.Reflection.Assembly.GetCallingAssembly()); OnUi(() => Plugins?.AddButton(button, ToolbarSection.Custom, p)); }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddButton(ToolStripItem button, ToolbarSection section) { string p = PluginNameOf(System.Reflection.Assembly.GetCallingAssembly()); OnUi(() => Plugins?.AddButton(button, section, p)); }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public override void AddModesButton(ToolStripItem toolbarButton, string group) { string p = PluginNameOf(System.Reflection.Assembly.GetCallingAssembly()); OnUi(() => Plugins?.AddModesButton(toolbarButton, group, p)); }
+
+    public override void RemoveButton(ToolStripItem button) => OnUi(() => Plugins?.RemoveButton(button));
+
+    public override void AddEditModeButton(EditModeInfo modeinfo) => OnUi(() => Plugins?.AddEditModeButton(modeinfo));
+    public override void AddEditModeSeperator(string group) => OnUi(() => Plugins?.AddEditModeSeparator(group));
+    public override void RemoveEditModeButtons() => OnUi(() => Plugins?.RemoveEditModeButtons());
+    public override void CheckEditModeButton(string modeclassname) => OnUi(() => { Plugins?.CheckEditModeButton(modeclassname); InterfaceChanged?.Invoke(); });
+    public override void ApplyShortcutKeys() => OnUi(() => { Plugins?.ApplyShortcutKeys(); });
+
+    /// <summary>The click handler UDB's menus and buttons used: the item's Tag names the action to run.</summary>
+    public override void InvokeTaggedAction(object sender, EventArgs e)
+    {
+        if (sender is ToolStripItem { Tag: string action } && General.Actions != null && General.Actions.Exists(action))
+            General.Actions.InvokeAction(action);
     }
 
     // ---- dockers. A plugin's docker is named after the plugin (prefix_name), found from the assembly that calls us
@@ -239,6 +293,11 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     public override bool FocusDisplay() => viewport.Focus();
     public override bool Focus() => viewport.Focus();
+
+    /// <summary>Whether the main window is the active one (not an edit dialog over it): modes only open their edit dialogs then.</summary>
+    internal Func<bool> WindowIsActive { get; set; }
+
+    public override bool IsActiveWindow => WindowIsActive?.Invoke() ?? false;
 
     public override void SetCursor(Cursor cursor) => viewport.Cursor = CursorMap.ToAvalonia(cursor);
 

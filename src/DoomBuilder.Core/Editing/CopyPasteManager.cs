@@ -256,13 +256,8 @@ namespace CodeImp.DoomBuilder.Editing
 
 						try
 						{
-							#if !MONO_WINFORMS
-							DataObject copydata = new DataObject();
-							copydata.SetData(CLIPBOARD_DATA_FORMAT, memstream);
-							Clipboard.SetDataObject(copydata, true, 5, 200);
-							#else
+							// The geometry travels as text (a prefix and base64): any platform's clipboard can carry that, and so can another instance of the editor
 							Clipboard.SetText(CLIPBOARD_DATA_FORMAT + Convert.ToBase64String(memstream.ToArray()));
-							#endif
 						}
 						catch(ExternalException)
 						{
@@ -301,10 +296,6 @@ namespace CodeImp.DoomBuilder.Editing
 			// Check if possible to copy/paste
 			if(General.Editing.Mode.Attributes.AllowCopyPaste)
 			{
-				#if !MONO_WINFORMS
-				bool havepastedata = Clipboard.ContainsData(CLIPBOARD_DATA_FORMAT); //mxd
-				bool havedb2pastedata = Clipboard.ContainsData(CLIPBOARD_DATA_FORMAT_DB2); //mxd
-				#else
 				bool havepastedata = false;
 				bool havedb2pastedata = false;
 				try
@@ -316,7 +307,6 @@ namespace CodeImp.DoomBuilder.Editing
 				{
 					havepastedata = false;
 				}
-				#endif
 				
 				// Anything to paste?
 				if(havepastedata || havedb2pastedata)
@@ -340,11 +330,7 @@ namespace CodeImp.DoomBuilder.Editing
 							// Read from clipboard
 							if(havepastedata)
 							{
-								#if !MONO_WINFORMS
-								using(Stream memstream = (Stream)Clipboard.GetData(CLIPBOARD_DATA_FORMAT))
-								#else
-								using(Stream memstream = new MemoryStream(Convert.FromBase64String(((string)Clipboard.GetData(DataFormats.Text)).Substring(CLIPBOARD_DATA_FORMAT.Length))))
-								#endif
+								using(Stream memstream = new MemoryStream(Convert.FromBase64String(Clipboard.GetText().Substring(CLIPBOARD_DATA_FORMAT.Length))))
 								{
 									if (memstream == null) return;
 									

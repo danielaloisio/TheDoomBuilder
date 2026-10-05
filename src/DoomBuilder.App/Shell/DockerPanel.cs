@@ -16,7 +16,7 @@ namespace DoomBuilder.App.Shell;
 public sealed class DockerPanel : UserControl
 {
     private readonly DockerModel model;
-    private readonly TabControl tabs = new TabControl();
+    private readonly TabControl tabs = new TabControl { FontSize = 12 };
     private bool syncing;
 
     public DockerPanel(DockerModel model)
@@ -66,7 +66,7 @@ public sealed class DockerPanel : UserControl
             {
                 if (!existing.TryGetValue(wanted[i], out TabItem tab))
                 {
-                    tab = new TabItem { Header = wanted[i].Title, Tag = wanted[i], Content = ContentFor(wanted[i]) };
+                    tab = new TabItem { Header = wanted[i].Title, Tag = wanted[i], Content = ContentFor(wanted[i]), FontSize = 12, Padding = new Thickness(8, 4) };
                     tabs.Items.Insert(Math.Min(i, tabs.Items.Count), tab);
                 }
                 else if (tabs.Items.IndexOf(tab) != i)

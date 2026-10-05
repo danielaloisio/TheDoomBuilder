@@ -36,19 +36,42 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual string ActiveDockerTabName { get { return string.Empty; } }
 		public virtual RenderTargetControl Display { get { return null; } }
 		public virtual int ProcessingCount { get { return processingcount; } }
-		public event EventHandler OnEditFormValuesChanged { add { } remove { } }
+		public event EventHandler OnEditFormValuesChanged;
+
+		/// <summary>An edit dialog changed its elements: the current mode may handle it, else the map is updated and redrawn.</summary>
+		protected void EditFormValuesChanged(object sender, EventArgs e)
+		{
+			if(OnEditFormValuesChanged != null)
+			{
+				OnEditFormValuesChanged(sender, e);
+			}
+			else
+			{
+				General.Map.Map.Update();
+				RedrawDisplay();
+			}
+		}
 
 		public virtual void DisplayReady() { status = new StatusInfo(StatusType.Ready, "Ready."); }
 		public virtual void DisplayStatus(StatusType type, string message) { status = new StatusInfo(type, message); }
 		public virtual void DisplayStatus(StatusInfo newstatus) { status = newstatus; }
 		public virtual void RedrawDisplay() { }
 
-		public virtual DialogResult ShowEditVertices(ICollection<Vertex> vertices) { return DialogResult.Cancel; }
-		public virtual DialogResult ShowEditVertices(ICollection<Vertex> vertices, bool allowPositionChange) { return DialogResult.Cancel; }
-		public virtual DialogResult ShowEditLinedefs(ICollection<Linedef> lines) { return DialogResult.Cancel; }
-		public virtual DialogResult ShowEditLinedefs(ICollection<Linedef> lines, bool selectfront, bool selectback) { return DialogResult.Cancel; }
-		public virtual DialogResult ShowEditSectors(ICollection<Sector> sectors) { return DialogResult.Cancel; }
-		public virtual DialogResult ShowEditThings(ICollection<Thing> things) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditVertices(ICollection<Vertex> vertices) { return ShowEditVertices(vertices, true); }
+		public virtual DialogResult ShowEditVertices(ICollection<Vertex> vertices, bool allowPositionChange) { return ShowEditDialog(() => General.Dialogs.ShowEditVertices(vertices, allowPositionChange, EditFormValuesChanged)); }
+		public virtual DialogResult ShowEditLinedefs(ICollection<Linedef> lines) { return ShowEditLinedefs(lines, false, false); }
+		public virtual DialogResult ShowEditLinedefs(ICollection<Linedef> lines, bool selectfront, bool selectback) { return ShowEditDialog(() => General.Dialogs.ShowEditLinedefs(lines, selectfront, selectback, EditFormValuesChanged)); }
+		public virtual DialogResult ShowEditSectors(ICollection<Sector> sectors) { return ShowEditDialog(() => General.Dialogs.ShowEditSectors(sectors, EditFormValuesChanged)); }
+		public virtual DialogResult ShowEditThings(ICollection<Thing> things) { return ShowEditDialog(() => General.Dialogs.ShowEditThings(things, EditFormValuesChanged)); }
+
+		// Edit dialogs run with the editing input paused, as in UDB
+		private DialogResult ShowEditDialog(Func<DialogResult> show)
+		{
+			DisableProcessing();
+			BreakExclusiveMouseInput();
+			try { return show(); }
+			finally { ResumeExclusiveMouseInput(); EnableProcessing(); }
+		}
 		public virtual void ShowLinedefInfo(Linedef l) { }
 		public virtual void ShowLinedefInfo(Linedef l, Sidedef highlightside) { }
 		public virtual void ShowSectorInfo(Sector s) { }

@@ -175,6 +175,9 @@ public class DockerWindowTests : EditorTestBase
         var panel = window.Dockers;
         Assert.True(panel.IsVisible);
         Assert.Contains(panel.Tabs, t => (string)t.Header == "Help");
+        Assert.Contains(panel.Tabs, t => (string)t.Header == "Undo / Redo");       // the BuilderModes plugin's own docker
+
+        panel.Tabs.First(t => (string)t.Header == "Help").IsSelected = true;
         Assert.Equal("Help", General.MainWindow.ActiveDockerTabName);
     }
 

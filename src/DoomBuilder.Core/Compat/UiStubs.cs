@@ -42,7 +42,6 @@ namespace System.Windows.Forms
     public class ComboBox : Control { public List<object> Items { get; } = new List<object>(); }
     public class ListView : Control { }
     public class DataGridView : Control { }
-    public class ToolStripItem { public string Name { get; set; } public object Tag { get; set; } }
     public class Cursor { public static Point Position { get; set; } public static Cursor Current { get; set; } public static void Hide() { } public static void Show() { } }
     public static class Cursors { public static readonly Cursor Default = new Cursor(), AppStarting = new Cursor(), WaitCursor = new Cursor(), Cross = new Cursor(), SizeAll = new Cursor(), Hand = new Cursor(), IBeam = new Cursor(), No = new Cursor(), Arrow = new Cursor(), SizeNS = new Cursor(), SizeWE = new Cursor(), SizeNESW = new Cursor(), SizeNWSE = new Cursor(), HSplit = new Cursor(), VSplit = new Cursor(); }
 }
@@ -50,7 +49,15 @@ namespace System.Windows.Forms
 namespace CodeImp.DoomBuilder.Controls
 {
     /// <summary>Stub for the WinForms GL host control. The real one is an Avalonia MapViewport (Phase 2).</summary>
-    public class RenderTargetControl : System.Windows.Forms.Control { }
+    public class RenderTargetControl : System.Windows.Forms.Control
+    {
+        public System.Drawing.Size Size => ClientSize;
+        /// <summary>Raised when a mode wants a tooltip over the display (title, text, x, y in display pixels); the shell draws it.</summary>
+        public event Action<string, string, int, int> ToolTipRequested;
+        public event Action ToolTipHidden;
+        public void ShowToolTip(string title, string text, int x, int y) { ToolTipRequested?.Invoke(title, text, x, y); }
+        public void HideToolTip() { ToolTipHidden?.Invoke(); }
+    }
 }
 
 namespace System.Windows.Forms
@@ -146,5 +153,19 @@ namespace CodeImp.DoomBuilder.Controls
 
 namespace CodeImp.DoomBuilder.Windows
 {
-    public class PreferencesForm : System.Windows.Forms.Form { public void AddTabPage(System.Windows.Forms.TabPage tab) { } }
+    public class PreferencesForm : System.Windows.Forms.Form
+    {
+        private readonly System.Collections.Generic.List<System.Windows.Forms.TabPage> pages = new System.Collections.Generic.List<System.Windows.Forms.TabPage>();
+        public System.Collections.Generic.IReadOnlyList<System.Windows.Forms.TabPage> Pages => pages;
+        public void AddTabPage(System.Windows.Forms.TabPage tab) { pages.Add(tab); }
+    }
+}
+
+namespace CodeImp.DoomBuilder.Windows
+{
+    /// <summary>What the plugins read from UDB's MainForm without having the form: the display scale (HiDPI). The shell sets it.</summary>
+    public static class MainForm
+    {
+        public static System.Drawing.SizeF DPIScaler = new System.Drawing.SizeF(1f, 1f);
+    }
 }

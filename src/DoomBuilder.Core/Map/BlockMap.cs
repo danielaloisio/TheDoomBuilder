@@ -73,6 +73,12 @@ namespace CodeImp.DoomBuilder.Map
 		// This initializes the blockmap
 		private void Initialize(RectangleF range, int blocksize)
 		{
+			// An area without vertices has no size (or an infinite one): UDB relied on (int)float.MaxValue giving int.MinValue on
+			// x86, which made it a single block. Converting to int saturates in current .NET, so say it explicitly.
+			if(!(range.Width >= 0.0f && range.Height >= 0.0f) || float.IsInfinity(range.Width) || float.IsInfinity(range.Height)
+				|| float.IsNaN(range.Left) || float.IsNaN(range.Top) || Math.Abs(range.Left) > 1e9f || Math.Abs(range.Top) > 1e9f)
+				range = new RectangleF(0.0f, 0.0f, 0.0f, 0.0f);
+
 			// Initialize
 			this.range = range;
 			this.blocksizeshift = General.BitsForInt(blocksize);

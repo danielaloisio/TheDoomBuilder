@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>CodeImp.DoomBuilder.BuilderModes</RootNamespace>
+    <!-- Actions are "<assembly>_<action>" (buildermodes_selectmode...): the name is part of the user's saved shortcuts -->
+    <AssemblyName>BuilderModes</AssemblyName>
+    <DefineConstants>$(DefineConstants);NO_WIN32;NO_UPDATER;NO_SCINTILLA;NO_FORMS_DESIGN</DefineConstants>
+    <NoWarn>$(NoWarn);CA2022;CS0067;CS0618;CS0649;CS0169;CS0414;CS0108;CS0659;CS0661;CA1416;CS0219;CS0168</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DoomBuilder.Core\DoomBuilder.Core.csproj" />
+    <ProjectReference Include="..\..\DoomBuilder.UI\DoomBuilder.UI.csproj" />
+    <!-- The plugin's panels and dialogs are Avalonia controls; the Core stays free of UI types -->
+    <PackageReference Include="Avalonia" Version="12.1.3" />
+  </ItemGroup>
+
+  <!-- Left for later phases (see PLAN-phase5-status.md): visual mode (6); exporters, error checks, find/replace, alignment, bridge,
+       triangulator and block map modes (7). The sources are kept here so they can be switched on one by one. -->
+  <ItemGroup>
+    <Compile Remove="ErrorChecks\**;FindReplace\**;IO\**" />
+    <Compile Remove="ClassicModes\BlockMapMode.cs;ClassicModes\BridgeMode.cs;ClassicModes\CeilingAlignMode.cs;ClassicModes\FloorAlignMode.cs;ClassicModes\FlatAlignMode.cs;ClassicModes\TriangulatorMode.cs;ClassicModes\ErrorCheckMode.cs;ClassicModes\FindReplaceMode.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DoomBuilder.App" />
+    <InternalsVisibleTo Include="DoomBuilder.App.Tests" />
+    <InternalsVisibleTo Include="DoomBuilder.Core.Tests" />
+  </ItemGroup>
+
+</Project>

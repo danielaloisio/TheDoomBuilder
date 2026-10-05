@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 
-namespace DoomBuilder.App.Dialogs;
+namespace DoomBuilder.UI;
 
 /// <summary>
 /// UDB's code asks for dialogs synchronously (it was written for WinForms' modal ShowDialog), but Avalonia dialogs are

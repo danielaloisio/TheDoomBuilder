@@ -26,6 +26,7 @@ public abstract class EditorTestBase : IDisposable
     protected readonly string dir = Path.Combine(Path.GetTempPath(), "udb-app-" + Guid.NewGuid().ToString("N"));
     protected MainWindow window;
 
+    private Exception deferred;
     private readonly System.Collections.Generic.List<DispatcherTimer> timers = new System.Collections.Generic.List<DispatcherTimer>();
 
     /// <summary>When a dialog of type T appears over the main window, runs <paramref name="act"/> on it (once).</summary>
@@ -38,7 +39,9 @@ public abstract class EditorTestBase : IDisposable
             var dialog = window.OwnedWindows.OfType<T>().FirstOrDefault();
             if (dialog == null || !dialog.IsVisible) return;
             timer.Stop();
-            act(dialog);
+            // A failed assertion in here would leave the dialog (and the nested loop waiting for it) open forever: close it and report at the end
+            try { act(dialog); }
+            catch (Exception ex) { deferred ??= ex; if (dialog.IsVisible) dialog.Close(false); }
         };
         timer.Start();
     }
@@ -58,12 +61,52 @@ public abstract class EditorTestBase : IDisposable
             Dispatcher.UIThread.RunJobs();
         }
         General.ShutdownHeadless();
+        if (deferred != null) { var failure = deferred; deferred = null; System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw(); }
         General.BuiltInPluginAssemblies.Clear();
         Program.Arguments = Array.Empty<string>();
         Program.ApplicationDirectory = null;
         Program.SettingsDirectory = null;
         try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch (IOException) { }
     }
+
+    /// <summary>A WAD with MAP01 as UDMF text (for the game configurations that edit UDMF maps).</summary>
+    protected string WriteUdmfWad(string textmap)
+    {
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, "udmf.wad");
+        using (var wad = new CodeImp.DoomBuilder.IO.WAD(path))
+        {
+            void Add(string name, byte[] data)
+            {
+                var lump = wad.Insert(name, wad.Lumps.Count, data.Length);
+                lump.Stream.Write(data, 0, data.Length);
+            }
+            Add("MAP01", Array.Empty<byte>());
+            Add("TEXTMAP", System.Text.Encoding.ASCII.GetBytes(textmap));
+            Add("ENDMAP", Array.Empty<byte>());
+            wad.WriteHeaders();
+        }
+        return path;
+    }
+
+    /// <summary>Two sectors, a few lines and things: enough to edit.</summary>
+    protected const string UdmfSample = @"
+namespace = ""zdoom"";
+vertex { x = 0.0; y = 0.0; }
+vertex { x = 128.0; y = 0.0; }
+vertex { x = 128.0; y = 128.0; }
+vertex { x = 0.0; y = 128.0; }
+linedef { v1 = 0; v2 = 1; sidefront = 0; blocking = true; }
+linedef { v1 = 1; v2 = 2; sidefront = 1; blocking = true; }
+linedef { v1 = 2; v2 = 3; sidefront = 2; blocking = true; }
+linedef { v1 = 3; v2 = 0; sidefront = 3; blocking = true; }
+sidedef { sector = 0; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 0; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 0; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 0; texturemiddle = ""STARTAN1""; }
+sector { heightfloor = 8; heightceiling = 128; texturefloor = ""FLOOR4_8""; textureceiling = ""CEIL3_5""; lightlevel = 192; id = 5; }
+thing { x = 64.0; y = 64.0; type = 1; angle = 90; skill1 = true; skill2 = true; single = true; }
+";
 
     protected static CodeImp.DoomBuilder.Rendering.IRenderer2D Renderer => General.Map.Renderer2D;
 
@@ -78,7 +121,7 @@ public abstract class EditorTestBase : IDisposable
     }
 
     /// <summary>Opens the main window on the sample map and waits until the editor has started and loaded it.</summary>
-    protected void OpenEditor(bool withMap = true)
+    protected void OpenEditor(bool withMap = true, string wadPath = null, string config = "Doom_DoomDoom.cfg")
     {
         Directory.CreateDirectory(dir);
 
@@ -90,7 +133,7 @@ public abstract class EditorTestBase : IDisposable
         Program.ApplicationDirectory = app;
         Program.SettingsDirectory = Path.Combine(dir, "settings");
         Program.Arguments = withMap
-            ? new[] { FindRepoFile("assets", "samples", "sample.wad"), "-map", "MAP01", "-cfg", "Doom_DoomDoom.cfg", "-nosettings" }
+            ? new[] { wadPath ?? FindRepoFile("assets", "samples", "sample.wad"), "-map", "MAP01", "-cfg", config, "-nosettings" }
             : new[] { "-nosettings" };
 
         window = new MainWindow();
@@ -102,7 +145,8 @@ public abstract class EditorTestBase : IDisposable
         window.Show();
 
         // StartEditor is posted from Opened; it opens the map synchronously
-        for (int i = 0; i < 400 && (withMap ? General.Map == null : General.Actions == null); i++)
+        // (a slow CI runner can take many seconds to start: wait for the condition, not for a fixed short time)
+        for (int i = 0; i < 6000 && (withMap ? General.Map == null : General.Actions == null); i++)
         {
             Dispatcher.UIThread.RunJobs();
             System.Threading.Thread.Sleep(10);
