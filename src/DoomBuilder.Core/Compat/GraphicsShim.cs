@@ -85,7 +85,7 @@ namespace System.Drawing
     {
         public string Name { get; }
         internal SKTypeface Typeface { get; }
-        public FontFamily(string name) { Name = name; Typeface = SKTypeface.FromFamilyName(name) ?? SKTypeface.Default; }
+        public FontFamily(string name) { Name = name; Typeface = Font.LookUpTypeface(name, false, false); }
         public static FontFamily GenericSansSerif => new FontFamily("sans-serif");
         public void Dispose() { }
     }
@@ -111,10 +111,19 @@ namespace System.Drawing
         public Font(string family, float size, FontStyle style, GraphicsUnit unit)
         {
             Name = family; Size = size; Style = style; Unit = unit;
-            Typeface = SKTypeface.FromFamilyName(family,
-                (style & FontStyle.Bold) != 0 ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
+            Typeface = LookUpTypeface(family, (style & FontStyle.Bold) != 0, (style & FontStyle.Italic) != 0);
+        }
+
+        // Asking the system for a typeface (fontconfig and the like) takes milliseconds, and the editor makes one Font per text label
+        // (a label for every sector of a big map): the same family and style is looked up once
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<(string, bool, bool), SKTypeface> typefaces = new System.Collections.Concurrent.ConcurrentDictionary<(string, bool, bool), SKTypeface>();
+
+        internal static SKTypeface LookUpTypeface(string family, bool bold, bool italic)
+        {
+            return typefaces.GetOrAdd((family ?? "", bold, italic), key => SKTypeface.FromFamilyName(key.Item1,
+                key.Item2 ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
                 SKFontStyleWidth.Normal,
-                (style & FontStyle.Italic) != 0 ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright) ?? SKTypeface.Default;
+                key.Item3 ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright) ?? SKTypeface.Default);
         }
         public void Dispose() { }
     }

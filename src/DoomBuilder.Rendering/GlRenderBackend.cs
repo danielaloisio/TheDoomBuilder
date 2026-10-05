@@ -72,6 +72,8 @@ namespace DoomBuilder.Rendering
 		private GL gl;
 		private bool gles;
 		private bool inFrame;
+		private bool contextlost;   // a context was attached and then taken away: the next one starts from nothing
+		private readonly HashSet<GlIndexBuffer> indexbuffers = new HashSet<GlIndexBuffer>();
 		private int defaultFramebuffer;
 		private Size surfacesize = new Size(1, 1);
 		private string error = string.Empty;
@@ -131,6 +133,8 @@ namespace DoomBuilder.Rendering
 		/// <summary>Called by the host when its GL context exists and is current.</summary>
 		public void AttachContext(GL gl, bool gles)
 		{
+			bool recovering = contextlost;
+			contextlost = false;
 			this.gl = gl;
 			this.gles = gles;
 			GlInfo = gl.GetStringS(StringName.Renderer) + " | GL " + gl.GetStringS(StringName.Version) + " | GLSL " + gl.GetStringS(StringName.ShadingLanguageVersion);
@@ -143,18 +147,87 @@ namespace DoomBuilder.Rendering
 
 			for(int i = 0; i < arenas.Length; i++)
 			{
-				arenas[i] = new VertexArena((VertexFormat)i, InitialSharedBufferSize);
+				// After a loss the arenas keep their layout (who owns which range), only the GPU buffer behind them is new
+				if(!recovering || arenas[i] == null) arenas[i] = new VertexArena((VertexFormat)i, InitialSharedBufferSize);
+				arenavaos[i] = 0;
 				arenabuffers[i] = gl.GenBuffer();
 				gl.BindBuffer(BufferTargetARB.ArrayBuffer, arenabuffers[i]);
-				gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)InitialSharedBufferSize, null, BufferUsageARB.StaticDraw);
+				gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)arenas[i].Size, null, BufferUsageARB.StaticDraw);
 			}
 			gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 			CheckGLError();
+
+			if(recovering) RestoreResources();
+		}
+
+		/// <summary>Raised after a new context took over from a lost one and the resources were put back on the GPU.</summary>
+		public event Action ContextRestored;
+
+		/// <summary>
+		/// A new GL context replaced a lost one: every GL name of the old one means nothing now. Shaders build again on first use; the
+		/// buffers and textures are filled from the copies kept in CPU memory. What lived only on the GPU (render targets, cube
+		/// maps drawn on it) comes back empty: whoever drew it is told by <see cref="ContextRestored"/>.
+		/// </summary>
+		private void RestoreResources()
+		{
+			foreach(GlShader shader in shaders) shader.Invalidate();
+			foreach(GlShader shader in alphatestshaders) shader.Invalidate();
+			samplers.Clear();
+			for(int i = 0; i < units.Length; i++) units[i].SamplerHandle = 0;
+
+			// Vertex buffers: back into the places they had in the shared buffers
+			for(int f = 0; f < arenas.Length; f++)
+			{
+				gl.BindBuffer(BufferTargetARB.ArrayBuffer, arenabuffers[f]);
+				foreach(VertexArena.Range range in arenas[f].Ranges)
+				{
+					GlVertexBuffer vb = range.Tag as GlVertexBuffer;
+					if(vb == null || vb.Shadow == null) continue;
+					int length = Math.Min(range.Size, vb.Shadow.Length);
+					fixed(byte* p = vb.Shadow)
+						gl.BufferSubData(BufferTargetARB.ArrayBuffer, range.Offset, (nuint)length, p);
+				}
+			}
+			gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
+
+			// Index buffers
+			foreach(GlIndexBuffer ib in indexbuffers)
+			{
+				ib.Buffer = 0;
+				if(ib.Shadow == null) continue;
+				ib.Buffer = gl.GenBuffer();
+				gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, ib.Buffer);
+				fixed(int* p = ib.Shadow)
+					gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(ib.Shadow.Length * sizeof(int)), p, BufferUsageARB.StaticDraw);
+			}
+			gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, 0);
+
+			// Textures: the names are void; the ones with pixels get them again, the others are created empty when next used
+			foreach(KeyValuePair<GlTexture, BaseTexture> pair in new List<KeyValuePair<GlTexture, BaseTexture>>(texturedimensions))
+			{
+				GlTexture data = pair.Key;
+				BaseTexture info = pair.Value;
+				data.Texture = 0; data.Framebuffer = 0; data.DepthRenderbuffer = 0;
+
+				for(int face = 0; face < data.Pixels.Length; face++)
+				{
+					if(data.Pixels[face] == null) continue;
+					TextureTarget bind = info.IsCube ? TextureTarget.TextureCubeMap : TextureTarget.Texture2D;
+					TextureTarget image = info.IsCube ? CubeFaces[face] : TextureTarget.Texture2D;
+					UploadPixels(data, info, bind, image, data.Pixels[face], data.Mipmaps[face], false);
+				}
+			}
+
+			textureschanged = needapply = shaderchanged = uniformschanged = true;
+			indexbufferchanged = vertexbufferchanged = depthstatechanged = blendstatechanged = rasterizerstatechanged = true;
+			CheckGLError();
+			ContextRestored?.Invoke();
 		}
 
 		/// <summary>Called by the host when its GL context is about to go away. GPU data is lost.</summary>
 		public void DetachContext()
 		{
+			if(gl != null) contextlost = true;
 			gl = null;
 			inFrame = false;
 		}
@@ -355,6 +428,8 @@ namespace DoomBuilder.Rendering
 			{
 				if(ib.Buffer != 0) gl.DeleteBuffer(ib.Buffer);
 				ib.Buffer = 0;
+				ib.Shadow = null;
+				indexbuffers.Remove(ib);
 			}
 			else if(backendData is GlTexture tex)
 			{
@@ -362,6 +437,7 @@ namespace DoomBuilder.Rendering
 				if(tex.Framebuffer != 0) gl.DeleteFramebuffer(tex.Framebuffer);
 				if(tex.Texture != 0) gl.DeleteTexture(tex.Texture);
 				tex.DepthRenderbuffer = 0; tex.Framebuffer = 0; tex.Texture = 0;
+				tex.Pixels = new byte[6][];
 				tex.Dispose();
 				texturedimensions.Remove(tex);
 				for(int i = 0; i < units.Length; i++) if(units[i].Tex == tex) units[i].Tex = null;
@@ -401,6 +477,7 @@ namespace DoomBuilder.Rendering
 
 			vb.Format = format;
 			vb.Range = arena.Allocate(size, vb);
+			vb.Shadow = data ?? new byte[size];   // (a buffer that is only reserved is filled later by sub-data)
 
 			if(data != null)
 			{
@@ -421,6 +498,8 @@ namespace DoomBuilder.Rendering
 			{
 				GlVertexBuffer vb = buffer.BackendData as GlVertexBuffer;
 				if(vb == null || vb.Range == null) return;
+				if(vb.Shadow == null || vb.Shadow.Length < destOffset + copy.Length) Array.Resize(ref vb.Shadow, (int)destOffset + copy.Length);
+				System.Buffer.BlockCopy(copy, 0, vb.Shadow, (int)destOffset, copy.Length);
 				gl.BindBuffer(BufferTargetARB.ArrayBuffer, arenabuffers[(int)vb.Format]);
 				fixed(byte* p = copy)
 					gl.BufferSubData(BufferTargetARB.ArrayBuffer, (nint)(vb.Range.Offset + destOffset), (nuint)copy.Length, p);
@@ -473,6 +552,8 @@ namespace DoomBuilder.Rendering
 					buffer.Backend = this;
 					buffer.BackendData = ib;
 				}
+				indexbuffers.Add(ib);
+				ib.Shadow = copy;
 				if(ib.Buffer == 0) ib.Buffer = gl.GenBuffer();
 
 				gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, ib.Buffer);
@@ -624,8 +705,14 @@ namespace DoomBuilder.Rendering
 			return true;
 		}
 
-		private void UploadPixels(GlTexture data, BaseTexture info, TextureTarget bindtarget, TextureTarget imagetarget, byte[] pixels, bool mipmaps)
+		private void UploadPixels(GlTexture data, BaseTexture info, TextureTarget bindtarget, TextureTarget imagetarget, byte[] pixels, bool mipmaps, bool remember = true)
 		{
+			if(remember)
+			{
+				int face = info.IsCube ? Array.IndexOf(CubeFaces, imagetarget) : 0;
+				data.Pixels[face] = pixels;
+				data.Mipmaps[face] = mipmaps;
+			}
 			GetTexture(data);
 			gl.ActiveTexture(Silk.NET.OpenGL.TextureUnit.Texture0);
 			gl.BindBuffer(BufferTargetARB.PixelUnpackBuffer, 0);

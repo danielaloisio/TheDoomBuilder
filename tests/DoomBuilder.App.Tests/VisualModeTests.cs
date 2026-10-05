@@ -259,4 +259,141 @@ public class VisualModeTests : EditorTestBase
         Assert.Equal("SectorsMode", General.Editing.Mode.GetType().Name);
         Assert.Equal(4, General.Map.Map.Sectors.Count);
     }
+
+    // Three rooms in a row, the outer two at different heights: slope handles on their outer walls, the middle one to be arched
+    private const string ThreeRooms = @"namespace = ""zdoom"";
+thing { x = 64.0; y = 64.0; type = 1; angle = 0; skill1 = true; skill2 = true; single = true; }
+vertex { x = 0.0; y = 0.0; }
+vertex { x = 128.0; y = 0.0; }
+vertex { x = 256.0; y = 0.0; }
+vertex { x = 384.0; y = 0.0; }
+vertex { x = 384.0; y = 128.0; }
+vertex { x = 256.0; y = 128.0; }
+vertex { x = 128.0; y = 128.0; }
+vertex { x = 0.0; y = 128.0; }
+linedef { v1 = 0; v2 = 1; sidefront = 0; blocking = true; }
+linedef { v1 = 1; v2 = 2; sidefront = 1; blocking = true; }
+linedef { v1 = 2; v2 = 3; sidefront = 2; blocking = true; }
+linedef { v1 = 3; v2 = 4; sidefront = 3; blocking = true; }
+linedef { v1 = 4; v2 = 5; sidefront = 4; blocking = true; }
+linedef { v1 = 5; v2 = 6; sidefront = 5; blocking = true; }
+linedef { v1 = 6; v2 = 7; sidefront = 6; blocking = true; }
+linedef { v1 = 7; v2 = 0; sidefront = 7; blocking = true; }
+linedef { v1 = 1; v2 = 6; sidefront = 8; sideback = 9; twosided = true; }
+linedef { v1 = 5; v2 = 2; sidefront = 10; sideback = 11; twosided = true; }
+sidedef { sector = 0; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 1; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 1; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 2; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 2; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 1; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 0; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 0; texturemiddle = ""STARTAN1""; }
+sidedef { sector = 0; texturetop = ""STARTAN1""; texturebottom = ""STARTAN1""; }
+sidedef { sector = 1; texturetop = ""STARTAN1""; texturebottom = ""STARTAN1""; }
+sidedef { sector = 1; texturetop = ""STARTAN1""; texturebottom = ""STARTAN1""; }
+sidedef { sector = 2; texturetop = ""STARTAN1""; texturebottom = ""STARTAN1""; }
+sector { heightfloor = 0; heightceiling = 256; texturefloor = ""FLOOR4_8""; textureceiling = ""CEIL3_5""; lightlevel = 192; }
+sector { heightfloor = 0; heightceiling = 256; texturefloor = ""FLOOR4_8""; textureceiling = ""CEIL3_5""; lightlevel = 192; }
+sector { heightfloor = 64; heightceiling = 256; texturefloor = ""FLOOR4_8""; textureceiling = ""CEIL3_5""; lightlevel = 192; }
+";
+
+    [AvaloniaFact]
+    public void Create_arch_shows_the_angle_and_scale_and_applies_a_curved_slope_to_the_chosen_floor()
+    {
+        OpenEditor(wadPath: WriteUdmfWad(ThreeRooms), config: "GZDoom_DoomUDMF.cfg");
+        General.Editing.ChangeMode("BaseVisualMode");
+        var mode = (CodeImp.DoomBuilder.BuilderModes.BaseVisualMode)General.Editing.Mode;
+        var sectors = General.Map.Map.Sectors.ToList();
+        var left = sectors[0]; var middle = sectors[1]; var right = sectors[2];
+
+        // The handles sit on a wall of the low room and on a wall of the high room
+        var lowhandle = new CodeImp.DoomBuilder.VisualModes.VisualSidedefSlope(mode, mode.GetSectorData(left).Floor, left.Sidedefs.First(), true);
+        var highhandle = new CodeImp.DoomBuilder.VisualModes.VisualSidedefSlope(mode, mode.GetSectorData(right).Floor, right.Sidedefs.First(), true);
+        var floor = (CodeImp.DoomBuilder.BuilderModes.BaseVisualGeometrySector)((CodeImp.DoomBuilder.BuilderModes.BaseVisualSector)mode.GetVisualSector(middle)).Floor;
+        var targets = new System.Collections.Generic.List<CodeImp.DoomBuilder.BuilderModes.IVisualEventReceiver> { floor };
+
+        var archer = new CodeImp.DoomBuilder.BuilderModes.SlopeArcher(mode, targets, lowhandle, highhandle, Math.PI / 2, Math.PI / 2, 1.0);
+        var form = new CodeImp.DoomBuilder.BuilderModes.SlopeArchForm(archer);
+        int changes = 0;
+        form.UpdateChangedObjects += (s, e) => changes++;
+
+        System.Collections.Generic.List<DoomBuilder.UI.NumberBox> boxes = null;
+        WhenShown<DoomBuilder.UI.SimpleDialog>(d =>
+        {
+            Assert.Equal("Create arch", d.Title);
+            boxes = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants((Avalonia.Controls.Control)d.Content).OfType<DoomBuilder.UI.NumberBox>().ToList();
+            Assert.Equal(new[] { "90", "90", "100", "0" }, boxes.Select(b => b.Text));        // angle, offset, scale %, height offset
+            Assert.True(changes >= 1);                                                       // the arch is applied as soon as it opens
+
+            boxes[0].Text = "120";                                                            // 120 + the offset 90 is more than half a circle: refused
+            Assert.Equal("90", boxes[0].Text);
+            Assert.Equal(90.0, Angle(archer), 3);
+
+            boxes[1].Text = "30";                                                             // with a smaller offset a wider arch is fine, and applied again
+            int before = changes;
+            boxes[0].Text = "120";
+            Assert.Equal(120.0, Angle(archer), 3);
+            Assert.True(changes > before);
+
+            Click(d.OkButton);
+        });
+
+        Assert.Equal(System.Windows.Forms.DialogResult.OK, form.ShowDialog());
+        Assert.False(middle.FloorSlope.GetLengthSq() == 0.0, "the middle floor is sloped");
+    }
+
+    // Selects what the arch action needs: two slope handles and the floor and ceiling of the middle room
+    private void SelectForArch(CodeImp.DoomBuilder.BuilderModes.BaseVisualMode mode, System.Collections.Generic.IList<CodeImp.DoomBuilder.Map.Sector> sectors)
+    {
+        var lowhandle = new CodeImp.DoomBuilder.VisualModes.VisualSidedefSlope(mode, mode.GetSectorData(sectors[0]).Floor, sectors[0].Sidedefs.First(), true);
+        var highhandle = new CodeImp.DoomBuilder.VisualModes.VisualSidedefSlope(mode, mode.GetSectorData(sectors[2]).Floor, sectors[2].Sidedefs.First(), true);
+        var visual = (CodeImp.DoomBuilder.BuilderModes.BaseVisualSector)mode.GetVisualSector(sectors[1]);
+
+        var field = typeof(CodeImp.DoomBuilder.BuilderModes.BaseVisualMode).GetField("selectedobjects", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var selection = (System.Collections.IList)field.GetValue(mode);
+        selection.Clear();
+        foreach (var picked in new CodeImp.DoomBuilder.BuilderModes.IVisualEventReceiver[] { lowhandle, highhandle, (CodeImp.DoomBuilder.BuilderModes.BaseVisualGeometrySector)visual.Floor, (CodeImp.DoomBuilder.BuilderModes.BaseVisualGeometrySector)visual.Ceiling })
+        {
+            if (picked is CodeImp.DoomBuilder.VisualModes.VisualSlope slope) slope.Selected = true;
+            else if (picked is CodeImp.DoomBuilder.VisualModes.VisualGeometry geometry) geometry.Selected = true;
+            selection.Add(picked);
+        }
+    }
+
+    [AvaloniaFact]
+    public void The_arch_action_slopes_the_selected_floors_and_Cancel_puts_everything_back()
+    {
+        OpenEditor(wadPath: WriteUdmfWad(ThreeRooms), config: "GZDoom_DoomUDMF.cfg");
+        General.Editing.ChangeMode("BaseVisualMode");
+        var mode = (CodeImp.DoomBuilder.BuilderModes.BaseVisualMode)General.Editing.Mode;
+        var sectors = General.Map.Map.Sectors.ToList();
+        var middle = sectors[1];
+        int floor = middle.FloorHeight, ceiling = middle.CeilHeight;
+
+        // Cancelled: the arch that was shown while the dialog was open is withdrawn with its undo level
+        bool shown = false;
+        SelectForArch(mode, sectors);
+        WhenShown<DoomBuilder.UI.SimpleDialog>(d => { shown = true; Click(d.CancelButton); });
+        General.Actions.InvokeAction("buildermodes_archbetweenhandles");
+        Flush();
+        Assert.True(shown, "the dialog opened");
+        Assert.True(middle.FloorSlope.GetLengthSq() == 0.0, "no slope is left on the floor");
+        Assert.Equal(floor, middle.FloorHeight);
+        Assert.Equal(ceiling, middle.CeilHeight);
+
+        // Applied: the floor keeps the arch, and one undo takes it away again
+        shown = false;
+        SelectForArch(mode, sectors);
+        WhenShown<DoomBuilder.UI.SimpleDialog>(d => { shown = true; Click(d.OkButton); });
+        General.Actions.InvokeAction("buildermodes_archbetweenhandles");
+        Flush();
+        Assert.True(shown, "the dialog opened again");
+        Assert.False(middle.FloorSlope.GetLengthSq() == 0.0, "the floor is sloped");
+
+        General.Map.UndoRedo.PerformUndo();
+        Assert.True(middle.FloorSlope.GetLengthSq() == 0.0);
+    }
+
+    private static double Angle(CodeImp.DoomBuilder.BuilderModes.SlopeArcher a) => CodeImp.DoomBuilder.Geometry.Angle2D.RadToDeg(a.Theta);
 }

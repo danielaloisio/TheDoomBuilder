@@ -55,6 +55,72 @@ public class GlBackendTests
         return (px[0], px[1], px[2], px[3]);
     }
 
+    private const string TexturedFragment = @"
+        in vec4 vColor; in vec2 vUV; out vec4 FragColor;
+        uniform sampler2D texture1;
+        void main() { FragColor = texture(texture1, vUV) * vColor; }";
+
+    [SkippableFact]
+    public void A_lost_context_is_replaced_and_the_buffers_textures_and_shaders_come_back()
+    {
+        Skip.IfNot(host.Available, host.UnavailableReason);
+        using var second = new GlHost();             // another GL context, with none of the first one's objects
+        Skip.IfNot(second.Available, second.UnavailableReason);
+
+        var backend = new GlRenderBackend();
+        var vb = new VertexBuffer();
+        var tex = new Texture(2, 2, TextureFormat.Bgra8);
+        var indices = new IndexBuffer();
+        var target = new Texture(32, 32, TextureFormat.Bgra8);
+        bool restored = false;
+        backend.ContextRestored += () => restored = true;
+
+        FlatVertex V(float x, float y, float u, float v) => new FlatVertex { x = x, y = y, z = 0, c = -1, u = u, v = v };
+        var quad = new[] { V(-1, -1, 0, 0), V(1, -1, 1, 0), V(1, 1, 1, 1), V(-1, 1, 0, 1) };
+        byte[] pixels = new byte[2 * 2 * 4];
+        for (int i = 0; i < pixels.Length; i += 4) { pixels[i] = 0; pixels[i + 1] = 0x80; pixels[i + 2] = 0xFF; pixels[i + 3] = 0xFF; }   // BGRA: orange (R=FF G=80 B=00)
+
+        (byte r, byte g, byte b) DrawAndRead(GL gl)
+        {
+            backend.BeginFrame(0, new Size(64, 64));
+            Assert.True(backend.StartRendering(true, unchecked((int)0xFF000000), target, false), backend.GetError());
+            backend.SetShader(ShaderName.display2d_normal);
+            backend.SetTexture(0, tex);
+            backend.SetVertexBuffer(vb);
+            backend.SetIndexBuffer(indices);
+            Assert.True(backend.DrawIndexed(PrimitiveType.TriangleList, 0, 2), backend.GetError());
+            var (r, g, b, _) = ReadPixel(gl, 16, 16);
+            backend.EndFrame();
+            return (r, g, b);
+        }
+
+        host.Invoke(() =>
+        {
+            backend.AttachContext(host.Gl, false);
+            backend.DeclareShader(ShaderName.display2d_normal, "textured", PassThroughVertex, TexturedFragment);
+            backend.SetVertexBufferData(vb, MemoryMarshal.AsBytes(quad.AsSpan()), 4 * FlatVertex.Stride, VertexFormat.Flat);
+            backend.SetIndexBufferData(indices, new[] { 0, 1, 2, 0, 2, 3 });
+            backend.SetPixels(tex, pixels);
+
+            var (r, g, b) = DrawAndRead(host.Gl);
+            Assert.Equal((255, 128, 0), ((int)r, (int)g, (int)b));                       // it draws before the loss
+
+            backend.DetachContext();                                                    // the context is gone
+            Assert.False(backend.HasContext);
+        });
+
+        second.Invoke(() =>
+        {
+            backend.AttachContext(second.Gl, false);                                     // a different context takes over
+            Assert.True(restored);
+            Assert.True(backend.HasContext);
+
+            var (r, g, b) = DrawAndRead(second.Gl);                                      // same picture, nothing re-uploaded by the caller
+            Assert.Equal((255, 128, 0), ((int)r, (int)g, (int)b));
+            backend.Dispose();
+        });
+    }
+
     [SkippableFact]
     public void Attaching_a_context_reports_the_driver()
     {
@@ -270,3 +336,4 @@ public class UdbShaderTests : IDisposable
         return new[] { V(-1, -1), V(3, -1), V(-1, 3) };
     }
 }
+

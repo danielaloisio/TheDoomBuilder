@@ -111,6 +111,16 @@ namespace DoomBuilder.Rendering
 			return shader;
 		}
 
+		/// <summary>The GL context is gone and with it the program: forget it without deleting anything, to be built again on first use.</summary>
+		public void Invalidate()
+		{
+			Program = 0; vertexShader = 0; fragmentShader = 0;
+			built = false;
+			errors = string.Empty;
+			UniformLocations = Array.Empty<int>();
+			UniformLastUpdates = Array.Empty<int>();
+		}
+
 		public void ReleaseResources(GL gl)
 		{
 			if(Program != 0) gl.DeleteProgram(Program);

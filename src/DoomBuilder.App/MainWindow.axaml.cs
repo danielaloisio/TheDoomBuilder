@@ -60,8 +60,8 @@ public partial class MainWindow : Avalonia.Controls.Window
         InfoHost.Content = infoPanel;
         shell.InfoChanged += info => Dispatcher.UIThread.Post(() =>
         {
-            if (info == null) infoPanel.IdleText = General.Editing?.Mode?.Attributes?.DisplayName ?? "";
-            infoPanel.Show(info);
+            // While nothing is highlighted the panel names the mode and counts the map's elements
+            infoPanel.Show(info ?? (General.Map != null ? CodeImp.DoomBuilder.Windows.ElementInfoBuilder.ForStatistics() : null));
         });
 
         // Offsets that plugins give in display pixels follow the screen's scale
@@ -97,6 +97,12 @@ public partial class MainWindow : Avalonia.Controls.Window
         Viewport.Paint += OnPaint;
         Viewport.ContextFailed += reason => StatusText.Text = "OpenGL is not available: " + reason;
         Viewport.FramePainted += OnFramePainted;
+        // A new GL context replaced a lost one: the backend put back what it had copies of; the sky is drawn on the GPU, so it is made again
+        Viewport.Backend.ContextRestored += () => Dispatcher.UIThread.Post(() =>
+        {
+            if (General.Map != null) General.Map.Data.SetupSkybox();
+            Viewport.RequestRedraw();
+        });
 
         // Keyboard: tunnel so keys reach the editor wherever the focus is inside the window
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
@@ -158,6 +164,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         ApplyDockers();
 
         InfoHost.IsVisible = General.Map != null && shell.IsInfoPanelExpanded;
+        if (shell.InfoObject == null) infoPanel.Show(General.Map != null ? CodeImp.DoomBuilder.Windows.ElementInfoBuilder.ForStatistics() : null);   // (the mode or the map changed)
 
         string program = "TheDoomBuilder";
         if (General.Map != null)
@@ -418,6 +425,9 @@ public partial class MainWindow : Avalonia.Controls.Window
         // UDB_RUN_ACTION=<action name> runs an action once the map is loaded (to exercise e.g. builder_testmap from a script)
         string action = Environment.GetEnvironmentVariable("UDB_RUN_ACTION");
         if (framecount == 6 && !string.IsNullOrEmpty(action)) Dispatcher.UIThread.Post(() => General.Actions.InvokeAction(action));
+        // UDB_SIMULATE_CONTEXT_LOSS=1 takes the viewport out of the window and puts it back (the GL context is destroyed and created again)
+        if (framecount == 8 && Environment.GetEnvironmentVariable("UDB_SIMULATE_CONTEXT_LOSS") == "1")
+            Dispatcher.UIThread.Post(() => { var parent = (Avalonia.Controls.Panel)Viewport.Parent; parent.Children.Remove(Viewport); Dispatcher.UIThread.Post(() => parent.Children.Add(Viewport)); });
         // UDB_SCREENSHOT_CAMERA=x,y,z,anglexy,anglez (degrees) places the 3D camera
         string cam = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_CAMERA");
         if (framecount == 5 && !string.IsNullOrEmpty(cam))
