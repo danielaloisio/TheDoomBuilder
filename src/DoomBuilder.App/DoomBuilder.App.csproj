@@ -33,7 +33,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DoomBuilder.Rendering\DoomBuilder.Rendering.csproj" />
+    <ProjectReference Include="..\Plugins\BuilderModes\BuilderModes.csproj" />
     <ProjectReference Include="..\DoomBuilder.Core\DoomBuilder.Core.csproj" />
+    <ProjectReference Include="..\DoomBuilder.UI\DoomBuilder.UI.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Actions.cfg" />

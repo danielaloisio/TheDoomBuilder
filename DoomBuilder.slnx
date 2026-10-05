@@ -3,6 +3,10 @@
     <Project Path="src/DoomBuilder.App/DoomBuilder.App.csproj" />
     <Project Path="src/DoomBuilder.Core/DoomBuilder.Core.csproj" />
     <Project Path="src/DoomBuilder.Rendering/DoomBuilder.Rendering.csproj" />
+    <Project Path="src/DoomBuilder.UI/DoomBuilder.UI.csproj" />
+  </Folder>
+  <Folder Name="/src/Plugins/">
+    <Project Path="src/Plugins/BuilderModes/BuilderModes.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DoomBuilder.App.Tests/DoomBuilder.App.Tests.csproj" />

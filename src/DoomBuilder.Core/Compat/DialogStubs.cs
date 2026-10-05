@@ -104,17 +104,49 @@ namespace System.Windows.Forms
         public object GetData(string format) => data.TryGetValue(format, out var v) ? v : null;
         public bool GetDataPresent(string format) => data.ContainsKey(format);
     }
-    /// <summary>In-process clipboard. Replaced by the Avalonia clipboard service in Phase 5.</summary>
+    /// <summary>The system clipboard, for text. The shell provides it (Core has no UI types); without one the clipboard stays in this process.</summary>
+    public interface IClipboardProvider
+    {
+        /// <summary>The text on the clipboard, or null when there is none.</summary>
+        string GetText();
+        void SetText(string text);
+    }
+
+    /// <summary>
+    /// The clipboard code of the editor asks for. Text goes to the system clipboard when the shell provided one (so maps can be
+    /// copied between instances and from other programs); if that fails, or there is none, the copy still works inside this process.
+    /// </summary>
     public static class Clipboard
     {
         private static DataObject current = new DataObject();
+
+        /// <summary>The system clipboard (set by the shell).</summary>
+        public static IClipboardProvider Provider { get; set; }
+
         public static void SetDataObject(object d, bool copy) { current = d as DataObject ?? new DataObject(); }
         public static void SetDataObject(object d, bool copy, int retries, int delay) => SetDataObject(d, copy);
-        public static void SetText(string text) { current = new DataObject(); current.SetData(DataFormats.Text, text); }
-        public static string GetText() => current.GetData(DataFormats.Text) as string ?? string.Empty;
-        public static bool ContainsData(string format) => current.GetDataPresent(format);
-        public static bool ContainsText() => current.GetDataPresent(DataFormats.Text);
-        public static object GetData(string format) => current.GetData(format);
+
+        public static void SetText(string text)
+        {
+            current = new DataObject();
+            current.SetData(DataFormats.Text, text);
+            try { Provider?.SetText(text); }
+            catch(Exception e) { Console.Error.WriteLine("[Clipboard] Unable to use the system clipboard: " + e.Message); }
+        }
+
+        public static string GetText()
+        {
+            if(Provider != null)
+            {
+                try { return Provider.GetText() ?? string.Empty; }
+                catch(Exception e) { Console.Error.WriteLine("[Clipboard] Unable to use the system clipboard: " + e.Message); }
+            }
+            return current.GetData(DataFormats.Text) as string ?? string.Empty;
+        }
+
+        public static bool ContainsData(string format) => format == DataFormats.Text ? ContainsText() : current.GetDataPresent(format);
+        public static bool ContainsText() => GetText().Length > 0;
+        public static object GetData(string format) => format == DataFormats.Text ? GetText() : current.GetData(format);
         public static IDataObject GetDataObject() => current;
     }
 
@@ -174,7 +206,12 @@ namespace CodeImp.DoomBuilder.Windows
         public override DialogResult ShowDialog(IWin32Window owner) => CodeImp.DoomBuilder.General.Dialogs.ShowChangeMap(this);
     }
     public class CenterOnCoordinatesForm : Form { public Vector2D Coordinates { get; } }
-    public class PasteOptionsForm : Form { public PasteOptions Options { get; } }
+    public class PasteOptionsForm : Form
+    {
+        /// <summary>The options being edited (they start as the defaults); after OK, the result.</summary>
+        public PasteOptions Options { get; set; } = CodeImp.DoomBuilder.General.Settings.PasteOptions.Copy();
+        public override DialogResult ShowDialog(IWin32Window owner) => CodeImp.DoomBuilder.General.Dialogs.ShowPasteOptions(this);
+    }
     public class GridSetupForm : Form { }
     public class ThingsFiltersForm : Form { }
     public class LinedefColorPresetsForm : Form { }
@@ -190,10 +227,10 @@ namespace CodeImp.DoomBuilder.Windows
     {
         public int SelectedType { get; }
         public ThingBrowserForm(int type) { }
-        public static int BrowseThing(IWin32Window parent, int value) => value;
+        public static int BrowseThing(IWin32Window parent, int value) => CodeImp.DoomBuilder.General.Dialogs.BrowseThing(value);
     }
     public static class AngleForm { public static int ShowDialog(IWin32Window parent, int value) => value; }
-    public static class TextureBrowserForm { public static string Browse(IWin32Window parent, string value, bool flats) => value; }
+    public static class TextureBrowserForm { public static string Browse(IWin32Window parent, string value, bool flats) => CodeImp.DoomBuilder.General.Dialogs.BrowseImage(value, flats); }
     public static class TextEditForm { public static string ShowDialog(IWin32Window parent, string value) => value; }
     public static class EffectBrowserForm { public static int BrowseEffect(IWin32Window parent, int value) => value; }
     public static class ActionBrowserForm { public static int BrowseAction(IWin32Window parent, int value) => value; }

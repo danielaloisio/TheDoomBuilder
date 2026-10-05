@@ -28,10 +28,21 @@ public sealed class ShellUi
     private readonly ShellCommands commands;
     private readonly List<MenuItem> recentitems = new List<MenuItem>();
     private readonly List<Bound> bound = new List<Bound>();
+    private readonly Dictionary<string, Bound> byName = new Dictionary<string, Bound>();
+    private readonly Dictionary<Control, ItemsControl> menuOwner = new Dictionary<Control, ItemsControl>();   // separators and items of the menus
+    private WrapPanel toolbarPanel;
     private bool refreshing;
 
     public Menu Menu { get; }
     public Control Toolbar { get; }
+
+    /// <summary>The row of edit mode buttons (filled by the plugins through AddEditModeButton).</summary>
+    public WrapPanel ModesPanel { get; } = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 1) };
+    public Control ModesBar { get; }
+
+    /// <summary>The row of the controls of the active mode (the options of the drawing modes...).</summary>
+    public WrapPanel ModeControlsPanel { get; } = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 1) };
+    public Control ModeControlsBar { get; }
 
     public ShellUi(ShellCommands commands)
     {
@@ -40,6 +51,8 @@ public sealed class ShellUi
         var model = UiModel.Load();
         Menu = BuildMenu(model["menumain"]);
         Toolbar = BuildToolbar(model["toolbar"]);
+        ModesBar = new Border { Child = ModesPanel, BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = Brushes.Gray, IsVisible = false };
+        ModeControlsBar = new Border { Child = ModeControlsPanel, BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = Brushes.Gray, IsVisible = false };
         Refresh();
     }
 
@@ -57,7 +70,9 @@ public sealed class ShellUi
         foreach (UiItem item in strip.Items)
         {
             if (item.IsSeparator) continue;
-            menu.Items.Add(BuildMenuItem(item));
+            Control built = BuildMenuItem(item);
+            menuOwner[built] = menu;
+            menu.Items.Add(built);
         }
         return menu;
     }
@@ -67,7 +82,7 @@ public sealed class ShellUi
         if (item.IsSeparator)
         {
             var separator = new Separator();
-            bound.Add(new Bound { Item = item, Control = separator });
+            Register(new Bound { Item = item, Control = separator });
             return separator;
         }
 
@@ -83,7 +98,12 @@ public sealed class ShellUi
         if (ImageCache.Get(item.Image) is { } bitmap)
             menuitem.Icon = new Image { Source = bitmap, Width = 16, Height = 16 };
 
-        foreach (UiItem child in item.Items) menuitem.Items.Add(BuildMenuItem(child));
+        foreach (UiItem child in item.Items)
+        {
+            Control built = BuildMenuItem(child);
+            menuOwner[built] = menuitem;
+            menuitem.Items.Add(built);
+        }
 
         if (item.Items.Count == 0)
         {
@@ -91,7 +111,7 @@ public sealed class ShellUi
             menuitem.Click += (s, e) => Run(item);
         }
 
-        bound.Add(new Bound { Item = item, Control = menuitem, MenuItem = menuitem, Caption = caption, ShortcutText = shortcut });
+        Register(new Bound { Item = item, Control = menuitem, MenuItem = menuitem, Caption = caption, ShortcutText = shortcut });
         return menuitem;
     }
 
@@ -109,6 +129,7 @@ public sealed class ShellUi
     private Control BuildToolbar(UiStrip strip)
     {
         var panel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 2) };
+        toolbarPanel = panel;
         foreach (UiItem item in strip.Items)
             if (BuildToolbarItem(item) is { } control) panel.Children.Add(control);
 
@@ -120,7 +141,7 @@ public sealed class ShellUi
         if (item.IsSeparator)
         {
             var line = new Border { Width = 1, Height = 20, Margin = new Thickness(5, 2), Background = Brushes.Gray, Opacity = 0.5 };
-            bound.Add(new Bound { Item = item, Control = line });
+            Register(new Bound { Item = item, Control = line });
             return line;
         }
 
@@ -136,14 +157,14 @@ public sealed class ShellUi
             var drop = new ToggleButton { Content = ContentOf(item), Flyout = flyout, Padding = new Thickness(4) };
             drop.Click += (s, e) => { drop.IsChecked = false; flyout.ShowAt(drop); };
             ToolTip.SetTip(drop, item.Tooltip ?? item.PlainText);
-            bound.Add(new Bound { Item = item, Control = drop, Button = drop });
+            Register(new Bound { Item = item, Control = drop, Button = drop });
             return drop;
         }
 
         var button = new ToggleButton { Content = ContentOf(item), Padding = new Thickness(4), Margin = new Thickness(1) };
         ToolTip.SetTip(button, item.Tooltip ?? item.PlainText);
         button.Click += (s, e) => Run(item);
-        bound.Add(new Bound { Item = item, Control = button, Button = button });
+        Register(new Bound { Item = item, Control = button, Button = button });
         return button;
     }
 
@@ -152,6 +173,111 @@ public sealed class ShellUi
         if (ImageCache.Get(item.Image) is { } bitmap) return new Image { Source = bitmap, Width = 16, Height = 16 };
         return item.PlainText;
     }
+
+    private void Register(Bound b)
+    {
+        bound.Add(b);
+        if (!string.IsNullOrEmpty(b.Item.Name)) byName[b.Item.Name] = b;
+    }
+
+    // ---- places the plugins add to (UDB's MenuSection / ToolbarSection)
+
+    // Where each menu section is: the menu and the separator that ends the section (null: at the end of the menu)
+    private static readonly Dictionary<CodeImp.DoomBuilder.Windows.MenuSection, (string menu, string anchor)> MenuPlaces =
+        new Dictionary<CodeImp.DoomBuilder.Windows.MenuSection, (string, string)>
+        {
+            [CodeImp.DoomBuilder.Windows.MenuSection.FileNewOpenClose] = ("menufile", "seperatorfileopen"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.FileSave] = ("menufile", "seperatorfilesave"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.FileImport] = ("itemimport", null),
+            [CodeImp.DoomBuilder.Windows.MenuSection.FileExport] = ("itemexport", null),
+            [CodeImp.DoomBuilder.Windows.MenuSection.FileRecent] = ("menufile", "seperatorfilerecent"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.FileExit] = ("menufile", "itemexit"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.EditUndoRedo] = ("menuedit", "seperatoreditundo"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.EditCopyPaste] = ("menuedit", "seperatoreditcopypaste"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.EditGeometry] = ("menuedit", "seperatoreditgeometry"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.EditGrid] = ("menuedit", "seperatoreditgrid"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.EditMapOptions] = ("menuedit", null),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ViewHelpers] = ("menuview", "separatorhelpers"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ViewRendering] = ("menuview", "separatorrendering"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ViewThings] = ("menuview", "seperatorviewthings"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ViewViews] = ("menuview", "seperatorviewviews"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ViewZoom] = ("menuview", "seperatorviewzoom"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ViewScriptEdit] = ("menuview", null),
+            [CodeImp.DoomBuilder.Windows.MenuSection.PrefabsInsert] = ("menuprefabs", "seperatorprefabsinsert"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.PrefabsCreate] = ("menuprefabs", null),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ToolsResources] = ("menutools", "seperatortoolsresources"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ToolsConfiguration] = ("menutools", "seperatortoolsconfig"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.ToolsTesting] = ("menutools", null),
+            [CodeImp.DoomBuilder.Windows.MenuSection.HelpManual] = ("menuhelp", "seperatorhelpmanual"),
+            [CodeImp.DoomBuilder.Windows.MenuSection.HelpAbout] = ("menuhelp", null),
+        };
+
+    // The item of the main toolbar that a section's buttons go in front of
+    private static readonly Dictionary<CodeImp.DoomBuilder.Windows.ToolbarSection, string> ToolbarAnchors =
+        new Dictionary<CodeImp.DoomBuilder.Windows.ToolbarSection, string>
+        {
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.File] = "seperatorfile",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.Script] = "seperatorscript",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.UndoRedo] = "seperatorundo",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.CopyPaste] = "seperatorcopypaste",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.Prefabs] = "seperatorprefabs",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.Things] = "buttonviewnormal",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.Views] = "seperatorviews",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.Geometry] = "seperatorgeometry",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.Helpers] = "separatorgzmodes",
+            [CodeImp.DoomBuilder.Windows.ToolbarSection.Testing] = "seperatortesting",
+        };
+
+    /// <summary>A menu of the main menu bar by its designer name (menufile, menuedit, menumode...), or null.</summary>
+    public MenuItem FindMenu(string name) => byName.TryGetValue(name, out Bound b) ? b.MenuItem : null;
+
+    /// <summary>Adds an entry to a section of a menu, ahead of the separator that closes the section.</summary>
+    public bool InsertInMenu(CodeImp.DoomBuilder.Windows.MenuSection section, Control control)
+    {
+        if (section == CodeImp.DoomBuilder.Windows.MenuSection.Top)
+        {
+            int at = byName.TryGetValue("menutools", out Bound tools) ? Menu.Items.IndexOf(tools.Control) : -1;
+            Menu.Items.Insert(at >= 0 ? at : Menu.Items.Count, control);
+            menuOwner[control] = Menu;
+            return true;
+        }
+
+        if (!MenuPlaces.TryGetValue(section, out var place) || !byName.TryGetValue(place.menu, out Bound menu) || menu.MenuItem == null) return false;
+        var items = menu.MenuItem.Items;
+        int index = items.Count;
+        if (place.anchor != null && byName.TryGetValue(place.anchor, out Bound anchor) && items.IndexOf(anchor.Control) is int found && found >= 0) index = found;
+        items.Insert(index, control);
+        menuOwner[control] = menu.MenuItem;
+        return true;
+    }
+
+    /// <summary>Adds an entry at the end of one of the menus (the Mode menu's own entries), by the menu's name.</summary>
+    public void AddToMenu(string menuName, Control control, int index = -1)
+    {
+        MenuItem menu = FindMenu(menuName);
+        if (menu == null) return;
+        menu.Items.Insert(index < 0 || index > menu.Items.Count ? menu.Items.Count : index, control);
+        menuOwner[control] = menu;
+    }
+
+    /// <summary>Takes an entry the plugins added out of whichever menu holds it.</summary>
+    public void RemoveFromMenus(Control control)
+    {
+        if (!menuOwner.TryGetValue(control, out ItemsControl owner)) return;
+        (owner as ItemsControl)?.Items.Remove(control);
+        menuOwner.Remove(control);
+    }
+
+    /// <summary>Adds a button to a section of the main toolbar (ahead of the item that ends the section).</summary>
+    public bool InsertInToolbar(CodeImp.DoomBuilder.Windows.ToolbarSection section, Control control)
+    {
+        if (toolbarPanel == null || !ToolbarAnchors.TryGetValue(section, out string anchorName)) return false;
+        int index = byName.TryGetValue(anchorName, out Bound anchor) ? toolbarPanel.Children.IndexOf(anchor.Control) : -1;
+        toolbarPanel.Children.Insert(index >= 0 ? index : toolbarPanel.Children.Count, control);
+        return true;
+    }
+
+    public void RemoveFromToolbar(Control control) => toolbarPanel?.Children.Remove(control);
 
     // ---- recent files
 

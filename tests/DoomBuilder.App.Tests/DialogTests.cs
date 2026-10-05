@@ -423,6 +423,32 @@ public class PreferencesWindowTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void The_BuilderModes_plugin_adds_its_Editing_tab_and_saves_its_settings_on_OK()
+    {
+        OpenEditor();
+        int before = General.Settings.ReadPluginSetting("buildermodes", "stitchrange", 20);
+        bool seen = false;
+        WhenShown<PreferencesWindow>(w =>
+        {
+            var tab = w.Tabs.Items.OfType<TabItem>().First(t => (string)t.Header == "Editing");
+            seen = true;
+            var row = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants((Avalonia.Controls.Control)tab.Content).OfType<StackPanel>()
+                .First(p => p.Children.OfType<TextBlock>().Any(t => t.Text == "Stitch geometry within:"));
+            var box = row.Children.OfType<DoomBuilder.UI.NumberBox>().Single();
+            Assert.Equal(before.ToString(), box.Text);
+            box.Text = "33";
+            Click(w.OkButton);
+        });
+
+        General.Actions.InvokeAction("builder_preferences");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.True(seen);
+        Assert.Equal(33, General.Settings.ReadPluginSetting("buildermodes", "stitchrange", 20));
+        Assert.Equal(33f, CodeImp.DoomBuilder.BuilderModes.BuilderPlug.Me.StitchRange);   // the plugin reloaded its settings when the dialog closed
+    }
+
+    [AvaloniaFact]
     public void Cancel_changes_nothing()
     {
         OpenEditor();
@@ -471,14 +497,14 @@ public class PreferencesWindowTests : EditorTestBase
         {
             tabs = w.Tabs.ItemCount;
             editors = w.Model.Items.Count(i => w.EditorOf(i.Key) != null);
-            Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors" }, w.Tabs.Items.OfType<TabItem>().Select(t => (string)t.Header));
+            Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors", "Editing" }, w.Tabs.Items.OfType<TabItem>().Select(t => (string)t.Header));
             Click(w.CancelButton);
         });
 
         General.Actions.InvokeAction("builder_preferences");
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
-        Assert.Equal(4, tabs);
+        Assert.Equal(5, tabs);                    // the program's four and the BuilderModes plugin's
         Assert.True(editors > 40);
     }
 }

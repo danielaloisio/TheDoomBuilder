@@ -1,3 +1,4 @@
+using DoomBuilder.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,7 @@ public sealed class PreferencesWindow : Window
     private readonly PreferencesModel model = new PreferencesModel();
     private readonly TabControl tabs = new TabControl();
     private readonly Dictionary<string, Control> editors = new Dictionary<string, Control>();
+    private readonly PluginPreferences plugins = new PluginPreferences();      // the plugins' tabs
 
     public Button OkButton { get; } = new Button { Content = "OK", MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
     public Button CancelButton { get; } = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
@@ -43,8 +45,13 @@ public sealed class PreferencesWindow : Window
         foreach (string tab in model.Tabs)
             tabs.Items.Add(new TabItem { Header = tab, Content = new ScrollViewer { Content = PageOf(tab) } });
 
+        foreach (System.Windows.Forms.TabPage page in plugins.Tabs)
+            if (page.NativeControl is Control content)
+                tabs.Items.Add(new TabItem { Header = page.Text, Content = content });
+        Closed += (s, e) => plugins.Close();
+
         OkButton.Click += (s, e) => Accept();
-        CancelButton.Click += (s, e) => Close(false);
+        CancelButton.Click += (s, e) => { plugins.Cancel(); Close(false); };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0) };
         buttons.Children.Add(OkButton);
         buttons.Children.Add(CancelButton);
@@ -169,6 +176,7 @@ public sealed class PreferencesWindow : Window
 
         ReloadResources = model.ReloadResources;
         model.Apply();
+        plugins.Accept();
         Close(true);
     }
 }

@@ -28,6 +28,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="DoomBuilder.Core.Tests" />
     <InternalsVisibleTo Include="DoomBuilder.App" />
+    <InternalsVisibleTo Include="DoomBuilder.UI" />
     <InternalsVisibleTo Include="DoomBuilder.Rendering.Tests" />
     <InternalsVisibleTo Include="DoomBuilder.App.Tests" />
   </ItemGroup>

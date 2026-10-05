@@ -34,16 +34,31 @@ public partial class MainWindow : Avalonia.Controls.Window
     {
         InitializeComponent();
 
-        shell = new AvaloniaShell(Viewport);
+        shell = new AvaloniaShell(Viewport) { WindowIsActive = () => IsActive };
         ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
         MenuHost.Content = ui.Menu;
         ToolbarHost.Content = ui.Toolbar;
+        ModesHost.Content = ui.ModesBar;
+        ModeControlsHost.Content = ui.ModeControlsBar;
+        plugins = new PluginUi(ui);              // the menus and buttons of the plugins
+        shell.Plugins = plugins;
 
         // The side panel goes in front of the display (the last child of a DockPanel takes the rest of the space)
         dockers = new DockerPanel(shell.Dockers) { IsVisible = false };
         var layout = (DockPanel)Content;
         layout.Children.Insert(layout.Children.IndexOf(InputSurface), dockers);
         shell.Dockers.Changed += () => Dispatcher.UIThread.Post(ApplyDockers);
+
+        // The tooltip modes ask for over the display (comments of things, linedefs and sectors)
+        displayTip = new DisplayToolTip();
+        InputSurface.Children.Add(displayTip);
+        shell.Display.ToolTipRequested += (title, text, x, y) => Dispatcher.UIThread.Post(() => displayTip.ShowAt(title, text, x, y, RenderScaling, InputSurface.Bounds.Size));
+        shell.Display.ToolTipHidden += () => Dispatcher.UIThread.Post(displayTip.Hide);
+
+        // Offsets that plugins give in display pixels follow the screen's scale
+        UpdateDpiScaler();
+        ScalingChanged += (s, e) => UpdateDpiScaler();
+        Opened += (s, e) => UpdateDpiScaler();
 
         // The command palette floats over the top of the display
         palette = new CommandPalette();
@@ -82,7 +97,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         // Mouse
         Viewport.InputSurface = InputSurface;
         InputSurface.PointerEntered += OnPointerEntered;
-        InputSurface.PointerExited += (s, e) => shell.Input.MouseLeave(EventArgs.Empty);
+        InputSurface.PointerExited += (s, e) => { displayTip.Hide(); shell.Input.MouseLeave(EventArgs.Empty); };
         InputSurface.PointerPressed += OnPointerPressed;
         InputSurface.PointerReleased += OnPointerReleased;
         InputSurface.PointerMoved += OnPointerMoved;
@@ -91,8 +106,20 @@ public partial class MainWindow : Avalonia.Controls.Window
         if (startEditor) Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
     }
 
+    private readonly DisplayToolTip displayTip;
+
+    private void UpdateDpiScaler()
+    {
+        float scale = (float)RenderScaling;
+        CodeImp.DoomBuilder.Windows.MainForm.DPIScaler = new System.Drawing.SizeF(scale, scale);
+    }
+
     // MainForm.UpdateInterface: title, menus, toolbar and the status bar's config label
+    private readonly PluginUi plugins;
     private readonly DockerPanel dockers;
+
+    /// <summary>The menus and buttons plugins added (tests look into it).</summary>
+    internal PluginUi Plugins => plugins;
     private readonly CommandPalette palette;
 
     /// <summary>The command palette (tests drive it).</summary>
@@ -117,6 +144,7 @@ public partial class MainWindow : Avalonia.Controls.Window
     private void RefreshInterface()
     {
         ui.Refresh();
+        plugins.Refresh();
         ApplyDockers();
 
         string program = "TheDoomBuilder";
@@ -240,8 +268,11 @@ public partial class MainWindow : Avalonia.Controls.Window
         Directory.CreateDirectory(settingsdir);
 
         General.ExitRequested += OnExitRequested;                           // the core wants the program to end (fatal errors, Terminate)
+        DoomBuilder.UI.DialogHost.Owner = () => this;
+        System.Windows.Forms.Clipboard.Provider = new SystemClipboard(() => this);   // copy and paste go through the system clipboard
         General.Dialogs = new AvaloniaDialogs(() => this);                  // the real message boxes, file pickers and map options
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderModes.BuilderPlug).Assembly);   // vertices, linedefs, sectors, things...
 
         if (!General.Startup(Program.Arguments, () => shell, appdir, settingsdir))
         {

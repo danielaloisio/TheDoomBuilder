@@ -41,6 +41,7 @@ namespace CodeImp.DoomBuilder
 
 		private string tempwad;
 		private Dictionary<Process, string> processes; //mxd
+		private readonly Dictionary<Process, DateTime> starttimes = new Dictionary<Process, DateTime>(); // Reading the start time of a process that has exited throws on Linux and macOS, so it is noted when the process starts
 		private bool isdisposed;
 
 		private static Dictionary<int, string> additionalexceptiontext = new Dictionary<int, string>() {
@@ -297,6 +298,69 @@ namespace CodeImp.DoomBuilder
 			TestAtSkill(General.Map.ConfigSettings.TestSkill, true);
 		}
 		
+		/// <summary>
+		/// How to start the test program. Windows lets the shell start it (as UDB does); elsewhere the shell would open the file with
+		/// whatever the desktop associates with it, so the program is run directly. A macOS application bundle (.app) is a folder:
+		/// it is started through "open", which passes the arguments on.
+		/// </summary>
+		internal static ProcessStartInfo CreateTestStartInfo(string program, string args)
+		{
+			ProcessStartInfo info = new ProcessStartInfo();
+			info.CreateNoWindow = false;
+			info.ErrorDialog = false;
+			info.WorkingDirectory = Path.GetDirectoryName(program);
+
+			if(OperatingSystem.IsWindows())
+			{
+				info.FileName = program;
+				info.Arguments = args;
+				info.UseShellExecute = true;
+				info.WindowStyle = ProcessWindowStyle.Normal;
+			}
+			else if(OperatingSystem.IsMacOS() && Directory.Exists(program) && program.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+			{
+				info.FileName = "open";
+				info.UseShellExecute = false;
+				info.ArgumentList.Add("-W");        // wait for the application: the editor knows when the test ends
+				info.ArgumentList.Add("-a");
+				info.ArgumentList.Add(program);
+				info.ArgumentList.Add("--args");
+				foreach(string arg in SplitArguments(args)) info.ArgumentList.Add(arg);
+				info.WorkingDirectory = Path.GetDirectoryName(program.TrimEnd('/'));
+			}
+			else
+			{
+				info.FileName = program;
+				info.UseShellExecute = false;
+				foreach(string arg in SplitArguments(args)) info.ArgumentList.Add(arg);
+			}
+
+			return info;
+		}
+
+		/// <summary>Splits a command line into arguments: spaces separate, double quotes group (the quotes are dropped).</summary>
+		internal static List<string> SplitArguments(string commandline)
+		{
+			List<string> result = new List<string>();
+			if(string.IsNullOrWhiteSpace(commandline)) return result;
+
+			System.Text.StringBuilder current = new System.Text.StringBuilder();
+			bool inquotes = false, hasvalue = false;
+			foreach(char c in commandline)
+			{
+				if(c == '"') { inquotes = !inquotes; hasvalue = true; }
+				else if(char.IsWhiteSpace(c) && !inquotes)
+				{
+					if(hasvalue) result.Add(current.ToString());
+					current.Clear();
+					hasvalue = false;
+				}
+				else { current.Append(c); hasvalue = true; }
+			}
+			if(hasvalue) result.Add(current.ToString());
+			return result;
+		}
+
 		// This saves the map to a temporary file and launches a test with the given skill
 		public void TestAtSkill(int skill) { TestAtSkill(skill, false); }
 		public void TestAtSkill(int skill, bool testfromcurrentposition)
@@ -306,7 +370,7 @@ namespace CodeImp.DoomBuilder
 			Cursor oldcursor = Cursor.Current;
 
 			// Check if configuration is OK
-			if(string.IsNullOrEmpty(General.Map.ConfigSettings.TestProgram) || !File.Exists(General.Map.ConfigSettings.TestProgram))
+			if(string.IsNullOrEmpty(General.Map.ConfigSettings.TestProgram) || !(File.Exists(General.Map.ConfigSettings.TestProgram) || (OperatingSystem.IsMacOS() && Directory.Exists(General.Map.ConfigSettings.TestProgram) && General.Map.ConfigSettings.TestProgram.EndsWith(".app", StringComparison.OrdinalIgnoreCase))))
 			{
 				//mxd. Let's be more precise
 				string message;
@@ -375,14 +439,7 @@ namespace CodeImp.DoomBuilder
 							args += " " + General.Map.ConfigSettings.TestAdditionalParameters;
 
 						// Setup process info
-						ProcessStartInfo processinfo = new ProcessStartInfo();
-						processinfo.Arguments = args;
-						processinfo.FileName = General.Map.ConfigSettings.TestProgram;
-						processinfo.CreateNoWindow = false;
-						processinfo.ErrorDialog = false;
-						processinfo.UseShellExecute = true;
-						processinfo.WindowStyle = ProcessWindowStyle.Normal;
-						processinfo.WorkingDirectory = Path.GetDirectoryName(processinfo.FileName);
+						ProcessStartInfo processinfo = CreateTestStartInfo(General.Map.ConfigSettings.TestProgram, args);
 
 						// Output info
 						General.WriteLogLine("Running test program: " + processinfo.FileName);
@@ -396,6 +453,7 @@ namespace CodeImp.DoomBuilder
 							process.EnableRaisingEvents = true; //mxd
 							process.Exited += ProcessOnExited; //mxd
 							processes.Add(process, tempwad); //mxd
+							starttimes[process] = DateTime.Now;
 							Cursor.Current = oldcursor; //mxd
 						}
 						catch (Exception e)
@@ -437,13 +495,19 @@ namespace CodeImp.DoomBuilder
 		//mxd
 		private void TestingFinished(Process process) 
 		{
+			// Already forgotten (the editor is closing)?
+			string closedtempfile;
+			if(processes == null || !processes.TryGetValue(process, out closedtempfile)) return;
+
 			// Done
-			TimeSpan deltatime = TimeSpan.FromTicks(process.ExitTime.Ticks - process.StartTime.Ticks);
+			TimeSpan deltatime = TimeSpan.Zero;
+			DateTime started;
+			if(starttimes.TryGetValue(process, out started)) deltatime = DateTime.Now - started;
+			starttimes.Remove(process);
 			General.WriteLogLine("Testing with \"" + process.StartInfo.FileName + "\" has finished.");
 			General.WriteLogLine("Run time: " + deltatime.TotalSeconds.ToString("###########0.00") + " seconds");
 
 			//mxd. Remove from active processes list
-			string closedtempfile = processes[process];
 			processes.Remove(process);
 
 			//mxd. Still have running engines?..

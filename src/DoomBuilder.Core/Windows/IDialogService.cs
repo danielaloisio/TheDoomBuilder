@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using CodeImp.DoomBuilder.Map;
 
 namespace CodeImp.DoomBuilder.Windows
 {
@@ -25,6 +26,9 @@ namespace CodeImp.DoomBuilder.Windows
 		/// <summary>Switch to another map of the same WAD.</summary>
 		DialogResult ShowChangeMap(ChangeMapForm form);
 
+		/// <summary>"Paste Special": what to do with the tags and actions of the pasted elements. Fills in <see cref="PasteOptionsForm.Options"/>.</summary>
+		DialogResult ShowPasteOptions(PasteOptionsForm form);
+
 		/// <summary>The list of errors and warnings the editor has collected (<see cref="ErrorLogger"/>).</summary>
 		void ShowErrors();
 
@@ -42,6 +46,21 @@ namespace CodeImp.DoomBuilder.Windows
 
 		/// <summary>Program name, version and links.</summary>
 		void ShowAbout();
+
+		/// <summary>The texture (or flat) browser. Returns the chosen name, or <paramref name="value"/> when cancelled.</summary>
+		string BrowseImage(string value, bool flats);
+
+		/// <summary>The thing type browser. Returns the chosen type, or <paramref name="type"/> when cancelled.</summary>
+		int BrowseThing(int type);
+
+		/// <summary>
+		/// The edit dialogs of map elements. They change the elements live (an undo level is made on the first change) and call
+		/// <paramref name="valueschanged"/> so the map can be redrawn; Cancel withdraws the changes.
+		/// </summary>
+		DialogResult ShowEditVertices(ICollection<Vertex> vertices, bool allowpositionchange, EventHandler valueschanged);
+		DialogResult ShowEditLinedefs(ICollection<Linedef> lines, bool selectfront, bool selectback, EventHandler valueschanged);
+		DialogResult ShowEditSectors(ICollection<Sector> sectors, EventHandler valueschanged);
+		DialogResult ShowEditThings(ICollection<Thing> things, EventHandler valueschanged);
 	}
 
 	/// <summary>
@@ -61,10 +80,17 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual DialogResult ShowMapOptions(MapOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowOpenMapOptions(OpenMapOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowChangeMap(ChangeMapForm form) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowPasteOptions(PasteOptionsForm form) { return DialogResult.Cancel; }
 		public virtual DialogResult ShowConfiguration(int page, out bool reloadresources) { reloadresources = false; return DialogResult.Cancel; }
 		public virtual DialogResult ShowPreferences(out bool reloadresources) { reloadresources = false; return DialogResult.Cancel; }
 		public virtual void ShowErrors() { }
 		public virtual void ShowAbout() { }
+		public virtual string BrowseImage(string value, bool flats) { return value; }
+		public virtual int BrowseThing(int type) { return type; }
+		public virtual DialogResult ShowEditVertices(ICollection<Vertex> vertices, bool allowpositionchange, EventHandler valueschanged) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditLinedefs(ICollection<Linedef> lines, bool selectfront, bool selectback, EventHandler valueschanged) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditSectors(ICollection<Sector> sectors, EventHandler valueschanged) { return DialogResult.Cancel; }
+		public virtual DialogResult ShowEditThings(ICollection<Thing> things, EventHandler valueschanged) { return DialogResult.Cancel; }
 	}
 
 	/// <summary>
@@ -79,6 +105,7 @@ namespace CodeImp.DoomBuilder.Windows
 		public Func<MapOptionsForm, DialogResult> OnMapOptions;
 		public Func<OpenMapOptionsForm, DialogResult> OnOpenMapOptions;
 		public Func<ChangeMapForm, DialogResult> OnChangeMap;
+		public Func<PasteOptionsForm, DialogResult> OnPasteOptions;
 		public Func<int, DialogResult> OnConfiguration;
 		public Func<DialogResult> OnPreferences;
 		public int ErrorsShown;
@@ -101,6 +128,7 @@ namespace CodeImp.DoomBuilder.Windows
 		public override DialogResult ShowMapOptions(MapOptionsForm form) { return OnMapOptions != null ? OnMapOptions(form) : DialogResult.Cancel; }
 		public override DialogResult ShowOpenMapOptions(OpenMapOptionsForm form) { return OnOpenMapOptions != null ? OnOpenMapOptions(form) : DialogResult.Cancel; }
 		public override DialogResult ShowChangeMap(ChangeMapForm form) { return OnChangeMap != null ? OnChangeMap(form) : DialogResult.Cancel; }
+		public override DialogResult ShowPasteOptions(PasteOptionsForm form) { return OnPasteOptions != null ? OnPasteOptions(form) : DialogResult.Cancel; }
 		public override DialogResult ShowConfiguration(int page, out bool reloadresources) { reloadresources = false; return OnConfiguration != null ? OnConfiguration(page) : DialogResult.Cancel; }
 		public override DialogResult ShowPreferences(out bool reloadresources) { reloadresources = false; return OnPreferences != null ? OnPreferences() : DialogResult.Cancel; }
 		public override void ShowErrors() { ErrorsShown++; }
