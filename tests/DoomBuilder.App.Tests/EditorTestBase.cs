@@ -152,6 +152,8 @@ thing { x = 64.0; y = 64.0; type = 1; angle = 90; skill1 = true; skill2 = true; 
             Dispatcher.UIThread.RunJobs();
             System.Threading.Thread.Sleep(10);
         }
+        if (withMap && General.Map == null)
+            Assert.Fail("The map did not open within 60 seconds.\n" + StartupDiagnostics());
         if (withMap)
         {
             Assert.NotNull(General.Map);
@@ -161,6 +163,22 @@ thing { x = 64.0; y = 64.0; type = 1; angle = 90; skill1 = true; skill2 = true; 
         Dispatcher.UIThread.RunJobs();
         startup.Stop();
         if (General.Settings != null) General.Settings.ShowErrorsWindow = false;   // later maps would open it too; tests that want it call ShowErrors()
+    }
+
+    // What to know when the editor does not come up: the windows that are open (a dialog waiting for an answer blocks the start) and the end of its log
+    private string StartupDiagnostics()
+    {
+        var text = new System.Text.StringBuilder();
+        text.AppendLine("Open windows: " + string.Join(", ", window.OwnedWindows.Select(w => w.GetType().Name + (w.IsVisible ? "" : " (hidden)"))));
+        text.AppendLine("General.Actions: " + (General.Actions == null ? "null" : "set") + ", General.Settings: " + (General.Settings == null ? "null" : "set"));
+        try
+        {
+            string log = Path.Combine(Program.SettingsDirectory ?? dir, "UDBuilder.log");
+            if (File.Exists(log)) text.AppendLine("End of the log:\n" + string.Join("\n", File.ReadAllLines(log).TakeLast(30)));
+            else text.AppendLine("There is no log at " + log);
+        }
+        catch (IOException e) { text.AppendLine("The log could not be read: " + e.Message); }
+        return text.ToString();
     }
 
     /// <summary>A position in the display (viewport) as the window's coordinates, which is what synthetic input uses.</summary>
