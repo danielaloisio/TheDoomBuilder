@@ -205,3 +205,101 @@ public class TestMapTests : EditorTestBase
         Assert.Equal(count, Launcher.SplitArguments(line).Count);
     }
 }
+
+/// <summary>The window that runs the external (pre/post) commands.</summary>
+public class ExternalCommandWindowTests : EditorTestBase
+{
+    private static System.Diagnostics.ProcessStartInfo Sh(string script)
+    {
+        var info = new System.Diagnostics.ProcessStartInfo { FileName = "/bin/sh" };
+        info.ArgumentList.Add("-c");
+        info.ArgumentList.Add(script);
+        return info;
+    }
+
+    private static void WaitFor(Func<bool> condition)
+    {
+        for (int i = 0; i < 500 && !condition(); i++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(20); }
+        Assert.True(condition(), "timed out");
+    }
+
+    [AvaloniaFact]
+    public void A_successful_command_closes_the_window_by_itself_and_answers_OK()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        OpenEditor();
+        var form = new CodeImp.DoomBuilder.Windows.RunExternalCommandForm(Sh("echo hello"), new ExternalCommandSettings { AutoCloseOnSuccess = true });
+        string shown = null;
+        WhenShown<DoomBuilder.App.Dialogs.ExternalCommandWindow>(w =>
+        {
+            for (int i = 0; i < 100 && w.IsVisible; i++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(20); shown = w.OutputText; }
+        });
+
+        Assert.Equal(DialogResult.OK, form.ShowDialog());
+    }
+
+    [AvaloniaFact]
+    public void A_failed_command_keeps_the_window_with_its_output_until_the_user_decides()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        OpenEditor();
+        var form = new CodeImp.DoomBuilder.Windows.RunExternalCommandForm(Sh("echo building; echo broken >&2; exit 2"), new ExternalCommandSettings());
+        bool stillopen = false;
+        string text = null;
+        WhenShown<DoomBuilder.App.Dialogs.ExternalCommandWindow>(w =>
+        {
+            WaitFor(() => w.ContinueButton.IsEnabled);
+            stillopen = w.IsVisible;
+            text = w.OutputText;
+            Click(w.CancelButton);
+        });
+
+        Assert.Equal(DialogResult.Cancel, form.ShowDialog());
+        Assert.True(stillopen);
+        Assert.Contains("building", text);
+        Assert.Contains("broken", text);
+        Assert.Contains("Exit code: 2", text);
+    }
+
+    [AvaloniaFact]
+    public void Continue_accepts_a_failed_command_and_Run_again_starts_it_over()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        OpenEditor();
+        string marker = Path.Combine(dir, "runs.txt");
+        Directory.CreateDirectory(dir);
+        var form = new CodeImp.DoomBuilder.Windows.RunExternalCommandForm(Sh("echo run >> '" + marker + "'; exit 1"), new ExternalCommandSettings());
+        WhenShown<DoomBuilder.App.Dialogs.ExternalCommandWindow>(w =>
+        {
+            WaitFor(() => w.ContinueButton.IsEnabled);
+            Click(w.RetryButton);
+            WaitFor(() => File.ReadAllLines(marker).Length == 2 && w.ContinueButton.IsEnabled);
+            Click(w.ContinueButton);
+        });
+
+        Assert.Equal(DialogResult.OK, form.ShowDialog());
+        Assert.Equal(2, File.ReadAllLines(marker).Length);
+    }
+
+    [AvaloniaFact]
+    public void The_pre_test_command_runs_before_the_engine_starts()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        OpenEditor();
+        Directory.CreateDirectory(dir);
+        string order = Path.Combine(dir, "order.txt");
+        string engine = Path.Combine(dir, "engine.sh");
+        File.WriteAllText(engine, "#!/bin/sh\necho engine >> '" + order + "'\n");
+        File.SetUnixFileMode(engine, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        General.Map.ConfigSettings.TestProgram = engine;
+        General.Map.ConfigSettings.CustomParameters = true;
+        General.Map.ConfigSettings.TestParameters = "-file \"%F\"";
+        General.Map.Options.TestPreCommand = new ExternalCommandSettings { Commands = "echo precommand >> '" + order + "'\n", AutoCloseOnSuccess = true };
+        WhenShown<DoomBuilder.App.Dialogs.ExternalCommandWindow>(w => WaitFor(() => !w.IsVisible));
+
+        General.Actions.InvokeAction("builder_testmap");
+        WaitFor(() => File.Exists(order) && File.ReadAllLines(order).Length == 2);
+
+        Assert.Equal(new[] { "precommand", "engine" }, File.ReadAllLines(order));
+    }
+}

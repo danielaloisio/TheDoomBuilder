@@ -52,6 +52,16 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     /// <summary>The tabs of the side panel.</summary>
     public DockerModel Dockers { get; } = new DockerModel();
 
+    /// <summary>Opens or collapses the info panel under the map ("toggleinfopanel").</summary>
+    [CodeImp.DoomBuilder.Actions.BeginAction("toggleinfopanel", BaseAction = true)]
+    public void ToggleInfoPanel()
+    {
+        IsInfoPanelExpanded = !IsInfoPanelExpanded;
+        if (IsInfoPanelExpanded) RefreshInfo();
+        InterfaceChanged?.Invoke();
+        FocusDisplay();
+    }
+
     private Docker hintsDocker;
 
     /// <summary>The panel of the "Help" docker.</summary>

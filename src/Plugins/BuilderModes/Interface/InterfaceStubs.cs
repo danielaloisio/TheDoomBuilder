@@ -19,32 +19,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
         public virtual void Dispose() { }
     }
 
-    // The parameters of the "fit textures" dialog (visual mode): a plain data structure, kept as it is
-    internal struct FitTextureOptions
-    {
-        public double HorizontalRepeat;
-        public double VerticalRepeat;
-        public int PatternWidth;
-        public int PatternHeight;
-        public bool FitWidth;
-        public bool FitHeight;
-        public bool FitAcrossSurfaces;
-        public bool AutoWidth;
-        public bool AutoHeight;
-        public Rectangle GlobalBounds;
-        public Rectangle Bounds;
 
-        // Initial texture coordinates
-        public double InitialOffsetX;
-        public double InitialOffsetY;
-        public double ControlSideOffsetX;
-        public double ControlSideOffsetY;
-        public double InitialScaleX;
-        public double InitialScaleY;
-    }
-
-
-    internal class FitTexturesForm : StubDialog { public bool Setup(params object[] args) { return false; } }
     public class FindReplaceForm : StubDialog { }
     public class ErrorCheckForm : StubDialog { }
 
@@ -54,5 +29,4 @@ namespace CodeImp.DoomBuilder.BuilderModes
 namespace CodeImp.DoomBuilder.BuilderModes.Interface
 {
     internal class BridgeModeForm : StubDialog { }
-    internal class SlopeArchForm : StubDialog { public SlopeArchForm(params object[] args) { } public event EventHandler UpdateChangedObjects; }
 }

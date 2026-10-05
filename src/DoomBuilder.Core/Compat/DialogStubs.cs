@@ -154,7 +154,28 @@ namespace System.Windows.Forms
 
     public class KeysConverter
     {
-        public string ConvertToString(object value) => value?.ToString() ?? string.Empty;
+        /// <summary>The name of a key, with its modifiers in front ("Ctrl+Shift+E"), as WinForms' converter writes it. Takes a Keys or its int value.</summary>
+        public string ConvertToString(object value)
+        {
+            if(value == null) return string.Empty;
+            int v = value is Keys keys ? (int)keys : Convert.ToInt32(value);
+
+            string prefix = "";
+            if((v & (int)Keys.Control) != 0) prefix += "Ctrl+";
+            if((v & (int)Keys.Alt) != 0) prefix += "Alt+";
+            if((v & (int)Keys.Shift) != 0) prefix += "Shift+";
+
+            int code = v & 0xFFFF;
+            if(code == 0) return prefix.TrimEnd('+');
+            if(code >= (int)Keys.D0 && code <= (int)Keys.D9) return prefix + (char)('0' + (code - (int)Keys.D0));
+            if(code == (int)Keys.Prior) return prefix + "PageUp";
+            if(code == (int)Keys.Next) return prefix + "PageDown";
+            if(code == (int)Keys.ControlKey) return prefix + "Ctrl";
+            if(code == (int)Keys.ShiftKey) return prefix + "Shift";
+            if(code == (int)Keys.Menu) return prefix + "Alt";
+            if(code == (int)Keys.Return) return prefix + "Return";
+            return prefix + ((Keys)code).ToString();
+        }
         public object ConvertFromString(string text) => Enum.TryParse(text.Replace("+", ","), true, out Keys k) ? k : Keys.None;
     }
 }
@@ -222,7 +243,19 @@ namespace CodeImp.DoomBuilder.Windows
         public ExceptionDialog(UnhandledExceptionEventArgs e) { }
         public void Setup() { }
     }
-    public class RunExternalCommandForm : Form { public RunExternalCommandForm(ProcessStartInfo info, object settings) { } }
+    public class RunExternalCommandForm : Form
+    {
+        /// <summary>The command being run (the window shows its output).</summary>
+        public ExternalCommandRunner Runner { get; }
+        public ExternalCommandSettings Settings { get; }
+        public RunExternalCommandForm(ProcessStartInfo info, ExternalCommandSettings settings)
+        {
+            Settings = settings;
+            Runner = new ExternalCommandRunner(info, settings);
+        }
+        public override DialogResult ShowDialog() { DialogResult = CodeImp.DoomBuilder.General.Dialogs.ShowRunExternalCommand(this); Runner.Dispose(); return DialogResult; }
+        public override DialogResult ShowDialog(IWin32Window owner) => ShowDialog();
+    }
     public class ThingBrowserForm : Form
     {
         public int SelectedType { get; }

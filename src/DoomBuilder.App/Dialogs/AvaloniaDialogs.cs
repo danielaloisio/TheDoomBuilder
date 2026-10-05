@@ -161,6 +161,14 @@ internal sealed class AvaloniaDialogs : NoDialogs
         finally { model.Dispose(); }
     }
 
+    public override DialogResult ShowRunExternalCommand(RunExternalCommandForm form)
+    {
+        if (Owner == null) return base.ShowRunExternalCommand(form);
+
+        var window = new ExternalCommandWindow(form.Runner, form.Settings == null || form.Settings.AutoCloseOnSuccess);
+        return DialogPump.Run(() => window.ShowDialog<bool>(Owner)) ? DialogResult.OK : DialogResult.Cancel;
+    }
+
     public override DialogResult ShowPasteOptions(PasteOptionsForm form)
     {
         if (Owner == null) return DialogResult.Cancel;

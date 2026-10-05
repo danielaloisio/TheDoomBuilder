@@ -262,12 +262,14 @@ namespace CodeImp.DoomBuilder.Compilers
 			args = args.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar); //mxd. This fixes include path when the map is in a root directory
 
 			// Setup process info
+			DateTime starttime = DateTime.Now;
 			ProcessStartInfo processinfo = new ProcessStartInfo();
 			processinfo.Arguments = args;
-			processinfo.FileName = Path.Combine(info.Path, info.ProgramFile); //mxd
+			processinfo.FileName = info.ProgramPath; //mxd. In the compiler's folder or on the PATH
+			CompilerInfo.EnsureExecutable(processinfo.FileName);
 			processinfo.CreateNoWindow = false;
 			processinfo.ErrorDialog = false;
-			processinfo.UseShellExecute = true;
+			processinfo.UseShellExecute = OperatingSystem.IsWindows();   // elsewhere the shell would open the file with an associated program instead of running it
 			processinfo.WindowStyle = ProcessWindowStyle.Hidden;
 			processinfo.WorkingDirectory = this.workingdir;
 
@@ -282,6 +284,7 @@ namespace CodeImp.DoomBuilder.Compilers
 			{
 				// Start the compiler
 				process = Process.Start(processinfo);
+				starttime = DateTime.Now;
 			}
 			catch (Exception e)
 			{
@@ -292,7 +295,7 @@ namespace CodeImp.DoomBuilder.Compilers
 
 			// Wait for compiler to complete
 			process.WaitForExit();
-			TimeSpan deltatime = TimeSpan.FromTicks(process.ExitTime.Ticks - process.StartTime.Ticks);
+			TimeSpan deltatime = DateTime.Now - starttime;
 			General.WriteLogLine("Compiler process has finished.");
 			General.WriteLogLine("Compile time: " + deltatime.TotalSeconds.ToString("########0.00") + " seconds");
 

@@ -55,6 +55,15 @@ public partial class MainWindow : Avalonia.Controls.Window
         shell.Display.ToolTipRequested += (title, text, x, y) => Dispatcher.UIThread.Post(() => displayTip.ShowAt(title, text, x, y, RenderScaling, InputSurface.Bounds.Size));
         shell.Display.ToolTipHidden += () => Dispatcher.UIThread.Post(displayTip.Hide);
 
+        // The info of the element under the mouse
+        infoPanel = new InfoPanel();
+        InfoHost.Content = infoPanel;
+        shell.InfoChanged += info => Dispatcher.UIThread.Post(() =>
+        {
+            if (info == null) infoPanel.IdleText = General.Editing?.Mode?.Attributes?.DisplayName ?? "";
+            infoPanel.Show(info);
+        });
+
         // Offsets that plugins give in display pixels follow the screen's scale
         UpdateDpiScaler();
         ScalingChanged += (s, e) => UpdateDpiScaler();
@@ -107,6 +116,7 @@ public partial class MainWindow : Avalonia.Controls.Window
     }
 
     private readonly DisplayToolTip displayTip;
+    private readonly InfoPanel infoPanel;
 
     private void UpdateDpiScaler()
     {
@@ -146,6 +156,8 @@ public partial class MainWindow : Avalonia.Controls.Window
         ui.Refresh();
         plugins.Refresh();
         ApplyDockers();
+
+        InfoHost.IsVisible = General.Map != null && shell.IsInfoPanelExpanded;
 
         string program = "TheDoomBuilder";
         if (General.Map != null)
@@ -400,7 +412,21 @@ public partial class MainWindow : Avalonia.Controls.Window
     {
         string path = Environment.GetEnvironmentVariable("UDB_SCREENSHOT");
         if (string.IsNullOrEmpty(path) || General.Map == null) return;
-        if (++framecount < 4) { Viewport.RequestRedraw(); return; }   // let queued GPU work settle
+        // UDB_SCREENSHOT_MODE=<mode class name> (e.g. BaseVisualMode) switches to that mode first
+        string mode = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_MODE");
+        if (framecount == 1 && !string.IsNullOrEmpty(mode)) Dispatcher.UIThread.Post(() => General.Editing.ChangeMode(mode));
+        // UDB_SCREENSHOT_CAMERA=x,y,z,anglexy,anglez (degrees) places the 3D camera
+        string cam = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_CAMERA");
+        if (framecount == 5 && !string.IsNullOrEmpty(cam))
+            Dispatcher.UIThread.Post(() =>
+            {
+                string[] p = cam.Split(',');
+                var c = General.Map.VisualCamera;
+                c.Position = new CodeImp.DoomBuilder.Geometry.Vector3D(double.Parse(p[0], System.Globalization.CultureInfo.InvariantCulture), double.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture), double.Parse(p[2], System.Globalization.CultureInfo.InvariantCulture));
+                c.AngleXY = CodeImp.DoomBuilder.Geometry.Angle2D.DegToRad(double.Parse(p[3], System.Globalization.CultureInfo.InvariantCulture));
+                c.AngleZ = CodeImp.DoomBuilder.Geometry.Angle2D.DegToRad(double.Parse(p[4], System.Globalization.CultureInfo.InvariantCulture));
+            });
+        if (++framecount < (string.IsNullOrEmpty(mode) ? 4 : 12)) { Viewport.RequestRedraw(); return; }   // let queued GPU work settle
 
         var pixels = new byte[size.Width * size.Height * 4];
         gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)fb);

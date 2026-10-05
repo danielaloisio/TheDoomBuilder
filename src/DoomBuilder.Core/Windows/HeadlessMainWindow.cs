@@ -72,16 +72,73 @@ namespace CodeImp.DoomBuilder.Windows
 			try { return show(); }
 			finally { ResumeExclusiveMouseInput(); EnableProcessing(); }
 		}
-		public virtual void ShowLinedefInfo(Linedef l) { }
-		public virtual void ShowLinedefInfo(Linedef l, Sidedef highlightside) { }
-		public virtual void ShowSectorInfo(Sector s) { }
-		public virtual void ShowSectorInfo(Sector s, bool highlightceiling, bool highlightfloor) { }
-		public virtual void ShowThingInfo(Thing t) { }
-		public virtual void ShowVertexInfo(Vertex v) { }
-		public virtual void HideInfo() { }
+		#region ================== Info panel
+
+		private object lastinfoobject;
+
+		/// <summary>The info of the element under the mouse (or aimed at) changed; null when there is none. Raised on the UI thread.</summary>
+		public event Action<ElementInfo> InfoChanged;
+
+		/// <summary>The info panel is open (it can be collapsed to leave more room for the map).</summary>
+		public bool IsInfoPanelExpanded { get; set; } = true;
+
+		/// <summary>The element whose info is shown now.</summary>
+		public object InfoObject { get { return lastinfoobject; } }
+
+		public virtual void ShowLinedefInfo(Linedef l) { ShowLinedefInfo(l, null); }
+		public virtual void ShowLinedefInfo(Linedef l, Sidedef highlightside)
+		{
+			if(l.IsDisposed) { HideInfo(); return; }
+			lastinfoobject = l;
+			if(IsInfoPanelExpanded) InfoChanged?.Invoke(ElementInfoBuilder.ForLinedef(l, highlightside));
+			General.Plugins?.OnHighlightLinedef(l);
+		}
+
+		public virtual void ShowSectorInfo(Sector s) { ShowSectorInfo(s, false, false); }
+		public virtual void ShowSectorInfo(Sector s, bool highlightceiling, bool highlightfloor)
+		{
+			if(s.IsDisposed) { HideInfo(); return; }
+			lastinfoobject = s;
+			if(IsInfoPanelExpanded) InfoChanged?.Invoke(ElementInfoBuilder.ForSector(s, highlightceiling, highlightfloor));
+			General.Plugins?.OnHighlightSector(s);
+		}
+
+		public virtual void ShowThingInfo(Thing t)
+		{
+			if(t.IsDisposed) { HideInfo(); return; }
+			lastinfoobject = t;
+			if(IsInfoPanelExpanded) InfoChanged?.Invoke(ElementInfoBuilder.ForThing(t));
+			General.Plugins?.OnHighlightThing(t);
+		}
+
+		public virtual void ShowVertexInfo(Vertex v)
+		{
+			if(v.IsDisposed) { HideInfo(); return; }
+			lastinfoobject = v;
+			if(IsInfoPanelExpanded) InfoChanged?.Invoke(ElementInfoBuilder.ForVertex(v));
+			General.Plugins?.OnHighlightVertex(v);
+		}
+
+		public virtual void HideInfo()
+		{
+			lastinfoobject = null;
+			InfoChanged?.Invoke(null);
+			General.Plugins?.OnHighlightLost();
+		}
+
+		public virtual void RefreshInfo()
+		{
+			if(lastinfoobject is Vertex) ShowVertexInfo((Vertex)lastinfoobject);
+			else if(lastinfoobject is Linedef) ShowLinedefInfo((Linedef)lastinfoobject);
+			else if(lastinfoobject is Sector) ShowSectorInfo((Sector)lastinfoobject);
+			else if(lastinfoobject is Thing) ShowThingInfo((Thing)lastinfoobject);
+			General.Plugins?.OnHighlightRefreshed(lastinfoobject);
+		}
+
+		#endregion
+
 		public virtual void ShowHints(string hints) { }
 		public virtual void ClearHints() { }
-		public virtual void RefreshInfo() { }
 		public virtual void UpdateCoordinates(Vector2D coords) { }
 		public virtual void UpdateCoordinates(Vector2D coords, bool snaptogrid) { }
 		public virtual bool Focus() { return false; }
@@ -107,8 +164,8 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual int BrowseLinedefActions(IWin32Window owner, int initialvalue, bool addanyaction) { return initialvalue; }
 		public virtual int BrowseSectorEffect(IWin32Window owner, int initialvalue) { return initialvalue; }
 		public virtual int BrowseSectorEffect(IWin32Window owner, int initialvalue, bool addanyeffect) { return initialvalue; }
-		public virtual string BrowseTexture(IWin32Window owner, string initialvalue) { return initialvalue; }
-		public virtual string BrowseFlat(IWin32Window owner, string initialvalue) { return initialvalue; }
+		public virtual string BrowseTexture(IWin32Window owner, string initialvalue) { return General.Dialogs.BrowseImage(initialvalue, false); }
+		public virtual string BrowseFlat(IWin32Window owner, string initialvalue) { return General.Dialogs.BrowseImage(initialvalue, true); }
 		public virtual int BrowseThingType(IWin32Window owner, int initialvalue) { return initialvalue; }
 
 		public virtual void AddMenu(ToolStripItem menu) { }

@@ -80,7 +80,8 @@ namespace CodeImp.DoomBuilder.Compilers
 			ProcessStartInfo processinfo = new ProcessStartInfo();
 			processinfo.Arguments = args;
 			//processinfo.FileName = Path.Combine(this.tempdir.FullName, info.ProgramFile);
-			processinfo.FileName = Path.Combine(info.Path, info.ProgramFile); //mxd
+			processinfo.FileName = info.ProgramPath; //mxd. In the compiler's folder or on the PATH
+			CompilerInfo.EnsureExecutable(processinfo.FileName);
 			processinfo.CreateNoWindow = true; //mxd. was false
 			processinfo.ErrorDialog = false;
 			processinfo.UseShellExecute = false; //mxd. was true
@@ -97,6 +98,7 @@ namespace CodeImp.DoomBuilder.Compilers
 			General.WriteLogLine("Arguments:  " + processinfo.Arguments);
 
 			string outErr = "";
+			DateTime starttime = DateTime.Now;
 			string outMsg = "";
 
 			Process process = new Process();
@@ -111,6 +113,7 @@ namespace CodeImp.DoomBuilder.Compilers
 			{
 				// Start the compiler
 				process.Start();
+				starttime = DateTime.Now;      // (the start time of a process that has exited cannot be read on Linux and macOS)
 				process.BeginOutputReadLine();
 				process.BeginErrorReadLine();
 			}
@@ -133,7 +136,7 @@ namespace CodeImp.DoomBuilder.Compilers
 			//zdbsp actually writes building process here, not error info
 			bool errorsInErrorOutput = (outErr.Length > 0 && outErr.ToLowerInvariant().IndexOf("error") != -1);
 
-			TimeSpan deltatime = TimeSpan.FromTicks(process.ExitTime.Ticks - process.StartTime.Ticks);
+			TimeSpan deltatime = DateTime.Now - starttime;
 			General.WriteLogLine("Compiler process has finished" + (errorsInNormalOurput || errorsInErrorOutput ? " with errors." : ".")); //mxd
 			General.WriteLogLine("Compile time: " + deltatime.TotalSeconds.ToString("########0.00") + " seconds");
 
