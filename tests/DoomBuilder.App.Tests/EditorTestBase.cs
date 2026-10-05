@@ -145,7 +145,8 @@ thing { x = 64.0; y = 64.0; type = 1; angle = 90; skill1 = true; skill2 = true; 
         window.Show();
 
         // StartEditor is posted from Opened; it opens the map synchronously
-        for (int i = 0; i < 400 && (withMap ? General.Map == null : General.Actions == null); i++)
+        // (a slow CI runner can take many seconds to start: wait for the condition, not for a fixed short time)
+        for (int i = 0; i < 6000 && (withMap ? General.Map == null : General.Actions == null); i++)
         {
             Dispatcher.UIThread.RunJobs();
             System.Threading.Thread.Sleep(10);
