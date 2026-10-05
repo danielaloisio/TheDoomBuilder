@@ -276,7 +276,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         started = true;
 
         string appdir = Program.ApplicationDirectory ?? AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        string settingsdir = Program.SettingsDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TheDoomBuilder");
+        string settingsdir = Program.SettingsDirectory ?? Environment.GetEnvironmentVariable("UDB_SETTINGS_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TheDoomBuilder");
         Directory.CreateDirectory(settingsdir);
 
         General.ExitRequested += OnExitRequested;                           // the core wants the program to end (fatal errors, Terminate)
@@ -415,6 +415,9 @@ public partial class MainWindow : Avalonia.Controls.Window
         // UDB_SCREENSHOT_MODE=<mode class name> (e.g. BaseVisualMode) switches to that mode first
         string mode = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_MODE");
         if (framecount == 1 && !string.IsNullOrEmpty(mode)) Dispatcher.UIThread.Post(() => General.Editing.ChangeMode(mode));
+        // UDB_RUN_ACTION=<action name> runs an action once the map is loaded (to exercise e.g. builder_testmap from a script)
+        string action = Environment.GetEnvironmentVariable("UDB_RUN_ACTION");
+        if (framecount == 6 && !string.IsNullOrEmpty(action)) Dispatcher.UIThread.Post(() => General.Actions.InvokeAction(action));
         // UDB_SCREENSHOT_CAMERA=x,y,z,anglexy,anglez (degrees) places the 3D camera
         string cam = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_CAMERA");
         if (framecount == 5 && !string.IsNullOrEmpty(cam))
@@ -426,7 +429,8 @@ public partial class MainWindow : Avalonia.Controls.Window
                 c.AngleXY = CodeImp.DoomBuilder.Geometry.Angle2D.DegToRad(double.Parse(p[3], System.Globalization.CultureInfo.InvariantCulture));
                 c.AngleZ = CodeImp.DoomBuilder.Geometry.Angle2D.DegToRad(double.Parse(p[4], System.Globalization.CultureInfo.InvariantCulture));
             });
-        if (++framecount < (string.IsNullOrEmpty(mode) ? 4 : 12)) { Viewport.RequestRedraw(); return; }   // let queued GPU work settle
+        int needed = int.TryParse(Environment.GetEnvironmentVariable("UDB_SCREENSHOT_FRAMES"), out int f) ? f : (string.IsNullOrEmpty(mode) ? 4 : 12);   // frames to let queued GPU work and image loading settle
+        if (++framecount < needed) { Viewport.RequestRedraw(); return; }   // let queued GPU work settle
 
         var pixels = new byte[size.Width * size.Height * 4];
         gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)fb);

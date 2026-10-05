@@ -100,11 +100,14 @@ namespace CodeImp.DoomBuilder
 				//mxd. Terminate running processes?
 				if(processes != null) 
 				{
-					foreach(KeyValuePair<Process, string> group in processes)
+					foreach(KeyValuePair<Process, string> group in new List<KeyValuePair<Process, string>>(processes))
 					{
+						// The editor is going away: nobody is left to be told that the engine ended
+						group.Key.Exited -= ProcessOnExited;
+
 						// Close engine
-						group.Key.CloseMainWindow();
-						group.Key.Close();
+						try { group.Key.CloseMainWindow(); group.Key.Close(); }
+						catch(InvalidOperationException) { }   // it ended in the meantime
 
 						// Remove temporary file
 						if(File.Exists(group.Value))
@@ -115,6 +118,9 @@ namespace CodeImp.DoomBuilder
 					}
 				}
 				
+				processes = null;
+				starttimes.Clear();
+
 				// Remove temporary file
 				if(File.Exists(tempwad))
 				{
@@ -522,6 +528,8 @@ namespace CodeImp.DoomBuilder
 				return; 
 			}
 			
+			// (the editor may have been closed while the engine was still running)
+			if(General.MainWindow == null) return;
 			General.MainWindow.DisplayReady();
 
 			if(General.Map != null)
@@ -539,7 +547,10 @@ namespace CodeImp.DoomBuilder
 		//mxd
 		private void ProcessOnExited(object sender, EventArgs e)
 		{
-			General.MainWindow.RunOnUIThread(() => TestingFinished((Process)sender));
+			// The engine ended on its own thread; the editor may be gone by now
+			IMainWindow window = General.MainWindow;
+			if(isdisposed || window == null) return;
+			window.RunOnUIThread(() => { if(!isdisposed) TestingFinished((Process)sender); });
 		}
 
 		/// <summary>

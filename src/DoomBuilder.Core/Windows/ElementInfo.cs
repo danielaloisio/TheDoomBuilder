@@ -30,7 +30,8 @@ namespace CodeImp.DoomBuilder.Windows
 	{
 		public string Caption;
 		public string Name = "";
-		public string SizeText = "";
+		/// <summary>"64x128" once the image is loaded (it is read when asked, so a refresh after loading shows it); empty before or when sizes are off.</summary>
+		public string SizeText { get { return Image == null ? "" : ElementInfoBuilder.SizeText(Image); } }
 		/// <summary>The image, or null when there is none to show (a "-" that is not required).</summary>
 		public ImageData Image;
 		/// <summary>No texture where one is needed: the "missing texture" picture is shown.</summary>
@@ -176,7 +177,6 @@ namespace CodeImp.DoomBuilder.Windows
 			{
 				ImageData image = General.Map.Data.GetFlatImage(name);
 				tex.Image = image;
-				tex.SizeText = SizeText(image);
 			}
 			group.Textures.Add(tex);
 
@@ -202,7 +202,7 @@ namespace CodeImp.DoomBuilder.Windows
 			return group;
 		}
 
-		private static string SizeText(ImageData image)
+		internal static string SizeText(ImageData image)
 		{
 			if(General.Settings.ShowTextureSizes && image.ImageState == ImageLoadState.Ready && !string.IsNullOrEmpty(image.Name) && !(image is UnknownImage))
 				return Math.Abs(image.ScaledWidth) + "x" + Math.Abs(image.ScaledHeight);
@@ -313,7 +313,6 @@ namespace CodeImp.DoomBuilder.Windows
 			{
 				ImageData image = General.Map.Data.GetTextureImage(name);
 				tex.Image = image;
-				tex.SizeText = SizeText(image);
 			}
 
 			if(General.Map.UDMF)
