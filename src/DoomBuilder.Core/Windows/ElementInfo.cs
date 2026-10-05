@@ -5,6 +5,7 @@ using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.Data;
 using CodeImp.DoomBuilder.GZBuilder;
 using CodeImp.DoomBuilder.GZBuilder.Data;
+using CodeImp.DoomBuilder.IO;
 using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Types;
 
@@ -100,6 +101,39 @@ namespace CodeImp.DoomBuilder.Windows
 			}
 			else group.Fields.Add(new InfoField("Tag:", TagText(tag), tag != 0));
 		}
+
+		#region ================== Map statistics
+
+		/// <summary>
+		/// What the panel says while nothing is highlighted (UDB's mode name and statistics): how many of each element the map has,
+		/// in red when the map format cannot hold that many, with how many are selected.
+		/// </summary>
+		public static ElementInfo ForStatistics()
+		{
+			var info = new ElementInfo { Kind = (MapElementType)(-1) };
+			string mode = General.Editing != null && General.Editing.Mode != null && General.Editing.Mode.Attributes != null ? General.Editing.Mode.Attributes.DisplayName : "";
+			info.Title = mode;
+			var group = new InfoGroup { Title = mode };
+			if(General.Map != null)
+			{
+				MapSet map = General.Map.Map;
+				IMapSetIO format = General.Map.FormatInterface;
+				group.Fields.Add(Count("Vertices:", map.Vertices.Count, format.MaxVertices, map.SelectedVerticessCount));
+				group.Fields.Add(Count("Linedefs:", map.Linedefs.Count, format.MaxLinedefs, map.SelectedLinedefsCount));
+				group.Fields.Add(Count("Sidedefs:", map.Sidedefs.Count, format.MaxSidedefs, 0));
+				group.Fields.Add(Count("Sectors:", map.Sectors.Count, format.MaxSectors, map.SelectedSectorsCount));
+				group.Fields.Add(Count("Things:", map.Things.Count, format.MaxThings, map.SelectedThingsCount));
+			}
+			info.Groups.Add(group);
+			return info;
+		}
+
+		private static InfoField Count(string label, int count, int max, int selected)
+		{
+			return new InfoField(label, count + (selected > 0 ? " (" + selected + " selected)" : "")) { Error = count > max };
+		}
+
+		#endregion
 
 		#region ================== Vertex
 

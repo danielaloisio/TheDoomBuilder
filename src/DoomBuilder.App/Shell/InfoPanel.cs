@@ -61,7 +61,7 @@ public sealed class InfoPanel : UserControl
         idle.IsVisible = info == null;
         if (info == null) { reload.Stop(); return; }
 
-        foreach (InfoGroup group in info.Groups) cards.Children.Add(Card(group));
+        foreach (InfoGroup group in info.Groups) cards.Children.Add(Card(group, group == info.Groups[0] ? info.Angle : -1));
         if (info.Sprite != null) cards.Children.Add(SpriteCard(info));
         if (info.Flags.Count > 0) cards.Children.Add(FlagsCard(info));
 
@@ -86,10 +86,11 @@ public sealed class InfoPanel : UserControl
         return new Border { BorderThickness = new Thickness(1), BorderBrush = highlight ? Brushes.DodgerBlue : Brushes.Gray, CornerRadius = new CornerRadius(3), Padding = new Thickness(6, 3), Child = stack };
     }
 
-    private static Control Card(InfoGroup group)
+    private static Control Card(InfoGroup group, int angle)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         if (group.Fields.Count > 0) row.Children.Add(Fields(group.Fields));
+        if (angle >= 0) row.Children.Add(AngleDial(angle));
         foreach (InfoTexture texture in group.Textures) row.Children.Add(Texture(texture));
         return Frame(group.Title, group.Highlight, row);
     }
@@ -147,6 +148,23 @@ public sealed class InfoPanel : UserControl
         stack.Children.Add(name);
         if (t.Fields.Count > 0) stack.Children.Add(Fields(t.Fields));
         return stack;
+    }
+
+    /// <summary>A small dial showing a thing's angle (Doom angles run counter-clockwise from east).</summary>
+    private static Control AngleDial(int degrees)
+    {
+        const double size = 44, radius = 18;
+        double radians = degrees * Math.PI / 180.0;
+        var canvas = new Canvas { Width = size, Height = size, VerticalAlignment = VerticalAlignment.Top };
+        canvas.Children.Add(new Avalonia.Controls.Shapes.Ellipse { Width = radius * 2, Height = radius * 2, Stroke = Brushes.Gray, StrokeThickness = 1, [Canvas.LeftProperty] = size / 2 - radius, [Canvas.TopProperty] = size / 2 - radius });
+        canvas.Children.Add(new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Point(size / 2, size / 2),
+            EndPoint = new Point(size / 2 + radius * Math.Cos(radians), size / 2 - radius * Math.Sin(radians)),
+            Stroke = Brushes.DodgerBlue,
+            StrokeThickness = 2,
+        });
+        return canvas;
     }
 
     private static Control SpriteCard(ElementInfo info)

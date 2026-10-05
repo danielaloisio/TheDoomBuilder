@@ -166,8 +166,8 @@ public class InfoPanelTests : EditorTestBase
 
         General.Interface.HideInfo();
         Flush();
-        Assert.Null(infopanel.Shown);
-        Assert.Empty(infopanel.Cards);
+        Assert.Equal("Vertices:", infopanel.Shown.Groups[0].Fields[0].Label);          // nothing highlighted: the mode and the map's counts
+        Assert.Single(infopanel.Cards);
 
         General.Actions.InvokeAction("builder_toggleinfopanel");
         Flush();
@@ -195,5 +195,52 @@ public class InfoPanelTests : EditorTestBase
         Assert.NotNull(last);
         Assert.Equal(MapElementType.SECTOR, last.Kind);
         Assert.True(last.Groups.Single(g => g.Title == "Floor").Highlight);
+    }
+
+    [AvaloniaFact]
+    public void Without_a_highlight_the_panel_names_the_mode_and_counts_the_elements_of_the_map()
+    {
+        OpenEditor();
+        General.Editing.ChangeMode("SectorsMode");
+        Flush();
+        var infopanel = (DoomBuilder.App.Shell.InfoPanel)window.FindControl<ContentControl>("InfoHost").Content;
+
+        ElementInfo stats = infopanel.Shown;
+        Assert.NotNull(stats);
+        Assert.Equal(General.Editing.Mode.Attributes.DisplayName, stats.Groups[0].Title);
+        Assert.Equal(new[] { "Vertices:", "Linedefs:", "Sidedefs:", "Sectors:", "Things:" }, stats.Groups[0].Fields.Select(f => f.Label));
+        Assert.Equal(General.Map.Map.Sectors.Count.ToString(), Value(stats.Groups[0], "Sectors:"));
+        Assert.All(stats.Groups[0].Fields, f => Assert.False(f.Error));                  // the sample is far below the format's limits
+
+        General.Map.Map.Sectors.First().Selected = true;
+        General.Interface.RefreshInfo();
+        General.Interface.HideInfo();
+        Flush();
+        Assert.Contains("1 selected", Value(infopanel.Shown.Groups[0], "Sectors:"));
+    }
+
+    [AvaloniaFact]
+    public void The_counts_turn_red_when_the_map_format_cannot_hold_them()
+    {
+        OpenEditor();
+        int max = General.Map.FormatInterface.MaxThings;
+        ElementInfo stats = ElementInfoBuilder.ForStatistics();
+        Assert.True(General.Map.Map.Things.Count <= max);
+        Assert.False(stats.Groups[0].Fields.Single(f => f.Label == "Things:").Error);
+    }
+
+    [AvaloniaFact]
+    public void A_thing_gets_an_angle_dial_and_other_elements_do_not()
+    {
+        OpenEditor();
+        var infopanel = (DoomBuilder.App.Shell.InfoPanel)window.FindControl<ContentControl>("InfoHost").Content;
+
+        General.Interface.ShowThingInfo(General.Map.Map.Things.First());
+        Flush();
+        Assert.Contains(Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(infopanel).OfType<Avalonia.Controls.Shapes.Line>(), l => l.Stroke == Avalonia.Media.Brushes.DodgerBlue);
+
+        General.Interface.ShowSectorInfo(General.Map.Map.Sectors.First());
+        Flush();
+        Assert.DoesNotContain(Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(infopanel).OfType<Avalonia.Controls.Shapes.Line>(), l => l.Stroke == Avalonia.Media.Brushes.DodgerBlue);
     }
 }
