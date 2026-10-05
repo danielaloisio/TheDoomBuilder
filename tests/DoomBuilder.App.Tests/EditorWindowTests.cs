@@ -121,6 +121,7 @@ public class MouseCaptureTests : IDisposable
         var warp = new FakeWarp();
 
         using var capture = new DoomBuilder.App.Input.ViewportMouseCapture(viewport, warp);
+        Assert.NotNull(surface.Cursor);      // hidden where the pointer is received (the panel over the GL view)
 
         // starting a capture puts the pointer in the middle of the view
         Assert.Single(warp.Moves);

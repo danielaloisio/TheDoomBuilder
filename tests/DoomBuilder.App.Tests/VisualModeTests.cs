@@ -34,6 +34,21 @@ public class VisualModeTests : EditorTestBase
     private static void Tick() => ((DoomBuilder.App.AvaloniaShell)General.Interface).Input.Tick();
 
     [AvaloniaFact]
+    public void The_visual_mode_key_leaves_the_visual_mode_again()
+    {
+        OpenEditor();
+        window.KeyPress(Key.Q, RawInputModifiers.None, PhysicalKey.Q, null);
+        window.KeyRelease(Key.Q, RawInputModifiers.None, PhysicalKey.Q, null);
+        Flush();
+        Assert.Equal("BaseVisualMode", General.Editing.Mode.GetType().Name);
+
+        window.KeyPress(Key.Q, RawInputModifiers.None, PhysicalKey.Q, null);
+        window.KeyRelease(Key.Q, RawInputModifiers.None, PhysicalKey.Q, null);
+        Flush();
+        Assert.NotEqual("BaseVisualMode", General.Editing.Mode.GetType().Name);
+    }
+
+    [AvaloniaFact]
     public void Holding_the_forward_key_moves_the_camera_the_way_it_looks()
     {
         OpenEditor();

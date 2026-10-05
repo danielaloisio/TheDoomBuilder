@@ -30,14 +30,16 @@ public sealed class ViewportMouseCapture : IMouseCapture
 
         tracker.WarpGivenUp += () => CodeImp.DoomBuilder.General.WriteLogLine("Mouse look: moving the pointer has no effect in this session (XWayland, for one), so movement is read between positions instead.");
         tracker.UsesWarp = warp.Supported;     // where the pointer cannot be moved, the movement is read between successive positions
-        previouscursor = viewport.Cursor;
-        viewport.Cursor = new Cursor(StandardCursorType.None);
+        // The cursor that shows is the one of the control that receives the pointer (the transparent panel over the GL view), not the GL view's
+        surface = viewport.InputSurface ?? viewport;
+        previouscursor = surface.Cursor;
+        surface.Cursor = new Cursor(StandardCursorType.None);
+        viewport.Cursor = surface.Cursor;
 
         UpdateCenter();
         warp.MoveTo(screencenter.X, screencenter.Y);
         tracker.Begin();
 
-        surface = viewport.InputSurface ?? viewport;
         if (raw == null) surface.PointerMoved += OnPointerMoved;     // with raw motion the positions are not needed at all (UDB ignores them too)
         viewport.SizeChanged += OnSizeChanged;
     }
@@ -69,7 +71,8 @@ public sealed class ViewportMouseCapture : IMouseCapture
         surface.PointerMoved -= OnPointerMoved;
         raw?.Dispose();
         viewport.SizeChanged -= OnSizeChanged;
-        viewport.Cursor = previouscursor;
+        surface.Cursor = previouscursor;
+        viewport.Cursor = null;
 
         // Like UDB: leave the pointer in the middle of the view
         warp.MoveTo(screencenter.X, screencenter.Y);
