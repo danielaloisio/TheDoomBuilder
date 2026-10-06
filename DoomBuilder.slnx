@@ -8,6 +8,16 @@
   <Folder Name="/src/Plugins/">
     <Project Path="src/Plugins/BuilderModes/BuilderModes.csproj" />
     <Project Path="src/Plugins/ThreeDFloorMode/ThreeDFloorMode.csproj" />
+    <Project Path="src/Plugins/BuilderEffects/BuilderEffects.csproj" />
+    <Project Path="src/Plugins/ColorPicker/ColorPicker.csproj" />
+    <Project Path="src/Plugins/AutomapMode/AutomapMode.csproj" />
+    <Project Path="src/Plugins/VisplaneExplorer/VisplaneExplorer.csproj" />
+    <Project Path="src/Plugins/NodesViewer/NodesViewer.csproj" />
+    <Project Path="src/Plugins/RejectExplorer/RejectExplorer.csproj" />
+    <Project Path="src/Plugins/BlockmapExplorer/BlockmapExplorer.csproj" />
+    <Project Path="src/Plugins/TagExplorer/TagExplorer.csproj" />
+    <Project Path="src/Plugins/TagRange/TagRange.csproj" />
+    <Project Path="src/Plugins/CommentsPanel/CommentsPanel.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DoomBuilder.App.Tests/DoomBuilder.App.Tests.csproj" />

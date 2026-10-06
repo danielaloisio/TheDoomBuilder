@@ -321,6 +321,16 @@ public partial class MainWindow : Avalonia.Controls.Window
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderModes.BuilderPlug).Assembly);   // vertices, linedefs, sectors, things...
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ThreeDFloorMode.BuilderPlug).Assembly);   // 3D floors and slopes (after BuilderModes, which it uses)
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderEffects.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ColorPicker.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.AutomapMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.VisplaneExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.NodesViewer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.RejectExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BlockmapExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.TagExplorer.BuilderPlug).Assembly);   // tags and actions of the map as a tree
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.TagRange.BuilderPlug).Assembly);   // tag ranges for a selection (after BuilderModes, which it uses)
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.CommentsPanel.BuilderPlug).Assembly);   // UDMF comments as a list
 
         if (!General.Startup(Program.Arguments, () => shell, appdir, settingsdir))
         {
@@ -485,6 +495,10 @@ public partial class MainWindow : Avalonia.Controls.Window
         // UDB_SCREENSHOT_MODE=<mode class name> (e.g. BaseVisualMode) switches to that mode first
         string mode = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_MODE");
         if (framecount == 1 && !string.IsNullOrEmpty(mode)) Dispatcher.UIThread.Post(() => General.Editing.ChangeMode(mode));
+        // UDB_SCREENSHOT_DOCKER=<docker title> (e.g. "Tag Explorer") shows that docker tab
+        string dockertitle = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_DOCKER");
+        if (framecount == 2 && !string.IsNullOrEmpty(dockertitle))
+            Dispatcher.UIThread.Post(() => { var d = System.Linq.Enumerable.FirstOrDefault(shell.Dockers.Dockers, x => x.Title == dockertitle); if (d != null) shell.Dockers.Select(d); });
         // UDB_RUN_ACTION=<action name> runs an action once the map is loaded (to exercise e.g. builder_testmap from a script)
         string action = Environment.GetEnvironmentVariable("UDB_RUN_ACTION");
         if (framecount == 6 && !string.IsNullOrEmpty(action)) Dispatcher.UIThread.Post(() => General.Actions.InvokeAction(action));
