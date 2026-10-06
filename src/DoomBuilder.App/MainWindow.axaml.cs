@@ -321,6 +321,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderModes.BuilderPlug).Assembly);   // vertices, linedefs, sectors, things...
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ThreeDFloorMode.BuilderPlug).Assembly);   // 3D floors and slopes (after BuilderModes, which it uses)
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.UDBScript.BuilderPlug).Assembly);
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderEffects.BuilderPlug).Assembly);
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ColorPicker.BuilderPlug).Assembly);
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.AutomapMode.BuilderPlug).Assembly);

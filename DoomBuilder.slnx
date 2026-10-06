@@ -8,6 +8,7 @@
   <Folder Name="/src/Plugins/">
     <Project Path="src/Plugins/BuilderModes/BuilderModes.csproj" />
     <Project Path="src/Plugins/ThreeDFloorMode/ThreeDFloorMode.csproj" />
+    <Project Path="src/Plugins/UDBScript/UDBScript.csproj" />
     <Project Path="src/Plugins/BuilderEffects/BuilderEffects.csproj" />
     <Project Path="src/Plugins/ColorPicker/ColorPicker.csproj" />
     <Project Path="src/Plugins/AutomapMode/AutomapMode.csproj" />

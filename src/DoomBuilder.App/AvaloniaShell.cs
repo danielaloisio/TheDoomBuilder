@@ -58,7 +58,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     {
         IsInfoPanelExpanded = !IsInfoPanelExpanded;
         if (IsInfoPanelExpanded) RefreshInfo();
-        InterfaceChanged?.Invoke();
+        RaiseInterfaceChanged();
         FocusDisplay();
     }
 
@@ -73,7 +73,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     {
         snaptogrid = !snaptogrid;
         DisplayStatus(StatusType.Action, "Snap to grid is " + (snaptogrid ? "ENABLED" : "DISABLED"));
-        InterfaceChanged?.Invoke();
+        RaiseInterfaceChanged();
         RedrawDisplay();
     }
 
@@ -82,7 +82,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     {
         automerge = !automerge;
         DisplayStatus(StatusType.Action, "Snap to geometry is " + (automerge ? "ENABLED" : "DISABLED"));
-        InterfaceChanged?.Invoke();
+        RaiseInterfaceChanged();
         RedrawDisplay();
     }
 
@@ -220,16 +220,27 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
         SetWarningsCount(General.ErrorLogger.ErrorsCount, false);
     }
 
-    public override void UpdateInterface() => InterfaceChanged?.Invoke();
-    public override void SetupInterface() => InterfaceChanged?.Invoke();
-    public override void UpdateMapChangedStatus() => InterfaceChanged?.Invoke();
-    public override void UpdateThingsFilters() => InterfaceChanged?.Invoke();
+    private int interfacechangedpending;
+
+    // The interface is refreshed on the UI thread. Other threads (a UDBScript script changing the map) ask for it: one refresh covers
+    // all the requests made before it runs.
+    private void RaiseInterfaceChanged()
+    {
+        if (Dispatcher.UIThread.CheckAccess()) { InterfaceChanged?.Invoke(); return; }
+        if (System.Threading.Interlocked.Exchange(ref interfacechangedpending, 1) == 1) return;
+        Dispatcher.UIThread.Post(() => { System.Threading.Interlocked.Exchange(ref interfacechangedpending, 0); InterfaceChanged?.Invoke(); });
+    }
+
+    public override void UpdateInterface() => RaiseInterfaceChanged();
+    public override void SetupInterface() => RaiseInterfaceChanged();
+    public override void UpdateMapChangedStatus() => RaiseInterfaceChanged();
+    public override void UpdateThingsFilters() => RaiseInterfaceChanged();
     public override void EditModeChanged()
     {
         // As MainForm did: check the button (and menu entry) of the mode that is active now
         string button = General.Editing?.Mode?.EditModeButtonName ?? string.Empty;
         OnUi(() => Plugins?.CheckEditModeButton(button));
-        InterfaceChanged?.Invoke();
+        RaiseInterfaceChanged();
     }
 
     public override void ShowHints(string hints)

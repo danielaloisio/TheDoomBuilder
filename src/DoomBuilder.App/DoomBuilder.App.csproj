@@ -35,6 +35,7 @@
     <ProjectReference Include="..\DoomBuilder.Rendering\DoomBuilder.Rendering.csproj" />
     <ProjectReference Include="..\Plugins\BuilderModes\BuilderModes.csproj" />
     <ProjectReference Include="..\Plugins\ThreeDFloorMode\ThreeDFloorMode.csproj" />
+    <ProjectReference Include="..\Plugins\UDBScript\UDBScript.csproj" />
     <ProjectReference Include="..\Plugins\BuilderEffects\BuilderEffects.csproj" />
     <ProjectReference Include="..\Plugins\ColorPicker\ColorPicker.csproj" />
     <ProjectReference Include="..\Plugins\AutomapMode\AutomapMode.csproj" />
