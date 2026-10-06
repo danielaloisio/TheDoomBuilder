@@ -414,9 +414,35 @@ public partial class MainWindow : Avalonia.Controls.Window
         e.Handled = true;
     }
 
+    // Saves the frame that was just painted (GL rows start at the bottom)
+    private unsafe void SaveFrame(GL gl, int fb, PixelSize size, string path)
+    {
+        var pixels = new byte[size.Width * size.Height * 4];
+        gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)fb);
+        fixed (byte* p = pixels)
+            gl.ReadPixels(0, 0, (uint)size.Width, (uint)size.Height, Silk.NET.OpenGL.PixelFormat.Rgba, PixelType.UnsignedByte, p);
+
+        // GL rows start at the bottom
+        var flipped = new byte[pixels.Length];
+        int stride = size.Width * 4;
+        for (int y = 0; y < size.Height; y++)
+            System.Buffer.BlockCopy(pixels, y * stride, flipped, (size.Height - 1 - y) * stride, stride);
+
+        using var bitmap = new SKBitmap(new SKImageInfo(size.Width, size.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+        System.Runtime.InteropServices.Marshal.Copy(flipped, 0, bitmap.GetPixels(), flipped.Length);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using (var file = File.Create(path)) data.SaveTo(file);
+    }
+
     // Test/diagnostic hook: UDB_SCREENSHOT=file.png saves the first settled frame with a map in it and exits.
     private unsafe void OnFramePainted(GL gl, int fb, PixelSize size)
     {
+        if (Environment.GetEnvironmentVariable("UDB_LOG_FRAMES") == "1") Console.WriteLine("[frame] " + Environment.TickCount64 + (General.Map != null ? " cam " + General.Map.VisualCamera.AngleXY.ToString("0.0000") + " " + General.Map.VisualCamera.AngleZ.ToString("0.0000") : ""));
+        // UDB_SCREENSHOT_PASSIVE=file.png keeps the last frame the program painted by itself (nothing is forced), to see what the user sees
+        string passive = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_PASSIVE");
+        if (!string.IsNullOrEmpty(passive) && General.Map != null) { SaveFrame(gl, fb, size, passive); return; }
+
         string path = Environment.GetEnvironmentVariable("UDB_SCREENSHOT");
         if (string.IsNullOrEmpty(path) || General.Map == null) return;
         // UDB_SCREENSHOT_MODE=<mode class name> (e.g. BaseVisualMode) switches to that mode first
@@ -442,22 +468,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         int needed = int.TryParse(Environment.GetEnvironmentVariable("UDB_SCREENSHOT_FRAMES"), out int f) ? f : (string.IsNullOrEmpty(mode) ? 4 : 12);   // frames to let queued GPU work and image loading settle
         if (++framecount < needed) { Viewport.RequestRedraw(); return; }   // let queued GPU work settle
 
-        var pixels = new byte[size.Width * size.Height * 4];
-        gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)fb);
-        fixed (byte* p = pixels)
-            gl.ReadPixels(0, 0, (uint)size.Width, (uint)size.Height, Silk.NET.OpenGL.PixelFormat.Rgba, PixelType.UnsignedByte, p);
-
-        // GL rows start at the bottom
-        var flipped = new byte[pixels.Length];
-        int stride = size.Width * 4;
-        for (int y = 0; y < size.Height; y++)
-            System.Buffer.BlockCopy(pixels, y * stride, flipped, (size.Height - 1 - y) * stride, stride);
-
-        using var bitmap = new SKBitmap(new SKImageInfo(size.Width, size.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
-        System.Runtime.InteropServices.Marshal.Copy(flipped, 0, bitmap.GetPixels(), flipped.Length);
-        using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using (var file = File.Create(path)) data.SaveTo(file);
+        SaveFrame(gl, fb, size, path);
         Console.WriteLine("[screenshot] " + path);
 
         // The window's own UI (menus, toolbar, status bar) too: the GL content is not part of what Avalonia renders here

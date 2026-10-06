@@ -218,9 +218,45 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual void PerformAutoMapLoading() { General.PerformAutoMapLoading(); }
 		public virtual void ProcessQueuedUIActions() { }
 		public virtual void RunOnUIThread(Action action) { action(); }
-		public virtual void SpriteDataLoaded(string spritename) { }
-		public virtual void ImageDataLoaded(string imagename) { }
-		public virtual void ImageDataLoaded(ImageData img) { }
+		/// <summary>Redraws soon (several requests close together make one redraw). The base redraws at once.</summary>
+		public virtual void DelayedRedraw() { RedrawDisplay(); }
+
+		// Images load on a background thread. The display draws the flats and sprites it has, and must draw them again as they arrive
+		public virtual void SpriteDataLoaded(string spritename)
+		{
+			RunOnUIThread(() =>
+			{
+				if(General.Map != null && General.Map.Data != null)
+				{
+					ImageData img = General.Map.Data.GetSpriteImage(spritename);
+					if(img != null && img.UsedInMap && !img.IsDisposed) DelayedRedraw();
+				}
+			});
+		}
+
+		public virtual void ImageDataLoaded(string imagename)
+		{
+			RunOnUIThread(() =>
+			{
+				if(General.Map != null && General.Map.Data != null) ImageDataLoaded(General.Map.Data.GetFlatImage(imagename));
+			});
+		}
+
+		// Called when an image was loaded for the first time or changed size: the sectors that use it as a floor or ceiling update their
+		// surface (the fill of the 2D view) and the display is redrawn
+		public virtual void ImageDataLoaded(ImageData img)
+		{
+			if(img == null || !img.UsedInMap || img.IsDisposed || General.Map == null || !General.Map.Map.IsSafeToAccess) return;
+
+			bool updated = false;
+			long imgshorthash = General.Map.Data.GetShortLongFlatName(img.LongName);
+			foreach(Sector s in General.Map.Map.Sectors)
+			{
+				if(s.LongFloorTexture == img.LongName || s.LongFloorTexture == imgshorthash) { s.UpdateFloorSurface(); updated = true; }
+				if(s.LongCeilTexture == img.LongName || s.LongCeilTexture == imgshorthash) { s.UpdateCeilingSurface(); updated = true; }
+			}
+			if(updated) DelayedRedraw();
+		}
 		public virtual void Show() { }
 		public virtual void Update() { }
 		public virtual void Close() { }

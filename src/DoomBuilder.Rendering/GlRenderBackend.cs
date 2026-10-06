@@ -879,8 +879,12 @@ namespace DoomBuilder.Rendering
 		public bool Present()
 		{
 			if(inFrame) ProcessReleases();
+			else FrameRequested?.Invoke();   // drawn outside a frame (a mouse move in a drawing mode): it only reaches the screen in a frame, so ask for one
 			return true;
 		}
+
+		/// <summary>The editor presented something while no frame was active: the host should paint a frame soon.</summary>
+		public event Action FrameRequested;
 
 		/// <summary>Failures of commands that were queued (the caller already got "true"). Also written to stderr.</summary>
 		public event Action<string> CommandFailed;

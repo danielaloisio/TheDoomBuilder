@@ -96,4 +96,20 @@ public class RealGameTests : EditorTestBase
         Assert.Contains("E1M1", output);                                     // the engine got as far as playing the level
         Assert.DoesNotContain("Script error", output);
     }
+
+    [AvaloniaFact]
+    public void The_display_is_redrawn_when_the_textures_of_a_real_map_finish_loading()
+    {
+        if (Iwad == null) return;
+        OpenEditor(wadPath: Iwad, iwad: Iwad, mapName: "E1M1");
+        var shell = (DoomBuilder.App.AvaloniaShell)General.Interface;
+        General.Actions.InvokeAction("builder_viewmodefloors");
+
+        // A flat of the map arrives from the loader thread: the display must be asked to draw again by itself (nobody clicks in between)
+        var flat = General.Map.Data.GetFlatImage(General.Map.Map.Sectors.First().FloorTexture);
+        for (int i = 0; i < 200 && !flat.IsImageLoaded; i++) Pump(20);
+        Assert.True(flat.UsedInMap);
+        shell.ImageDataLoaded(flat);
+        Assert.True(shell.RedrawPending, "no redraw was asked for after the image loaded");     // (a timer coalesces them: many images make one redraw)
+    }
 }

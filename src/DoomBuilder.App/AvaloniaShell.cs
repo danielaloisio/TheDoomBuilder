@@ -62,6 +62,46 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
         FocusDisplay();
     }
 
+    private bool snaptogrid = true, automerge = true;
+
+    // Both start on, like the buttons of UDB's toolbar. Drawing and dragging read them for every point they place
+    public override bool SnapToGrid { get { return snaptogrid; } }
+    public override bool AutoMerge { get { return automerge; } }
+
+    [CodeImp.DoomBuilder.Actions.BeginAction("togglesnap", BaseAction = true)]
+    public void ToggleSnapToGrid()
+    {
+        snaptogrid = !snaptogrid;
+        DisplayStatus(StatusType.Action, "Snap to grid is " + (snaptogrid ? "ENABLED" : "DISABLED"));
+        InterfaceChanged?.Invoke();
+        RedrawDisplay();
+    }
+
+    [CodeImp.DoomBuilder.Actions.BeginAction("toggleautomerge", BaseAction = true)]
+    public void ToggleAutoMerge()
+    {
+        automerge = !automerge;
+        DisplayStatus(StatusType.Action, "Snap to geometry is " + (automerge ? "ENABLED" : "DISABLED"));
+        InterfaceChanged?.Invoke();
+        RedrawDisplay();
+    }
+
+    private DispatcherTimer redrawTimer;
+
+    /// <summary>A delayed redraw is waiting for its moment.</summary>
+    public bool RedrawPending => redrawTimer != null && redrawTimer.IsEnabled;
+
+    /// <summary>Asks for a redraw in a moment: many images arriving one after the other make one redraw, not hundreds.</summary>
+    public override void DelayedRedraw()
+    {
+        if (redrawTimer == null)
+        {
+            redrawTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
+            redrawTimer.Tick += (s, e) => { redrawTimer.Stop(); RedrawDisplay(); };
+        }
+        if (!redrawTimer.IsEnabled) redrawTimer.Start();
+    }
+
     private Docker hintsDocker;
 
     /// <summary>The panel of the "Help" docker.</summary>
@@ -99,7 +139,14 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     public override IRenderBackend CreateRenderBackend() => viewport.Backend;
 
-    public override void RedrawDisplay() => viewport.RequestRedraw();
+    /// <summary>How many redraws were asked for (diagnostics and tests).</summary>
+    public int RedrawRequests { get; private set; }
+
+    public override void RedrawDisplay()
+    {
+        RedrawRequests++;
+        viewport.RequestRedraw();
+    }
 
     public override void RunOnUIThread(Action action)
     {
@@ -333,7 +380,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     // ---- IInputHost
 
-    IMouseCapture IInputHost.BeginMouseCapture() => new ViewportMouseCapture(viewport, warp);
+    IMouseCapture IInputHost.BeginMouseCapture() => new ViewportMouseCapture(viewport, warp, OperatingSystem.IsLinux() ? X11RawMotion.TryCreate() : null);
 
     void IInputHost.SetProcessing(bool enabled)
     {

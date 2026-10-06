@@ -71,6 +71,8 @@ public static class UiRules
 
             case "itemsplitjoinedsectors": return new ItemState { Visible = true, Enabled = true, Checked = General.Settings.SplitJoinedSectors };
             case "itemautoclearsidetextures": return new ItemState { Visible = true, Enabled = true, Checked = General.Settings.AutoClearSidedefTextures };
+            case "itemsnaptogrid": return new ItemState { Visible = true, Enabled = map, Checked = General.Interface.SnapToGrid };
+            case "itemautomerge": return new ItemState { Visible = true, Enabled = map, Checked = General.Interface.AutoMerge };
             case "itemdynamicgridsize": return new ItemState { Visible = true, Enabled = map, Checked = General.Settings.DynamicGridSize };
 
             case "itemfullbrightness": return new ItemState { Visible = true, Enabled = true, Checked = Renderer.FullBrightness };
@@ -104,8 +106,9 @@ public static class UiRules
             case "buttonviewfloors": case "buttonviewnormal": case "buttontoggleclassicrendering":
                 return Toolbar(General.Settings.ToolbarViewModes && map);
             case "separatorgeomergemodes": case "buttonmergegeoclassic": case "buttonmergegeo": case "buttonplacegeo":
-            case "buttonsnaptogrid": case "buttonautomerge":
                 return Toolbar(General.Settings.ToolbarGeometry && map);
+            case "buttonsnaptogrid": return Toolbar(General.Settings.ToolbarGeometry && map, General.Interface.SnapToGrid);
+            case "buttonautomerge": return Toolbar(General.Settings.ToolbarGeometry && map, General.Interface.AutoMerge);
             case "buttontoggledynamicgrid": return Toolbar(General.Settings.ToolbarGeometry && map, General.Settings.DynamicGridSize);
             case "buttonsplitjoinedsectors": return Toolbar(General.Settings.ToolbarGeometry && map, General.Settings.SplitJoinedSectors);
             case "buttonautoclearsidetextures": return Toolbar(General.Settings.ToolbarGeometry && map, General.Settings.AutoClearSidedefTextures);
