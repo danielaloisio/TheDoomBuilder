@@ -166,6 +166,7 @@ namespace CodeImp.DoomBuilder.UDBScript
 			string actionname = "udbscript_udbscriptexecuteslot" + slot;
 			string keytext = "no hotkey";
 
+			if(General.Actions == null) return keytext;       // (the editor is shutting down)
 			Actions.Action action = General.Actions.GetActionByName(actionname);
 			if(action != null && action.ShortcutKey != 0)
 				keytext = Actions.Action.GetShortcutKeyDesc(actionname);

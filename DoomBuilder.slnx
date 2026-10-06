@@ -8,6 +8,11 @@
   <Folder Name="/src/Plugins/">
     <Project Path="src/Plugins/BuilderModes/BuilderModes.csproj" />
     <Project Path="src/Plugins/ThreeDFloorMode/ThreeDFloorMode.csproj" />
+    <Project Path="src/Plugins/StairSectorBuilder/StairSectorBuilder.csproj" />
+    <Project Path="src/Plugins/SoundPropagationMode/SoundPropagationMode.csproj" />
+    <Project Path="src/Plugins/WadAuthorMode/WadAuthorMode.csproj" />
+    <Project Path="src/Plugins/USDF/USDF.csproj" />
+    <Project Path="src/Plugins/ImageDrawingExample/ImageDrawingExample.csproj" />
     <Project Path="src/Plugins/UDBScript/UDBScript.csproj" />
     <Project Path="src/Plugins/BuilderEffects/BuilderEffects.csproj" />
     <Project Path="src/Plugins/ColorPicker/ColorPicker.csproj" />

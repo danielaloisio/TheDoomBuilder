@@ -35,6 +35,11 @@
     <ProjectReference Include="..\DoomBuilder.Rendering\DoomBuilder.Rendering.csproj" />
     <ProjectReference Include="..\Plugins\BuilderModes\BuilderModes.csproj" />
     <ProjectReference Include="..\Plugins\ThreeDFloorMode\ThreeDFloorMode.csproj" />
+    <ProjectReference Include="..\Plugins\StairSectorBuilder\StairSectorBuilder.csproj" />
+    <ProjectReference Include="..\Plugins\SoundPropagationMode\SoundPropagationMode.csproj" />
+    <ProjectReference Include="..\Plugins\WadAuthorMode\WadAuthorMode.csproj" />
+    <ProjectReference Include="..\Plugins\USDF\USDF.csproj" />
+    <ProjectReference Include="..\Plugins\ImageDrawingExample\ImageDrawingExample.csproj" />
     <ProjectReference Include="..\Plugins\UDBScript\UDBScript.csproj" />
     <ProjectReference Include="..\Plugins\BuilderEffects\BuilderEffects.csproj" />
     <ProjectReference Include="..\Plugins\ColorPicker\ColorPicker.csproj" />

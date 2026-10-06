@@ -27,6 +27,8 @@ public sealed class RowMap
     public List<Room> Rooms { get; } = new List<Room>();
     /// <summary>The line between room i and i+1 gets this special (a manual door for 1, "DR door").</summary>
     public Dictionary<int, int> BorderSpecials { get; } = new Dictionary<int, int>();
+    /// <summary>Extra linedef flags for the line between room k-1 and k (64 blocks sound).</summary>
+    public Dictionary<int, int> BorderFlags { get; } = new Dictionary<int, int>();
 
     public RowMap(params Room[] rooms) { Rooms.AddRange(rooms); }
 
@@ -100,7 +102,8 @@ public sealed class RowMap
         {
             int front = AddSide(k - 1, "-", "-", "-"), back = AddSide(k, "-", "-", "-");
             BorderSpecials.TryGetValue(k, out int special);
-            borderline[k] = AddLine(V(k, 1), V(k, 0), 4, special, front, back);
+            BorderFlags.TryGetValue(k, out int flags);
+            borderline[k] = AddLine(V(k, 1), V(k, 0), 4 | flags, special, front, back);
         }
 
         // The segs and subsectors
