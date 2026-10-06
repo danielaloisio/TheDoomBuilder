@@ -24,6 +24,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using CodeImp.DoomBuilder.Actions;
 using CodeImp.DoomBuilder.BuilderModes.Interface;
+using CodeImp.DoomBuilder.BuilderModes.IO;
 using CodeImp.DoomBuilder.Controls;
 using CodeImp.DoomBuilder.Data;
 using CodeImp.DoomBuilder.Editing;
@@ -649,7 +650,6 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 		#region ================== Actions (mxd)
 
-#if EXPORTERS   // the exporters come with Phase 7 (IO/ is not compiled yet)
 		[BeginAction("exporttoidstudio")]
 		private void ExportToidStudio()
 		{
@@ -701,8 +701,6 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			ImageExportSettingsForm form = new ImageExportSettingsForm();
 			form.ShowDialog();
 		}
-
-#endif
 
 		#endregion
 	}

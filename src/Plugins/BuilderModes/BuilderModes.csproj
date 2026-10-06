@@ -20,11 +20,9 @@
     <PackageReference Include="Avalonia" Version="12.1.3" />
   </ItemGroup>
 
-  <!-- Left for later phases (see PLAN-phase5-status.md): visual mode (6); exporters, error checks, find/replace, alignment, bridge,
-       triangulator and block map modes (7). The sources are kept here so they can be switched on one by one. -->
   <ItemGroup>
-    <Compile Remove="ErrorChecks\**;FindReplace\**;IO\**" />
-    <Compile Remove="ClassicModes\BlockMapMode.cs;ClassicModes\BridgeMode.cs;ClassicModes\CeilingAlignMode.cs;ClassicModes\FloorAlignMode.cs;ClassicModes\FlatAlignMode.cs;ClassicModes\TriangulatorMode.cs;ClassicModes\ErrorCheckMode.cs;ClassicModes\FindReplaceMode.cs" />
+    <!-- The UDB does not build these two either (they are not in its project and have no action in Actions.cfg) -->
+    <Compile Remove="ClassicModes\BlockMapMode.cs;ClassicModes\TriangulatorMode.cs" />
   </ItemGroup>
 
   <ItemGroup>

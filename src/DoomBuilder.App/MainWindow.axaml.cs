@@ -25,6 +25,12 @@ public partial class MainWindow : Avalonia.Controls.Window
     private bool started;
     private int framecount;
 
+    private readonly WindowActivity activity = new WindowActivity();
+    internal WindowActivity Activity => activity;
+
+    /// <summary>The window system's answer to "is this window active"; tests replace it to play a compositor that never reports the activation back.</summary>
+    internal Func<bool> PlatformIsActive { get; set; }
+
     public MainWindow() : this(true)
     {
     }
@@ -33,8 +39,9 @@ public partial class MainWindow : Avalonia.Controls.Window
     public MainWindow(bool startEditor)
     {
         InitializeComponent();
+        PlatformIsActive = () => IsActive;
 
-        shell = new AvaloniaShell(Viewport) { WindowIsActive = () => IsActive };
+        shell = new AvaloniaShell(Viewport) { WindowIsActive = () => activity.IsActive(PlatformIsActive()) };
         ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
         MenuHost.Content = ui.Menu;
         ToolbarHost.Content = ui.Toolbar;
@@ -76,6 +83,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         palette.Closed += () => Focus();
         AddHandler(PointerPressedEvent, (s, e) =>
         {
+            activity.InputReceived();
             if (palette.IsVisible && e.Source is Visual v && !palette.IsVisualAncestorOf(v) && v != palette) palette.Close();
         }, RoutingStrategies.Tunnel);
 
@@ -107,7 +115,21 @@ public partial class MainWindow : Avalonia.Controls.Window
         // Keyboard: tunnel so keys reach the editor wherever the focus is inside the window
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
-        Deactivated += (s, e) => { if (EditorRunning) shell.Input.ReleaseAllKeys(); };
+        Activated += (s, e) =>
+        {
+            activity.Activated();
+            if (!EditorRunning) return;
+            CodeImp.DoomBuilder.General.WriteLogLine("Main window activated.");
+            shell.Input.ReleaseAllKeys();      // like UDB: whatever was pressed while another window had the input is forgotten
+            Viewport.Focus();
+        };
+        Deactivated += (s, e) =>
+        {
+            activity.Deactivated();
+            if (!EditorRunning) return;
+            CodeImp.DoomBuilder.General.WriteLogLine("Main window deactivated.");
+            shell.Input.ReleaseAllKeys();
+        };
 
         // Mouse
         Viewport.InputSurface = InputSurface;
@@ -117,6 +139,12 @@ public partial class MainWindow : Avalonia.Controls.Window
         InputSurface.PointerReleased += OnPointerReleased;
         InputSurface.PointerMoved += OnPointerMoved;
         InputSurface.PointerWheelChanged += OnPointerWheel;
+
+        // In the 3D view the pointer is hidden and the movement is read from the device, so where the pointer happens to be says nothing
+        // about where the user means to click (where moving the pointer back has no effect it wanders out of the view). UDB keeps the
+        // cursor clipped to the display; here the buttons and the wheel count wherever they happen, while the mouse is exclusive.
+        AddHandler(PointerPressedEvent, (s, e) => { if (TakesOverClick(e)) { e.Handled = true; OnPointerPressed(InputSurface, e); } }, RoutingStrategies.Tunnel);
+        AddHandler(PointerWheelChangedEvent, (s, e) => { if (TakesOverClick(e)) { e.Handled = true; OnPointerWheel(InputSurface, e); } }, RoutingStrategies.Tunnel);
 
         if (startEditor) Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
     }
@@ -292,6 +320,23 @@ public partial class MainWindow : Avalonia.Controls.Window
         General.Dialogs = new AvaloniaDialogs(() => this);                  // the real message boxes, file pickers and map options
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
         General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderModes.BuilderPlug).Assembly);   // vertices, linedefs, sectors, things...
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ThreeDFloorMode.BuilderPlug).Assembly);   // 3D floors and slopes (after BuilderModes, which it uses)
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.StairSectorBuilderMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.SoundPropagationMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.WadAuthorMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.USDF.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.ImageDrawingExample.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.UDBScript.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderEffects.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ColorPicker.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.AutomapMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.VisplaneExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.NodesViewer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.RejectExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BlockmapExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.TagExplorer.BuilderPlug).Assembly);   // tags and actions of the map as a tree
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.TagRange.BuilderPlug).Assembly);   // tag ranges for a selection (after BuilderModes, which it uses)
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.CommentsPanel.BuilderPlug).Assembly);   // UDMF comments as a list
 
         if (!General.Startup(Program.Arguments, () => shell, appdir, settingsdir))
         {
@@ -313,6 +358,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
+        activity.InputReceived();
         if (!EditorRunning || FocusIsInTextInput()) return;
 
         Keys data = KeyMap.ToKeyData(e.Key, e.KeyModifiers);
@@ -361,6 +407,13 @@ public partial class MainWindow : Avalonia.Controls.Window
         if (!EditorRunning) return;
         shell.Input.MouseEnter(EventArgs.Empty);
         if (IsActive) Viewport.Focus();     // like UDB: the display takes the keyboard when the mouse is over it
+    }
+
+    /// <summary>True for input that landed outside the display while the mouse is exclusive (the editor takes it, the control under it does not).</summary>
+    private bool TakesOverClick(PointerEventArgs e)
+    {
+        if (!EditorRunning || !shell.Input.MouseExclusive) return false;
+        return !(e.Source is Visual v && (v == InputSurface || InputSurface.IsVisualAncestorOf(v)));
     }
 
     private void OnPointerPressed(object sender, PointerPressedEventArgs e)
@@ -448,6 +501,10 @@ public partial class MainWindow : Avalonia.Controls.Window
         // UDB_SCREENSHOT_MODE=<mode class name> (e.g. BaseVisualMode) switches to that mode first
         string mode = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_MODE");
         if (framecount == 1 && !string.IsNullOrEmpty(mode)) Dispatcher.UIThread.Post(() => General.Editing.ChangeMode(mode));
+        // UDB_SCREENSHOT_DOCKER=<docker title> (e.g. "Tag Explorer") shows that docker tab
+        string dockertitle = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_DOCKER");
+        if (framecount == 2 && !string.IsNullOrEmpty(dockertitle))
+            Dispatcher.UIThread.Post(() => { var d = System.Linq.Enumerable.FirstOrDefault(shell.Dockers.Dockers, x => x.Title == dockertitle); if (d != null) shell.Dockers.Select(d); });
         // UDB_RUN_ACTION=<action name> runs an action once the map is loaded (to exercise e.g. builder_testmap from a script)
         string action = Environment.GetEnvironmentVariable("UDB_RUN_ACTION");
         if (framecount == 6 && !string.IsNullOrEmpty(action)) Dispatcher.UIThread.Post(() => General.Actions.InvokeAction(action));

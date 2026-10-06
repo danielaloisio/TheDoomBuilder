@@ -34,6 +34,23 @@
   <ItemGroup>
     <ProjectReference Include="..\DoomBuilder.Rendering\DoomBuilder.Rendering.csproj" />
     <ProjectReference Include="..\Plugins\BuilderModes\BuilderModes.csproj" />
+    <ProjectReference Include="..\Plugins\ThreeDFloorMode\ThreeDFloorMode.csproj" />
+    <ProjectReference Include="..\Plugins\StairSectorBuilder\StairSectorBuilder.csproj" />
+    <ProjectReference Include="..\Plugins\SoundPropagationMode\SoundPropagationMode.csproj" />
+    <ProjectReference Include="..\Plugins\WadAuthorMode\WadAuthorMode.csproj" />
+    <ProjectReference Include="..\Plugins\USDF\USDF.csproj" />
+    <ProjectReference Include="..\Plugins\ImageDrawingExample\ImageDrawingExample.csproj" />
+    <ProjectReference Include="..\Plugins\UDBScript\UDBScript.csproj" />
+    <ProjectReference Include="..\Plugins\BuilderEffects\BuilderEffects.csproj" />
+    <ProjectReference Include="..\Plugins\ColorPicker\ColorPicker.csproj" />
+    <ProjectReference Include="..\Plugins\AutomapMode\AutomapMode.csproj" />
+    <ProjectReference Include="..\Plugins\VisplaneExplorer\VisplaneExplorer.csproj" />
+    <ProjectReference Include="..\Plugins\NodesViewer\NodesViewer.csproj" />
+    <ProjectReference Include="..\Plugins\RejectExplorer\RejectExplorer.csproj" />
+    <ProjectReference Include="..\Plugins\BlockmapExplorer\BlockmapExplorer.csproj" />
+    <ProjectReference Include="..\Plugins\TagExplorer\TagExplorer.csproj" />
+    <ProjectReference Include="..\Plugins\TagRange\TagRange.csproj" />
+    <ProjectReference Include="..\Plugins\CommentsPanel\CommentsPanel.csproj" />
     <ProjectReference Include="..\DoomBuilder.Core\DoomBuilder.Core.csproj" />
     <ProjectReference Include="..\DoomBuilder.UI\DoomBuilder.UI.csproj" />
   </ItemGroup>

@@ -83,7 +83,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			General.Map.Map.SelectionType = SelectionType.All;
 			
 			// Show toolbox window
-			BuilderPlug.Me.ErrorCheckForm.Show((Form)General.Interface);
+			BuilderPlug.Me.ErrorCheckForm.Show();
 		}
 
 		// Disenagaging

@@ -38,6 +38,7 @@ namespace System.Windows.Forms
         /// <summary>The Avalonia control that really shows this one (typed object: the Core has no UI reference). Dockers use it.</summary>
         public object NativeControl { get; set; }
     }
+    public enum CheckState { Unchecked, Checked, Indeterminate }
     public class Panel : Control { }
     public class ComboBox : Control { public List<object> Items { get; } = new List<object>(); }
     public class ListView : Control { }

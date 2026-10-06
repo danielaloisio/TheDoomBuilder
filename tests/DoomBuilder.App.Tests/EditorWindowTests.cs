@@ -122,6 +122,8 @@ public class MouseCaptureTests : IDisposable
 
         using var capture = new DoomBuilder.App.Input.ViewportMouseCapture(viewport, warp);
         Assert.NotNull(surface.Cursor);      // hidden where the pointer is received (the panel over the GL view)
+        Assert.NotNull(window.Cursor);       // ... and in the rest of the window, where it drifts to when it cannot be moved back
+        Assert.Same(surface.Cursor, window.Cursor);
 
         // starting a capture puts the pointer in the middle of the view
         Assert.Single(warp.Moves);

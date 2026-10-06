@@ -10,7 +10,7 @@ using SkiaSharp;
 
 namespace System.Drawing.Imaging
 {
-    public enum PixelFormat { Undefined = 0, Format24bppRgb = 0x21808, Format32bppRgb = 0x22009, Format32bppArgb = 0x26200A, Format32bppPArgb = 0xE200B }
+    public enum PixelFormat { Undefined = 0, Format16bppRgb555 = 0x21005, Format24bppRgb = 0x21808, Format32bppRgb = 0x22009, Format32bppArgb = 0x26200A, Format32bppPArgb = 0xE200B }
 
     [Flags]
     public enum ImageLockMode { ReadOnly = 1, WriteOnly = 2, ReadWrite = 3, UserInputBuffer = 4 }
@@ -200,6 +200,13 @@ namespace System.Drawing
         public void Save(string filename, ImageFormat format)
         {
             using (var fs = File.Create(filename)) Save(fs, format);
+        }
+
+        /// <summary>Saves in the format the file extension names (PNG for anything else).</summary>
+        public void Save(string filename)
+        {
+            string ext = Path.GetExtension(filename).ToLowerInvariant();
+            Save(filename, ext == ".jpg" || ext == ".jpeg" ? ImageFormat.Jpeg : ext == ".bmp" ? ImageFormat.Bmp : ext == ".gif" ? ImageFormat.Gif : ImageFormat.Png);
         }
 
         public override void Dispose()

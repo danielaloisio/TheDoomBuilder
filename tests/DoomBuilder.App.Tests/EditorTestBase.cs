@@ -89,6 +89,41 @@ public abstract class EditorTestBase : IDisposable
         return path;
     }
 
+    /// <summary>A copy of the sample map's WAD with one more lump (BLOCKMAP, REJECT...) after the lumps of MAP01.</summary>
+    protected string SampleWadWithLump(string lumpname, byte[] data) => SampleWadWithLumps(lumpname.ToLowerInvariant(), (lumpname, data));
+
+    /// <summary>A copy of the sample map's WAD with more lumps (NODES, SEGS...) after the lumps of MAP01.</summary>
+    protected string SampleWadWithLumps(string filename, params (string Name, byte[] Data)[] lumps)
+    {
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, filename + ".wad");
+        File.Copy(FindRepoFile("assets", "samples", "sample.wad"), path, true);
+        using (var wad = new CodeImp.DoomBuilder.IO.WAD(path))
+        {
+            string[] maplumps = { "THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP" };
+            int index = wad.FindLumpIndex("MAP01") + 1;
+            while (index < wad.Lumps.Count && maplumps.Contains(wad.Lumps[index].Name)) index++;
+            foreach (var (name, data) in lumps)
+            {
+                var lump = wad.Insert(name, index++, data.Length);
+                lump.Stream.Write(data, 0, data.Length);
+            }
+            wad.WriteHeaders();
+        }
+        return path;
+    }
+
+    /// <summary>The bytes of a lump of the sample WAD.</summary>
+    protected static byte[] SampleLump(string name)
+    {
+        using var wad = new CodeImp.DoomBuilder.IO.WAD(FindRepoFile("assets", "samples", "sample.wad"), true);
+        var lump = wad.FindLump(name);
+        var data = new byte[lump.Length];
+        lump.Stream.Position = 0;
+        lump.Stream.Read(data, 0, data.Length);
+        return data;
+    }
+
     /// <summary>Two sectors, a few lines and things: enough to edit.</summary>
     protected const string UdmfSample = @"
 namespace = ""zdoom"";
