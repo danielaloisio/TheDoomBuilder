@@ -19,6 +19,8 @@ public sealed class ViewportMouseCapture : IMouseCapture
     private readonly IRelativeMotionSource raw;
     private readonly Cursor previouscursor;
     private readonly Control surface;
+    private readonly TopLevel window;         // the whole window hides the pointer, not just the view: it drifts out of the view when it cannot be moved back
+    private readonly Cursor previouswindowcursor;
     private PixelPoint screencenter;
 
     /// <param name="raw">Device movement that does not depend on the pointer's position (X11/XWayland); the capture owns it. Without one, the movement is measured from the pointer's positions.</param>
@@ -35,6 +37,12 @@ public sealed class ViewportMouseCapture : IMouseCapture
         previouscursor = surface.Cursor;
         surface.Cursor = new Cursor(StandardCursorType.None);
         viewport.Cursor = surface.Cursor;
+        window = TopLevel.GetTopLevel(viewport);
+        if (window != null)
+        {
+            previouswindowcursor = window.Cursor;
+            window.Cursor = surface.Cursor;      // the controls under the pointer inherit it, so the pointer is gone wherever it is
+        }
 
         UpdateCenter();
         warp.MoveTo(screencenter.X, screencenter.Y);
@@ -73,6 +81,7 @@ public sealed class ViewportMouseCapture : IMouseCapture
         viewport.SizeChanged -= OnSizeChanged;
         surface.Cursor = previouscursor;
         viewport.Cursor = null;
+        if (window != null) window.Cursor = previouswindowcursor;
 
         // Like UDB: leave the pointer in the middle of the view
         warp.MoveTo(screencenter.X, screencenter.Y);

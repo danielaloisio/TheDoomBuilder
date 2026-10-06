@@ -25,7 +25,20 @@ namespace System.Drawing.Drawing2D
         public void AddLine(float x1, float y1, float x2, float y2) { if (Path.IsEmpty) Path.MoveTo(x1, y1); else Path.LineTo(x1, y1); Path.LineTo(x2, y2); }
         public void AddArc(float x, float y, float w, float h, float start, float sweep) => Path.ArcTo(new SKRect(x, y, x + w, y + h), start, sweep, false);
         public void CloseFigure() => Path.Close();
+        public void Reset() => Path.Reset();
         public void Dispose() => Path.Dispose();
+    }
+
+    /// <summary>A 2D transform. Like GDI+, operations are applied BEFORE the existing ones (MatrixOrder.Prepend), which is what the sources expect.</summary>
+    public sealed class Matrix : IDisposable
+    {
+        internal SKMatrix M = SKMatrix.Identity;
+        public Matrix() { }
+        public void Rotate(float degrees) { M = M.PreConcat(SKMatrix.CreateRotationDegrees(degrees)); }
+        public void Translate(float dx, float dy) { M = M.PreConcat(SKMatrix.CreateTranslation(dx, dy)); }
+        public void Scale(float sx, float sy) { M = M.PreConcat(SKMatrix.CreateScale(sx, sy)); }
+        public void Reset() { M = SKMatrix.Identity; }
+        public void Dispose() { }
     }
 
     public class LinearGradientBrush : Brush
@@ -50,9 +63,30 @@ namespace System.Drawing.Drawing2D
 namespace System.Drawing.Imaging
 {
     public enum WrapMode { Tile, TileFlipX, TileFlipY, TileFlipXY, Clamp }
+    /// <summary>A 5x5 color matrix (rows are the input channels R, G, B, A, 1; columns the output ones), as GDI+ has it.</summary>
+    public sealed class ColorMatrix
+    {
+        private readonly float[][] m;
+        public ColorMatrix(float[][] newColorMatrix) { m = newColorMatrix; }
+        public float this[int row, int column] { get { return m[row][column]; } set { m[row][column] = value; } }
+        internal SKColorFilter ToFilter()
+        {
+            // Skia wants the 4x5 matrix with the outputs as rows
+            var f = new float[20];
+            for (int output = 0; output < 4; output++)
+            {
+                for (int input = 0; input < 4; input++) f[output * 5 + input] = m[input][output];
+                f[output * 5 + 4] = m[4][output];
+            }
+            return SKColorFilter.CreateColorMatrix(f);
+        }
+    }
+
     public class ImageAttributes : IDisposable
     {
+        internal ColorMatrix Matrix;
         public void SetWrapMode(WrapMode mode) { }
+        public void SetColorMatrix(ColorMatrix matrix) { Matrix = matrix; }
         public void Dispose() { }
     }
 }
@@ -160,6 +194,18 @@ namespace System.Drawing
         internal override void Apply(SKPaint paint) { paint.Color = Sk(Color); }
     }
 
+    /// <summary>Fills with a tiled image; <see cref="Transform"/> places the image in the destination.</summary>
+    public class TextureBrush : Brush
+    {
+        private readonly Bitmap image;
+        public System.Drawing.Drawing2D.Matrix Transform { get; set; } = new System.Drawing.Drawing2D.Matrix();
+        public TextureBrush(Image image) { this.image = (Bitmap)image; }
+        internal override void Apply(SKPaint paint)
+        {
+            paint.Shader = SKShader.CreateImage(SKImage.FromBitmap(image.Native), SKShaderTileMode.Repeat, SKShaderTileMode.Repeat, new SKSamplingOptions(SKFilterMode.Nearest), Transform.M);
+        }
+    }
+
     public static class Brushes
     {
         public static Brush Black => new SolidBrush(Color.Black);
@@ -257,6 +303,27 @@ namespace System.Drawing
             => Draw(img, new SKRect(src.X, src.Y, src.Right, src.Bottom), new SKRect(dest.X, dest.Y, dest.Right, dest.Bottom));
         public void DrawImage(Image img, Rectangle dest, int sx, int sy, int sw, int sh, GraphicsUnit unit, System.Drawing.Imaging.ImageAttributes attrs)
             => DrawImage(img, dest, sx, sy, sw, sh, unit);
+        /// <summary>Draws the source rectangle into the parallelogram given by three points (top-left, top-right, bottom-left), with an optional color matrix.</summary>
+        public void DrawImage(Image img, Point[] destPoints, Rectangle srcRect, GraphicsUnit unit, System.Drawing.Imaging.ImageAttributes attrs)
+        {
+            if (destPoints == null || destPoints.Length != 3) throw new ArgumentException("Three destination points are needed.");
+            var src = new SKRect(srcRect.X, srcRect.Y, srcRect.Right, srcRect.Bottom);
+            // Maps the source rectangle's own axes onto the two edges of the parallelogram
+            var m = new SKMatrix(
+                (destPoints[1].X - destPoints[0].X) / (float)srcRect.Width, (destPoints[2].X - destPoints[0].X) / (float)srcRect.Height, destPoints[0].X,
+                (destPoints[1].Y - destPoints[0].Y) / (float)srcRect.Width, (destPoints[2].Y - destPoints[0].Y) / (float)srcRect.Height, destPoints[0].Y,
+                0, 0, 1);
+            m = m.PreConcat(SKMatrix.CreateTranslation(-srcRect.X, -srcRect.Y));
+            using (var paint = new SKPaint { IsAntialias = false })
+            using (var image = SKImage.FromBitmap(((Bitmap)img).Native))
+            {
+                if (attrs != null && attrs.Matrix != null) paint.ColorFilter = attrs.Matrix.ToFilter();
+                canvas.Save();
+                canvas.Concat(in m);
+                canvas.DrawImage(image, src, src, sampling, paint);
+                canvas.Restore();
+            }
+        }
         public void DrawImageUnscaled(Image img, int x, int y) => DrawImage(img, x, y, img.Width, img.Height);
         public void DrawImageUnscaled(Image img, Point p) => DrawImage(img, p.X, p.Y, img.Width, img.Height);
         public void DrawImageUnscaled(Image img, Rectangle r) => DrawImage(img, r.X, r.Y, img.Width, img.Height);

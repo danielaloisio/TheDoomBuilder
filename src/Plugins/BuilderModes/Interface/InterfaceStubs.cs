@@ -20,13 +20,6 @@ namespace CodeImp.DoomBuilder.BuilderModes
     }
 
 
-    public class FindReplaceForm : StubDialog { }
-    public class ErrorCheckForm : StubDialog { }
 
     // The docker panels. They are controls in the shim (a Docker holds one); the real ones come with the dockers' content.
-}
-
-namespace CodeImp.DoomBuilder.BuilderModes.Interface
-{
-    internal class BridgeModeForm : StubDialog { }
 }

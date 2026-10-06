@@ -91,7 +91,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			}
 			
 			// Show toolbox window
-			BuilderPlug.Me.FindReplaceForm.Show((Form)General.Interface, this);
+			BuilderPlug.Me.FindReplaceForm.Show(this);
 		}
 
 		// Disenagaging
