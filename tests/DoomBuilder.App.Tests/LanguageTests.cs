@@ -94,6 +94,38 @@ public class LanguageTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void A_status_message_goes_back_to_ready_after_a_while()
+    {
+        OpenEditor(withMap: false);
+        var shell = (DoomBuilder.App.AvaloniaShell)General.Interface;
+        var text = window.FindControl<TextBlock>("StatusText");
+
+        shell.DisplayStatus(StatusType.Info, "Something happened");
+        Assert.Equal("Something happened", text.Text);
+        Assert.True(shell.StatusResetPending);
+
+        shell.ResetStatusNow();                              // what the 5 second timer does
+        Assert.Equal("Ready.", text.Text);
+
+        shell.DisplayStatus(StatusType.Busy, "Working...");  // a busy message waits for whoever set it
+        Assert.False(shell.StatusResetPending);
+    }
+
+    [AvaloniaFact]
+    public void The_loading_message_does_not_stay_once_the_resources_are_loaded()
+    {
+        OpenEditor();
+        var shell = (DoomBuilder.App.AvaloniaShell)General.Interface;
+        var text = window.FindControl<TextBlock>("StatusText");
+        for (int i = 0; i < 500 && General.Map.Data.IsLoading; i++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(10); }
+        Assert.False(General.Map.Data.IsLoading);
+
+        shell.DisplayStatus(StatusType.Ready, "Ready.");
+        shell.ResetStatusNow();
+        Assert.NotEqual("Loading resources...", text.Text);
+    }
+
+    [AvaloniaFact]
     public void The_language_is_a_preference_with_the_languages_found()
     {
         OpenEditor(withMap: false);

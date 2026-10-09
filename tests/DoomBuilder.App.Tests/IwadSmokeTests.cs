@@ -71,4 +71,79 @@ public class IwadSmokeTests : EditorTestBase
         int errors = General.ErrorLogger.ErrorsCount;
         Assert.True(errors < 50, "errors logged while loading " + map + ": " + errors + " (opened in " + opened + " ms)");
     }
+
+    [AvaloniaFact]
+    public void Another_map_of_the_iwad_opens_through_open_map_in_current_wad()
+    {
+        string iwad = Iwad();
+        if (iwad == null) return;
+        string map = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_MAP") ?? "E1M1";
+        string other = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_MAP2") ?? "E1M2";
+        string config = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_CFG") ?? "Doom_DoomDoom.cfg";
+        OpenEditor(wadPath: iwad, config: config, iwad: iwad, mapName: map);
+        int sectors = General.Map.Map.Sectors.Count;
+
+        bool shown = false;
+        WhenShown<DoomBuilder.App.Dialogs.MapOptionsWindow>(dialog =>
+        {
+            shown = true;
+            Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(dialog).OfType<Avalonia.Controls.ListBox>().First().SelectedItem = other;
+            dialog.OkButton.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+        });
+        General.Actions.InvokeAction("builder_openmapincurrentwad");
+        Flush();
+
+        Assert.True(shown, "the Change Map dialog did not open; status: " + General.MainWindow.Status.message);
+        Assert.Equal(other, General.Map.Options.CurrentName);
+        Assert.NotEqual(sectors, General.Map.Map.Sectors.Count);
+    }
+
+    [AvaloniaFact]
+    public void Open_map_with_another_wad_replaces_the_open_map()
+    {
+        string iwad = Iwad();
+        string second = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD2");
+        if (iwad == null || string.IsNullOrEmpty(second) || !File.Exists(second)) return;
+        string map = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_MAP") ?? "E1M1";
+        string other = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_MAP2") ?? "E1M2";
+        string config = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_CFG") ?? "Doom_DoomDoom.cfg";
+        OpenEditor(wadPath: iwad, config: config, iwad: iwad, mapName: map);
+        Assert.Equal(iwad, General.Map.FilePathName);
+
+        string shown = null;
+        WhenShown<DoomBuilder.App.Dialogs.MapOptionsWindow>(dialog =>
+        {
+            shown = dialog.Title;
+            Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(dialog).OfType<Avalonia.Controls.ListBox>().First().SelectedItem = other;
+            dialog.OkButton.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+        });
+        General.OpenMapFile(second, null);
+        Flush();
+
+        Assert.NotNull(shown);
+        Assert.Equal(second, General.Map.FilePathName);
+        Assert.Equal(other, General.Map.Options.CurrentName);
+    }
+
+    [AvaloniaFact]
+    public void The_background_loading_of_the_iwad_resources_finishes()
+    {
+        string iwad = Iwad();
+        if (iwad == null) return;
+        string map = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_MAP") ?? "E1M1";
+        string config = Environment.GetEnvironmentVariable("DOOMBUILDER_IWAD_CFG") ?? "Doom_DoomDoom.cfg";
+        OpenEditor(wadPath: iwad, config: config, iwad: iwad, mapName: map);
+
+        var watch = Stopwatch.StartNew();
+        while (General.Map.Data.IsLoading && watch.ElapsedMilliseconds < 60000)
+        {
+            Flush();
+            System.Threading.Thread.Sleep(20);
+        }
+        Assert.False(General.Map.Data.IsLoading, "still loading after " + watch.ElapsedMilliseconds + " ms");
+
+        var shell = (DoomBuilder.App.AvaloniaShell)General.Interface;
+        shell.ResetStatusNow();
+        Assert.NotEqual("Loading resources...", General.MainWindow.Status.message);
+    }
 }

@@ -1176,8 +1176,12 @@ namespace DoomBuilder.Rendering
 
 		#endregion
 
+		/// <summary>True once <see cref="Dispose"/> ran: the backend cannot draw again, the host makes a new one for the next map.</summary>
+		public bool IsDisposed { get; private set; }
+
 		public void Dispose()
 		{
+			IsDisposed = true;
 			if(gl != null)
 			{
 				ProcessReleases();

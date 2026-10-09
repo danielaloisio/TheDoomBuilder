@@ -87,6 +87,139 @@ public class DialogTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void Opening_another_file_while_a_map_is_open_opens_that_file()
+    {
+        OpenEditor();                                                     // sample.wad, MAP01
+        string first = General.Map.FilePathName;
+        string other = WriteUdmfWad(UdmfSample);
+        Assert.NotEqual(first, other);
+
+        string shownfor = null;
+        WhenShown<MapOptionsWindow>(dialog => { shownfor = dialog.Title; Click(dialog.OkButton); });
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+
+        General.OpenMapFile(other, null);
+
+        Assert.Contains(System.IO.Path.GetFileName(other), shownfor);
+        Assert.Equal(other, General.Map.FilePathName);
+        // The first map's render backend was disposed with it: the new map must not draw with that dead one (it never gets a frame again)
+        var backend = window.Viewport.Backend;
+        Assert.False(backend.IsDisposed);
+        Assert.Same(backend, General.Map.Graphics.Backend);
+    }
+
+    private string TwoMapWad()
+    {
+        string path = System.IO.Path.Combine(dir, "two.wad");
+        System.IO.Directory.CreateDirectory(dir);
+        string one = "namespace = \"zdoom\";\nthing { x = 0.0; y = 0.0; type = 1; skill1 = true; single = true; }\n";
+        string two = one + "thing { x = 64.0; y = 0.0; type = 2001; skill1 = true; single = true; }\n";
+        using (var wad = new CodeImp.DoomBuilder.IO.WAD(path))
+        {
+            void Add(string name, byte[] data)
+            {
+                var lump = wad.Insert(name, wad.Lumps.Count, data.Length);
+                lump.Stream.Write(data, 0, data.Length);
+            }
+            Add("MAP01", new byte[0]); Add("TEXTMAP", System.Text.Encoding.ASCII.GetBytes(one)); Add("ENDMAP", new byte[0]);
+            Add("MAP02", new byte[0]); Add("TEXTMAP", System.Text.Encoding.ASCII.GetBytes(two)); Add("ENDMAP", new byte[0]);
+            wad.WriteHeaders();
+        }
+        return path;
+    }
+
+    [AvaloniaFact]
+    public void Opening_the_other_map_of_the_same_wad_through_the_dialog_opens_that_map()
+    {
+        OpenEditor(wadPath: TwoMapWad(), config: "GZDoom_DoomUDMF.cfg", mapName: "MAP01");
+        Assert.Equal("MAP01", General.Map.Options.CurrentName);
+        Assert.Single(General.Map.Map.Things);
+
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            var list = dialog.GetVisualDescendants().OfType<ListBox>().First();
+            list.SelectedItem = "MAP02";
+            Click(dialog.OkButton);
+        });
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+
+        General.OpenMapFile(General.Map.FilePathName, null);
+
+        Assert.Equal("MAP02", General.Map.Options.CurrentName);
+        Assert.Equal(2, General.Map.Map.Things.Count);
+    }
+
+    [AvaloniaFact]
+    public void Open_map_in_current_wad_switches_to_the_chosen_map()
+    {
+        OpenEditor(wadPath: TwoMapWad(), config: "GZDoom_DoomUDMF.cfg", mapName: "MAP01");
+        Assert.Single(General.Map.Map.Things);
+
+        bool shown = false;
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            shown = true;
+            dialog.GetVisualDescendants().OfType<ListBox>().First().SelectedItem = "MAP02";
+            Click(dialog.OkButton);
+        });
+        General.Actions.InvokeAction("builder_openmapincurrentwad");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shown, "the Change Map dialog did not open");
+        Assert.Equal("MAP02", General.Map.Options.CurrentName);
+        Assert.Equal(2, General.Map.Map.Things.Count);
+        RefreshShell();
+        Assert.Contains("MAP02", window.Title);                 // the window shows the map that is open now
+        Assert.DoesNotContain("MAP01", window.Title);
+    }
+
+    [AvaloniaFact]
+    public void A_map_opened_through_the_dialog_can_be_switched_with_open_map_in_current_wad()
+    {
+        OpenEditor(withMap: false);
+        string wad = TwoMapWad();
+        WhenShown<MapOptionsWindow>(dialog => Click(dialog.OkButton));
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+        General.OpenMapFile(wad, null);
+        Assert.NotNull(General.Map);
+        string first = General.Map.Options.CurrentName;
+
+        bool shown = false;
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            shown = true;
+            var list = dialog.GetVisualDescendants().OfType<ListBox>().First();
+            list.SelectedItem = first == "MAP01" ? "MAP02" : "MAP01";
+            Click(dialog.OkButton);
+        });
+        General.Actions.InvokeAction("builder_openmapincurrentwad");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shown, "the Change Map dialog did not open; status: " + General.MainWindow.Status.message);
+        Assert.NotEqual(first, General.Map.Options.CurrentName);
+    }
+
+    [AvaloniaFact]
+    public void Opening_another_file_with_unsaved_changes_asks_and_opens_it_when_discarding()
+    {
+        OpenEditor();                                                     // sample.wad, MAP01
+        General.Map.Map.CreateThing();                                    // an edit nobody saved
+        General.Map.IsChanged = true;
+        string other = WriteUdmfWad(UdmfSample);
+
+        bool asked = false, optionsshown = false;
+        WhenShown<MessageBoxWindow>(box => { asked = true; Click(box.ButtonFor(System.Windows.Forms.DialogResult.No)); });
+        WhenShown<MapOptionsWindow>(dialog => { optionsshown = true; Click(dialog.OkButton); });
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+
+        General.OpenMapFile(other, null);
+
+        Assert.True(asked, "the save question was not shown");
+        Assert.True(optionsshown, "the options of the map to open were not shown");
+        Assert.Equal(other, General.Map.FilePathName);
+    }
+
+    [AvaloniaFact]
     public void Declining_the_missing_resources_question_keeps_the_dialog_open_and_opens_nothing()
     {
         OpenEditor(withMap: false);
