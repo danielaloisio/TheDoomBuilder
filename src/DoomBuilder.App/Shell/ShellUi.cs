@@ -7,6 +7,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using CodeImp.DoomBuilder;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Shell;
 
 /// <summary>
@@ -316,6 +318,20 @@ public sealed class ShellUi
         Refresh();   // the command may have changed what is enabled/checked (and toggles flipped themselves)
     }
 
+    /// <summary>Puts the captions and tooltips of the menus and toolbars in the language in use (the interface is built in English).</summary>
+    public void Retranslate()
+    {
+        foreach (Bound b in bound)
+        {
+            if (b.Caption != null && b.Item.Text != null) b.Caption.Text = AccessKeyText(Loc.T(b.Item.Text));
+            if (b.Button == null) continue;
+            string tip = Loc.T(b.Item.Tooltip ?? b.Item.Text ?? string.Empty).Replace("&", string.Empty);
+            ToolTip.SetTip(b.Button, tip);
+            if (b.Button.Content is string && b.Item.Text != null) b.Button.Content = Loc.T(b.Item.Text).Replace("&", string.Empty);
+        }
+        Refresh();
+    }
+
     /// <summary>Re-reads the editor's state: call after anything that changes what the menus show.</summary>
     public void Refresh()
     {
@@ -335,12 +351,12 @@ public sealed class ShellUi
                     {
                         // Only items that are checkable get a check mark
                         if (b.Item.CheckOnClick || s.Checked) { b.MenuItem.ToggleType = MenuItemToggleType.CheckBox; b.MenuItem.IsChecked = s.Checked; }
-                        if (s.Text != null && b.Caption != null) b.Caption.Text = AccessKeyText(s.Text);
+                        if (s.Text != null && b.Caption != null) b.Caption.Text = AccessKeyText(Loc.T(s.Text));
                     }
                     if (b.Button != null)
                     {
                         b.Button.IsChecked = s.Checked;
-                        if (s.Text != null) ToolTip.SetTip(b.Button, s.Text);
+                        if (s.Text != null) ToolTip.SetTip(b.Button, Loc.T(s.Text));
                     }
                 }
                 else if (b.Button != null)

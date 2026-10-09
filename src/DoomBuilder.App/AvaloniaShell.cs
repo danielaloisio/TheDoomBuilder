@@ -188,6 +188,21 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
         RedrawDisplay();
     }
 
+    /// <summary>The preferences were accepted: the window loads the language again, in case it was changed.</summary>
+    public event Action LanguageChanged;
+
+    /// <summary>The theme preference (follow the system, light, dark) on the whole application.</summary>
+    public static void ApplyTheme()
+    {
+        if (Avalonia.Application.Current == null) return;
+        Avalonia.Application.Current.RequestedThemeVariant = General.Settings.Theme switch
+        {
+            1 => Avalonia.Styling.ThemeVariant.Light,
+            2 => Avalonia.Styling.ThemeVariant.Dark,
+            _ => Avalonia.Styling.ThemeVariant.Default,
+        };
+    }
+
     /// <summary>The preferences dialog; on OK the interface, colors, plugins and the open map are brought up to date.</summary>
     [CodeImp.DoomBuilder.Actions.BeginAction("preferences", BaseAction = true)]
     public void ShowPreferences()
@@ -196,6 +211,8 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
         if (General.Dialogs.ShowPreferences(out bool reload) != System.Windows.Forms.DialogResult.OK) return;
 
+        ApplyTheme();
+        LanguageChanged?.Invoke();
         UpdateInterface();
         ApplyShortcutKeys();
         General.Colors.CreateCorrectionTable();

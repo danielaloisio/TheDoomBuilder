@@ -497,14 +497,14 @@ public class PreferencesWindowTests : EditorTestBase
         {
             tabs = w.Tabs.ItemCount;
             editors = w.Model.Items.Count(i => w.EditorOf(i.Key) != null);
-            Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors", "Editing", "3D Floor Plugin", "UDBScript" }, w.Tabs.Items.OfType<TabItem>().Select(t => (string)t.Header));
+            Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors", "Script editor", "Editing", "3D Floor Plugin", "UDBScript" }, w.Tabs.Items.OfType<TabItem>().Select(t => (string)t.Header));
             Click(w.CancelButton);
         });
 
         General.Actions.InvokeAction("builder_preferences");
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
-        Assert.Equal(7, tabs);                    // the program's four, then the plugins' (BuilderModes, ThreeDFloorMode, UDBScript)
+        Assert.Equal(8, tabs);                    // the program's five (with the script editor), then the plugins' (BuilderModes, ThreeDFloorMode, UDBScript)
         Assert.True(editors > 40);
     }
 }

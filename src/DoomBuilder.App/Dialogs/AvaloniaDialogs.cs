@@ -21,6 +21,8 @@ using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Windows;
 using DialogResult = System.Windows.Forms.DialogResult;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>The real dialogs of the application, shown as Avalonia windows over the main window.</summary>
@@ -176,7 +178,7 @@ internal sealed class AvaloniaDialogs : NoDialogs
         var panel = new PasteOptionsPanel();
         panel.Setup(form.Options);
         var window = new SimpleDialog("Paste Special", panel, 420);
-        window.OkButton.Content = "Paste";
+        window.OkButton.Content = Loc.T("Paste");
         bool ok = DialogPump.Run(() => window.ShowDialog<bool>(Owner));
         if (!ok) return DialogResult.Cancel;
 

@@ -8,6 +8,8 @@ using Avalonia.Layout;
 using CodeImp.DoomBuilder;
 using DoomBuilder.App.Shell;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>Program name, version and the links of UDB's AboutForm.</summary>
@@ -24,7 +26,7 @@ public sealed class AboutWindow : Window
 
     public AboutWindow()
     {
-        Title = "About";
+        Title = Loc.T("About");
         SizeToContent = SizeToContent.WidthAndHeight;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -48,13 +50,13 @@ public sealed class AboutWindow : Window
             panel.Children.Add(link);
         }
 
-        var copy = new Button { Content = "Copy version" };
+        var copy = new Button { Content = Loc.T("Copy version") };
         copy.Click += async (s, e) =>
         {
             var clipboard = GetTopLevel(this)?.Clipboard;
             if (clipboard != null) try { await clipboard.SetTextAsync(PlainVersion); } catch (Exception) { }
         };
-        var close = new Button { Content = "Close", MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center, IsDefault = true };
+        var close = new Button { Content = Loc.T("Close"), MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center, IsDefault = true };
         close.Click += (s, e) => Close();
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8, Margin = new Thickness(0, 12, 0, 0) };
         row.Children.Add(copy);

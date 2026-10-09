@@ -63,6 +63,13 @@ public class MapViewport : OpenGlControlBase
         }
     }
 
+    /// <summary>The window moved to a screen with another scale (or the system scale changed): the surface has a new size in device pixels.</summary>
+    public void OnScaleChanged()
+    {
+        UpdateSurfaceSize();
+        RequestRedraw();
+    }
+
     private void UpdateSurfaceSize()
     {
         PixelSize size = PixelSize;

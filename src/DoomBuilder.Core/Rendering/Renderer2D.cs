@@ -486,13 +486,15 @@ namespace CodeImp.DoomBuilder.Rendering
 			scaleinv = 1f / scale;
 			translatex = -offsetx + (windowsize.Width * 0.5f) * scaleinv;
 			translatey = -offsety - (windowsize.Height * 0.5f) * scaleinv;
-			linenormalsize = 10f * scaleinv;
+			float dpi = Math.Max(1f, CodeImp.DoomBuilder.Windows.MainForm.DPIScaler.Width); // the display is drawn in device pixels
+			linenormalsize = 10f * dpi * scaleinv;
 			minlinelength = linenormalsize * 0.0625f; //mxd
 			minlinenormallength = linenormalsize * 2f; //mxd
 
-			vertexsize = (int)(1.7f * General.Settings.GZVertexScale2D * scale + 0.5f); //mxd. added GZVertexScale2D
+			vertexsize = (int)(1.7f * General.Settings.GZVertexScale2D * scale * dpi + 0.5f); //mxd. added GZVertexScale2D
 			if(vertexsize < 0) vertexsize = 0;
-			if(vertexsize > 4) vertexsize = 4;
+			int maxvertexsize = (int)(4 * dpi + 0.5f);
+			if(vertexsize > maxvertexsize) vertexsize = maxvertexsize;
 
             viewmatrix = Matrix.Scaling(2.0f / windowsize.Width, -2.0f / windowsize.Height, 1.0f) * Matrix.Translation(-1.0f, 1.0f, 0.0f);
 			Vector2D lt = DisplayToMap(new Vector2D(0.0f, 0.0f));

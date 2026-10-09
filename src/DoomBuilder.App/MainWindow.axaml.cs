@@ -73,7 +73,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
         // Offsets that plugins give in display pixels follow the screen's scale
         UpdateDpiScaler();
-        ScalingChanged += (s, e) => UpdateDpiScaler();
+        ScalingChanged += (s, e) => { UpdateDpiScaler(); Viewport.OnScaleChanged(); };
         Opened += (s, e) => UpdateDpiScaler();
 
         // The command palette floats over the top of the display
@@ -87,6 +87,7 @@ public partial class MainWindow : Avalonia.Controls.Window
             if (palette.IsVisible && e.Source is Visual v && !palette.IsVisualAncestorOf(v) && v != palette) palette.Close();
         }, RoutingStrategies.Tunnel);
 
+        shell.LanguageChanged += ApplyLanguage;
         shell.StatusChanged += text => StatusText.Text = text;
         shell.HintsChanged += text => HintsText.Text = RtfText.ToPlain(text).Replace('\n', ' ');
         shell.ZoomChanged += scale => ZoomText.Text = (int)Math.Round(scale * 100) + "%";
@@ -151,6 +152,13 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     private readonly DisplayToolTip displayTip;
     private readonly InfoPanel infoPanel;
+
+    /// <summary>Loads the language of the settings and puts the menus and toolbars in it.</summary>
+    internal void ApplyLanguage()
+    {
+        CodeImp.DoomBuilder.Localization.Localizer.Load(General.AppPath, General.Settings?.Language);
+        ui.Retranslate();
+    }
 
     private void UpdateDpiScaler()
     {
@@ -316,6 +324,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
         General.ExitRequested += OnExitRequested;                           // the core wants the program to end (fatal errors, Terminate)
         DoomBuilder.UI.DialogHost.Owner = () => this;
+        CodeImp.DoomBuilder.Windows.ScriptEditorForm.HostFactory = () => new Dialogs.ScriptEditorWindow();   // the script editor (AvaloniaEdit)
         System.Windows.Forms.Clipboard.Provider = new SystemClipboard(() => this);   // copy and paste go through the system clipboard
         General.Dialogs = new AvaloniaDialogs(() => this);                  // the real message boxes, file pickers and map options
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
@@ -344,6 +353,8 @@ public partial class MainWindow : Avalonia.Controls.Window
             return;
         }
 
+        AvaloniaShell.ApplyTheme();
+        ApplyLanguage();                                         // light, dark or the system theme
         RestorePlacement();
         General.Actions.BindMethods(shell);                                 // "showerrors" lives in the shell, like MainForm's actions
         shell.Recent.Load();
