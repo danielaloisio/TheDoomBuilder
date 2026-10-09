@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Rendering;
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
 
 namespace DoomBuilder.App.Shell;
 
@@ -56,14 +57,14 @@ public static class UiRules
             {
                 bool can = map && General.Map.UndoRedo.NextUndo != null;
                 return new ItemState { Visible = name == "itemundo" || (map && General.Settings.ToolbarUndo), Enabled = can,
-                    Text = can ? "Undo " + General.Map.UndoRedo.NextUndo.Description : "Undo" };
+                    Text = Loc.T(can ? "Undo " + General.Map.UndoRedo.NextUndo.Description : "Undo") };
             }
             case "itemredo":
             case "buttonredo":
             {
                 bool can = map && General.Map.UndoRedo.NextRedo != null;
                 return new ItemState { Visible = name == "itemredo" || (map && General.Settings.ToolbarUndo), Enabled = can,
-                    Text = can ? "Redo " + General.Map.UndoRedo.NextRedo.Description : "Redo" };
+                    Text = Loc.T(can ? "Redo " + General.Map.UndoRedo.NextRedo.Description : "Redo") };
             }
             case "itemcut": case "itemcopy": case "itempaste": case "itempastespecial":
             case "buttoncut": case "buttoncopy": case "buttonpaste":

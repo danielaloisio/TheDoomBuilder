@@ -159,7 +159,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     public override void DisplayStatus(StatusInfo newstatus)
     {
         base.DisplayStatus(newstatus);
-        StatusChanged?.Invoke(newstatus.message);
+        StatusChanged?.Invoke(CodeImp.DoomBuilder.Localization.Localizer.T(newstatus.message));
     }
 
     public override void DisplayStatus(StatusType type, string message) => DisplayStatus(new StatusInfo(type, message));

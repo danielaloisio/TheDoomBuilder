@@ -61,8 +61,8 @@ namespace CodeImp.DoomBuilder.Actions
 		public string Name { get { return name; } }
 		public string ShortName { get { return shortname; } }
 		public string Category { get { return category; } }
-		public string Title { get { return title; } }
-		public string Description { get { return description; } }
+		public string Title { get { return CodeImp.DoomBuilder.Localization.Localizer.T(title); } }
+		public string Description { get { return CodeImp.DoomBuilder.Localization.Localizer.T(description); } }
 		public bool RegisterToast { get { return registertoast; } }
 		public int ShortcutKey { get { return key; } }
 		public int ShortcutMask { get { return keymask; } }

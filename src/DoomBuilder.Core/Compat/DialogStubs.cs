@@ -57,7 +57,7 @@ namespace System.Windows.Forms
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons, MessageBoxIcon.None);
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon) => Show(text, caption, buttons, icon, MessageBoxDefaultButton.Button1);
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton def)
-            => CodeImp.DoomBuilder.General.Dialogs.ShowMessage(text, caption, buttons, icon, def);
+            => CodeImp.DoomBuilder.General.Dialogs.ShowMessage(CodeImp.DoomBuilder.Localization.Localizer.T(text), CodeImp.DoomBuilder.Localization.Localizer.T(caption), buttons, icon, def);
         public static DialogResult Show(IWin32Window owner, string text) => Show(text);
         public static DialogResult Show(IWin32Window owner, string text, string caption) => Show(text, caption);
         public static DialogResult Show(IWin32Window owner, string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons);

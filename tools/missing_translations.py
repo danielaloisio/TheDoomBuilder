@@ -32,6 +32,28 @@ for m in re.finditer(r'(?:Flag|Slider|Alpha|Choice|Folder|Text)\(\w+, "([^"]+)",
 for m in re.finditer(r'Hue\("([^"]+)"', model): keys.append(m.group(1))
 for m in re.finditer(r'new\[\] \{ ([^}]*) \}', model): keys += re.findall(r'"([^"]+)"', m.group(1))
 
+# Core/plugin messages: the arguments of DisplayStatus, CreateUndo, ShowErrorMessage/ShowWarningMessage and MessageBox.Show, built by concatenation
+# ("Deleted " + n + " linedefs" becomes "Deleted {0} linedefs"); the titles/descriptions of the Actions.cfg files; and the texts of the plugin forms.
+def to_template(expr):
+    out, n = '', 0
+    for part in re.split(r'\s*\+\s*(?=(?:[^"]*"[^"]*")*[^"]*$)', expr.strip()):
+        m = re.fullmatch(r'"((?:[^"\\]|\\.)*)"', part.strip())
+        if m: out += m.group(1).replace('\\"', '"').replace('\\n', '\n')
+        else: out += '{%d}' % n; n += 1
+    return out if re.search(r'[A-Za-z]{3}', re.sub(r'\{\d+\}', '', out)) else None
+for f in glob.glob(os.path.join(root, 'src', '**', '*.cs'), recursive=True):
+    if os.sep + 'obj' + os.sep in f or os.sep + 'Compat' + os.sep in f: continue
+    t = open(f, encoding='utf-8', errors='ignore').read()
+    for m in re.finditer(r'(?:CreateUndo|ShowErrorMessage|ShowWarningMessage)\(((?:"(?:[^"\\]|\\.)*"|[^;"])+?)(?:,|\))', t):
+        k = to_template(m.group(1))
+        if k: keys.append(k)
+    for m in re.finditer(r'DisplayStatus\((?:[\w.]+\.)?StatusType\.\w+,\s*((?:"(?:[^"\\]|\\.)*"|[^;"])+?)\);', t):
+        k = to_template(m.group(1))
+        if k: keys.append(k)
+for f in glob.glob(os.path.join(root, 'src', '**', 'Actions.cfg'), recursive=True):
+    for m in re.finditer(r'^\s*(?:title|description)\s*=\s*"((?:[^"\\]|\\.)*)"\s*;', open(f, encoding='utf-8', errors='ignore').read(), re.M):
+        keys.append(re.sub(r'\b\d+(?:\.\d+)?\b', '{0}', m.group(1)))
+
 missing = []
 for k in keys:
     k = k.replace('\\r\\n', '\r\n')

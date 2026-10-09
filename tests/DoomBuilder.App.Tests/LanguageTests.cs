@@ -60,6 +60,40 @@ public class LanguageTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void Status_messages_of_the_core_are_shown_in_the_language()
+    {
+        OpenEditor(withMap: false);
+        General.Settings.Language = "pt-BR";
+        window.ApplyLanguage();
+
+        General.Interface.DisplayStatus(StatusType.Warning, "Deleted 3 linedefs.");
+        Assert.Equal("3 linedefs excluídas.", window.FindControl<TextBlock>("StatusText").Text);
+        General.Interface.DisplayStatus(StatusType.Info, "Snap to grid is ENABLED");
+        Assert.Equal("Alinhar à grade: ATIVADO", window.FindControl<TextBlock>("StatusText").Text);
+    }
+
+    [AvaloniaFact]
+    public void Controls_built_by_plugins_are_translated_when_they_load()
+    {
+        OpenEditor(withMap: false);
+        General.Settings.Language = "pt-BR";
+        window.ApplyLanguage();
+
+        var label = new TextBlock { Text = "Find:" };
+        var user = new TextBlock { Text = "Door" };                 // user data without an entry stays as it is
+        var check = new CheckBox { Content = "Within selection only" };
+        var host = new Window { Title = "Find and Replace", Content = new StackPanel { Children = { label, user, check } } };
+        host.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("Localizar:", label.Text);
+        Assert.Equal("Door", user.Text);
+        Assert.Equal("Somente dentro da seleção", check.Content);
+        Assert.Equal("Localizar e substituir", host.Title);
+        host.Close();
+    }
+
+    [AvaloniaFact]
     public void The_language_is_a_preference_with_the_languages_found()
     {
         OpenEditor(withMap: false);

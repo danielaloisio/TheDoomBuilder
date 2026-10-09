@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CodeImp.DoomBuilder.Controls;
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
 using AvControl = Avalonia.Controls.Control;
 using AvButton = Avalonia.Controls.Button;
 using AvComboBox = Avalonia.Controls.ComboBox;
@@ -58,7 +59,7 @@ public sealed class ToolStripBinder
             {
                 var text = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0) };
                 control = text;
-                update = () => text.Text = label.Text;
+                update = () => text.Text = Loc.T(label.Text);
                 break;
             }
 
@@ -86,7 +87,7 @@ public sealed class ToolStripBinder
                 bool syncing = false;
                 box.IsCheckedChanged += (s, e) => { if (!syncing) check.Checked = box.IsChecked == true; };
                 control = box;
-                update = () => { syncing = true; box.IsChecked = check.Checked; box.Content = check.Text; syncing = false; };
+                update = () => { syncing = true; box.IsChecked = check.Checked; box.Content = Loc.T(check.Text); syncing = false; };
                 break;
             }
 
@@ -157,15 +158,15 @@ public sealed class ToolStripBinder
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
                 row.Children.Add(picture);
-                row.Children.Add(new TextBlock { Text = item.Text, VerticalAlignment = VerticalAlignment.Center });
+                row.Children.Add(new TextBlock { Text = Loc.T(item.Text), VerticalAlignment = VerticalAlignment.Center });
                 button.Content = row;
             }
             else button.Content = picture;
         }
-        else button.Content = item.Text;
+        else button.Content = Loc.T(item.Text);
 
         if (item is ToolStripActionButton action) action.UpdateToolTip();
-        ToolTip.SetTip(button, string.IsNullOrEmpty(item.ToolTipText) ? item.Text : item.ToolTipText);
+        ToolTip.SetTip(button, Loc.T(string.IsNullOrEmpty(item.ToolTipText) ? item.Text : item.ToolTipText));
         if (item is ToolStripButton b) button.IsChecked = b.Checked;
     }
 
@@ -197,7 +198,7 @@ public sealed class ToolStripBinder
 
         return Bind(item, menuitem, () =>
         {
-            caption.Text = ShellUi.AccessKeyText(item.Text);
+            caption.Text = ShellUi.AccessKeyText(Loc.T(item.Text));
             shortcut.Text = item.ShortcutKeyDisplayString ?? string.Empty;
             Avalonia.Media.Imaging.Bitmap image = ImageConvert.ToAvalonia(item.Image);
             menuitem.Icon = image == null ? null : new Avalonia.Controls.Image { Source = image, Width = 16, Height = 16 };
