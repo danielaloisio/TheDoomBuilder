@@ -7,7 +7,7 @@ using CodeImp.DoomBuilder.Rendering;
 
 namespace CodeImp.DoomBuilder.Windows
 {
-	public enum PreferenceKind { Bool, Int, Choice, Path, Color }
+	public enum PreferenceKind { Bool, Int, Choice, Path, Color, Text }
 
 	/// <summary>
 	/// One setting in the preferences dialog. The value is edited on the item and only reaches the program settings on
@@ -59,7 +59,7 @@ namespace CodeImp.DoomBuilder.Windows
 	/// </summary>
 	public sealed class PreferencesModel
 	{
-		public const string InterfaceTab = "Interface", DisplayTab = "Display", RecoveryTab = "Recovery", ColorsTab = "Colors";
+		public const string InterfaceTab = "Interface", DisplayTab = "Display", RecoveryTab = "Recovery", ColorsTab = "Colors", ScriptTab = "Script editor";
 		private const float ViewDistanceStep = 500.0f;
 
 		private readonly List<Preference> items = new List<Preference>();
@@ -105,6 +105,12 @@ namespace CodeImp.DoomBuilder.Windows
 			// ---- interface: general
 			Slider(InterfaceTab, "General", "Recent files in the menu", "recentfiles", 8, 25, () => s.MaxRecentFiles, v => s.MaxRecentFiles = v);
 			Folder(InterfaceTab, "General", "Screenshots folder", "screenshotspath", () => s.ScreenshotsPath, v => s.ScreenshotsPath = v);
+			var languages = CodeImp.DoomBuilder.Localization.Localizer.Available(General.AppPath);
+			var languagecodes = new List<string> { "" }; languagecodes.AddRange(languages.Select(l => l.Code));
+			var languagenames = new List<string> { "Follow the system" }; languagenames.AddRange(languages.Select(l => l.Name));
+			Choice(InterfaceTab, "General", "Language", "language", languagenames.ToArray(),
+				() => Math.Max(0, languagecodes.IndexOf(s.Language)), v => s.Language = languagecodes[Math.Max(0, Math.Min(v, languagecodes.Count - 1))]);
+			Choice(InterfaceTab, "General", "Theme", "theme", new[] { "Follow the system", "Light", "Dark" }, () => s.Theme, v => s.Theme = v);
 			Flag(InterfaceTab, "General", "Start the game right after saving for a test", "autolaunchontest", () => s.AutoLaunchOnTest, v => s.AutoLaunchOnTest = v);
 			Flag(InterfaceTab, "General", "Locate the texture group when selecting a texture", "locatetexturegroup", () => s.LocateTextureGroup, v => s.LocateTextureGroup = v);
 			Flag(InterfaceTab, "General", "Remember the selected tab of the edit windows", "storeedittab", () => s.StoreSelectedEditTab, v => s.StoreSelectedEditTab = v);
@@ -147,6 +153,35 @@ namespace CodeImp.DoomBuilder.Windows
 			Hue("Guidelines", "colorguidelines", () => c.Guideline, v => c.Guideline = v);
 			Hue("3D floors", "color3dfloors", () => c.ThreeDFloor, v => c.ThreeDFloor = v);
 
+			// ---- script editor
+			Text(ScriptTab, "Font", "Font name", "scriptfontname", () => s.ScriptFontName, v => s.ScriptFontName = v);
+			Slider(ScriptTab, "Font", "Font size", "scriptfontsize", 6, 36, () => s.ScriptFontSize, v => s.ScriptFontSize = v);
+			Flag(ScriptTab, "Font", "Bold", "scriptfontbold", () => s.ScriptFontBold, v => s.ScriptFontBold = v);
+			Flag(ScriptTab, "Editing", "Show line numbers", "scriptshowlinenumbers", () => s.ScriptShowLineNumbers, v => s.ScriptShowLineNumbers = v);
+			Flag(ScriptTab, "Editing", "Indent new lines like the previous one", "scriptautoindent", () => s.ScriptAutoIndent, v => s.ScriptAutoIndent = v);
+			Flag(ScriptTab, "Editing", "Use tabs instead of spaces", "scriptusetabs", () => s.ScriptUseTabs, v => s.ScriptUseTabs = v);
+			Slider(ScriptTab, "Editing", "Tab width", "scripttabwidth", 1, 16, () => s.ScriptTabWidth, v => s.ScriptTabWidth = v);
+			Flag(ScriptTab, "Editing", "Braces on their own line in snippets (Allman style)", "scriptallmanstyle", () => s.ScriptAllmanStyle, v => s.ScriptAllmanStyle = v);
+			Flag(ScriptTab, "Editing", "Show the completion list while typing", "scriptautoshowautocompletion", () => s.ScriptAutoShowAutocompletion, v => s.ScriptAutoShowAutocompletion = v);
+			Flag(ScriptTab, "Window", "Keep the script editor on top", "scriptontop", () => s.ScriptOnTop, v => s.ScriptOnTop = v);
+
+			Hue("Background", "colorscriptbackground", () => c.ScriptBackground, v => c.ScriptBackground = v, ScriptTab, "Colors");
+			Hue("Plain text", "colorplaintext", () => c.PlainText, v => c.PlainText = v, ScriptTab, "Colors");
+			Hue("Line numbers", "colorlinenumbers", () => c.LineNumbers, v => c.LineNumbers = v, ScriptTab, "Colors");
+			Hue("Comments", "colorcomments", () => c.Comments, v => c.Comments = v, ScriptTab, "Colors");
+			Hue("Keywords", "colorkeywords", () => c.Keywords, v => c.Keywords = v, ScriptTab, "Colors");
+			Hue("Constants", "colorconstants", () => c.Constants, v => c.Constants = v, ScriptTab, "Colors");
+			Hue("Properties", "colorproperties", () => c.Properties, v => c.Properties = v, ScriptTab, "Colors");
+			Hue("Literals", "colorliterals", () => c.Literals, v => c.Literals = v, ScriptTab, "Colors");
+			Hue("Strings", "colorstrings", () => c.Strings, v => c.Strings = v, ScriptTab, "Colors");
+			Hue("Includes", "colorincludes", () => c.Includes, v => c.Includes = v, ScriptTab, "Colors");
+			Hue("Matching braces", "colorbracehighlight", () => c.ScriptBraceHighlight, v => c.ScriptBraceHighlight = v, ScriptTab, "Colors");
+			Hue("Missing braces", "colorbadbracehighlight", () => c.ScriptBadBraceHighlight, v => c.ScriptBadBraceHighlight = v, ScriptTab, "Colors");
+			Hue("Whitespace", "colorscriptwhitespace", () => c.ScriptWhitespace, v => c.ScriptWhitespace = v, ScriptTab, "Colors");
+			Hue("Selected text", "colorselectionfore", () => c.ScriptSelectionForeColor, v => c.ScriptSelectionForeColor = v, ScriptTab, "Colors");
+			Hue("Selection background", "colorselectionback", () => c.ScriptSelectionBackColor, v => c.ScriptSelectionBackColor = v, ScriptTab, "Colors");
+			Hue("Same word highlight", "colorscriptindicator", () => c.ScriptIndicator, v => c.ScriptIndicator = v, ScriptTab, "Colors");
+
 			foreach(Preference p in items) p.Load();
 		}
 
@@ -179,14 +214,19 @@ namespace CodeImp.DoomBuilder.Windows
 								 Read = () => read(), Write = v => write((int)v) });
 		}
 
+		private void Text(string tab, string group, string label, string key, Func<string> read, Action<string> write)
+		{
+			Add(new Preference { Tab = tab, Group = group, Label = label, Key = key, Kind = PreferenceKind.Text, Read = () => read(), Write = v => write(((string)v ?? "").Trim()) });
+		}
+
 		private void Folder(string tab, string group, string label, string key, Func<string> read, Action<string> write)
 		{
 			Add(new Preference { Tab = tab, Group = group, Label = label, Key = key, Kind = PreferenceKind.Path, Read = () => read(), Write = v => write(((string)v ?? "").Trim()) });
 		}
 
-		private void Hue(string label, string key, Func<PixelColor> read, Action<PixelColor> write)
+		private void Hue(string label, string key, Func<PixelColor> read, Action<PixelColor> write, string tab = ColorsTab, string group = "Map")
 		{
-			Add(new Preference { Tab = ColorsTab, Group = "Map", Label = label, Key = key, Kind = PreferenceKind.Color,
+			Add(new Preference { Tab = tab, Group = group, Label = label, Key = key, Kind = PreferenceKind.Color,
 								 Read = () => read().ToInt(), Write = v => write(PixelColor.FromInt((int)v)) });
 		}
 

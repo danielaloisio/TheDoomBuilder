@@ -10,6 +10,8 @@ using Avalonia.Platform.Storage;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Windows;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>
@@ -23,8 +25,8 @@ public sealed class PreferencesWindow : Window
     private readonly Dictionary<string, Control> editors = new Dictionary<string, Control>();
     private readonly PluginPreferences plugins = new PluginPreferences();      // the plugins' tabs
 
-    public Button OkButton { get; } = new Button { Content = "OK", MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
-    public Button CancelButton { get; } = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button OkButton { get; } = new Button { Content = Loc.T("OK"), MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button CancelButton { get; } = new Button { Content = Loc.T("Cancel"), MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
 
     public bool ReloadResources { get; private set; }
     internal PreferencesModel Model { get { return model; } }
@@ -35,7 +37,7 @@ public sealed class PreferencesWindow : Window
 
     public PreferencesWindow()
     {
-        Title = "Preferences";
+        Title = Loc.T("Preferences");
         Width = 720;
         Height = 620;
         MinWidth = 560;
@@ -43,7 +45,7 @@ public sealed class PreferencesWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         foreach (string tab in model.Tabs)
-            tabs.Items.Add(new TabItem { Header = tab, Content = new ScrollViewer { Content = PageOf(tab) } });
+            tabs.Items.Add(new TabItem { Header = Loc.T(tab), Content = new ScrollViewer { Content = PageOf(tab) } });
 
         foreach (System.Windows.Forms.TabPage page in plugins.Tabs)
             if (page.NativeControl is Control content)
@@ -72,7 +74,7 @@ public sealed class PreferencesWindow : Window
             if (item.Group != group)
             {
                 group = item.Group;
-                page.Children.Add(new TextBlock { Text = group, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, page.Children.Count == 0 ? 0 : 12, 0, 2) });
+                page.Children.Add(new TextBlock { Text = Loc.T(group), FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, page.Children.Count == 0 ? 0 : 12, 0, 2) });
             }
             page.Children.Add(RowOf(item));
         }
@@ -85,7 +87,7 @@ public sealed class PreferencesWindow : Window
         {
             case PreferenceKind.Bool:
             {
-                var box = new CheckBox { Content = item.Label, IsChecked = (bool)item.Value };
+                var box = new CheckBox { Content = Loc.T(item.Label), IsChecked = (bool)item.Value };
                 box.IsCheckedChanged += (s, e) => item.Value = box.IsChecked == true;
                 editors[item.Key] = box;
                 return box;
@@ -101,23 +103,30 @@ public sealed class PreferencesWindow : Window
                     value.Text = item.ValueText;
                 };
                 editors[item.Key] = slider;
-                return Labeled(item.Label, slider, value);
+                return Labeled(Loc.T(item.Label), slider, value);
             }
             case PreferenceKind.Choice:
             {
-                var combo = new ComboBox { ItemsSource = item.Choices, SelectedIndex = (int)item.Value, MinWidth = 220 };
+                var combo = new ComboBox { ItemsSource = item.Choices.Select(c => Loc.T(c)).ToList(), SelectedIndex = (int)item.Value, MinWidth = 220 };
                 combo.SelectionChanged += (s, e) => { if (combo.SelectedIndex >= 0) item.Value = combo.SelectedIndex; };
                 editors[item.Key] = combo;
-                return Labeled(item.Label, combo);
+                return Labeled(Loc.T(item.Label), combo);
             }
             case PreferenceKind.Path:
             {
                 var text = new TextBox { Text = (string)item.Value, MinWidth = 320 };
                 text.PropertyChanged += (s, e) => { if (e.Property == TextBox.TextProperty) item.Value = text.Text ?? ""; };
-                var browse = new Button { Content = "Browse..." };
+                var browse = new Button { Content = Loc.T("Browse...") };
                 browse.Click += (s, e) => BrowseFolder(text);
                 editors[item.Key] = text;
-                return Labeled(item.Label, text, browse);
+                return Labeled(Loc.T(item.Label), text, browse);
+            }
+            case PreferenceKind.Text:
+            {
+                var text = new TextBox { Text = (string)item.Value, MinWidth = 220 };
+                text.PropertyChanged += (s, e) => { if (e.Property == TextBox.TextProperty) item.Value = text.Text ?? ""; };
+                editors[item.Key] = text;
+                return Labeled(Loc.T(item.Label), text);
             }
             default:     // color: a swatch and the hex code (#RRGGBB)
             {
@@ -130,7 +139,7 @@ public sealed class PreferencesWindow : Window
                     swatch.Background = new SolidColorBrush(ColorOf(argb));
                 };
                 editors[item.Key] = hex;
-                return Labeled(item.Label, swatch, hex);
+                return Labeled(Loc.T(item.Label), swatch, hex);
             }
         }
     }
@@ -161,7 +170,7 @@ public sealed class PreferencesWindow : Window
     {
         var storage = GetTopLevel(this)?.StorageProvider;
         if (storage == null) return;
-        var folders = DialogPump.Run(() => storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Select a folder" }));
+        var folders = DialogPump.Run(() => storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Loc.T("Select a folder") }));
         if (folders != null && folders.Count > 0 && folders[0].TryGetLocalPath() is string path) target.Text = path;
     }
 

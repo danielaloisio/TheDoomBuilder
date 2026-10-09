@@ -9,6 +9,8 @@ using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using CodeImp.DoomBuilder.Data;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>
@@ -19,11 +21,11 @@ public sealed class ResourcesEditor : UserControl
 {
     private readonly ListBox fixedlist = new ListBox { MaxHeight = 90, IsHitTestVisible = false, Opacity = 0.7 };
     private readonly ListBox list = new ListBox { MinHeight = 90, MaxHeight = 160 };
-    private readonly Button remove = new Button { Content = "Remove" };
-    private readonly Button up = new Button { Content = "Up" };
-    private readonly Button down = new Button { Content = "Down" };
-    private readonly Button addfile = new Button { Content = "Add file..." };
-    private readonly Button addfolder = new Button { Content = "Add folder..." };
+    private readonly Button remove = new Button { Content = Loc.T("Remove") };
+    private readonly Button up = new Button { Content = Loc.T("Up") };
+    private readonly Button down = new Button { Content = Loc.T("Down") };
+    private readonly Button addfile = new Button { Content = Loc.T("Add file...") };
+    private readonly Button addfolder = new Button { Content = Loc.T("Add folder...") };
 
     /// <summary>The user added, removed or moved a resource.</summary>
     public event Action Changed;
@@ -133,7 +135,7 @@ public sealed class ResourcesEditor : UserControl
 
         var files = DialogPump.Run(() => storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Add resource",
+            Title = Loc.T("Add resource"),
             AllowMultiple = true,
             FileTypeFilter = new[]
             {
@@ -152,7 +154,7 @@ public sealed class ResourcesEditor : UserControl
         var storage = TopLevel.GetTopLevel(this)?.StorageProvider;
         if (storage == null) return;
 
-        var folders = DialogPump.Run(() => storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Add resource folder", SuggestedStartLocation = StartFolder(storage) }));
+        var folders = DialogPump.Run(() => storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Loc.T("Add resource folder"), SuggestedStartLocation = StartFolder(storage) }));
         foreach (IStorageFolder folder in folders ?? Array.Empty<IStorageFolder>())
             if (folder.TryGetLocalPath() is string path) Add(path);
     }

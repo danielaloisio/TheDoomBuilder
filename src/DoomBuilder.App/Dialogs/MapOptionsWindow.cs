@@ -13,6 +13,8 @@ using MessageBoxButtons = System.Windows.Forms.MessageBoxButtons;
 using MessageBoxIcon = System.Windows.Forms.MessageBoxIcon;
 using MessageBoxDefaultButton = System.Windows.Forms.MessageBoxDefaultButton;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>
@@ -24,15 +26,15 @@ public sealed class MapOptionsWindow : Window
     private readonly IMapOptionsChoices choices;
     private readonly ComboBox config = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly ComboBox compiler = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
-    private readonly CheckBox strict = new CheckBox { Content = "Strict patches" };
-    private readonly CheckBox longnames = new CheckBox { Content = "Use long texture names" };
+    private readonly CheckBox strict = new CheckBox { Content = Loc.T("Strict patches") };
+    private readonly CheckBox longnames = new CheckBox { Content = Loc.T("Use long texture names") };
     private readonly ResourcesEditor resources = new ResourcesEditor();
     private readonly Func<(string error, List<string> confirmations)> validate;
     private readonly Action apply;
     private bool loading;
 
-    public Button OkButton { get; } = new Button { Content = "OK", MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
-    public Button CancelButton { get; } = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button OkButton { get; } = new Button { Content = Loc.T("OK"), MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button CancelButton { get; } = new Button { Content = Loc.T("Cancel"), MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
 
     /// <summary>The game configuration selector (tests drive it).</summary>
     public ComboBox ConfigBox { get { return config; } }

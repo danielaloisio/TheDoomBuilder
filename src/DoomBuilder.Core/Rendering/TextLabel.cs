@@ -156,12 +156,18 @@ namespace CodeImp.DoomBuilder.Rendering
             return ff;
         }
 
+		// The font size in points, for the display's scale: the labels are drawn in device pixels, so on a 200% screen they must be twice as big
+		internal static float ScaledFontSize()
+		{
+			return General.Settings.TextLabelFontSize * Math.Max(1f, CodeImp.DoomBuilder.Windows.MainForm.DPIScaler.Height);
+		}
+
 		// Constructor
 		public TextLabel()
 		{
 			// Initialize
 			this.text = "";
-			this.font = new Font(GetFontFamily(), General.Settings.TextLabelFontSize, (General.Settings.TextLabelFontBold ? FontStyle.Bold : FontStyle.Regular)); //General.Settings.TextLabelFont; //mxd
+			this.font = new Font(GetFontFamily(), ScaledFontSize(), (General.Settings.TextLabelFontBold ? FontStyle.Bold : FontStyle.Regular)); //General.Settings.TextLabelFont; //mxd
 			this.location = new Vector2D(); //mxd
 			this.color = new PixelColor(255, 255, 255, 255);
 			this.backcolor = new PixelColor(128, 0, 0, 0);
@@ -187,7 +193,7 @@ namespace CodeImp.DoomBuilder.Rendering
 		{
 			// Initialize
 			this.text = "";
-			this.font = new Font(GetFontFamily(), General.Settings.TextLabelFontSize, (General.Settings.TextLabelFontBold ? FontStyle.Bold : FontStyle.Regular)); // General.Settings.TextLabelFont;
+			this.font = new Font(GetFontFamily(), ScaledFontSize(), (General.Settings.TextLabelFontBold ? FontStyle.Bold : FontStyle.Regular)); // General.Settings.TextLabelFont;
 			this.location = new Vector2D();
 			this.color = new PixelColor(255, 255, 255, 255);
 			this.backcolor = new PixelColor(128, 0, 0, 0);

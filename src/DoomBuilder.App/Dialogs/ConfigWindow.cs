@@ -12,6 +12,8 @@ using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.Windows;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>
@@ -31,10 +33,10 @@ public sealed class ConfigWindow : Window
     private readonly TextBox program = new TextBox();
     private readonly TextBlock engine = new TextBlock { Opacity = 0.7 };
     private readonly ComboBox skill = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
-    private readonly CheckBox custom = new CheckBox { Content = "Customize parameters" };
+    private readonly CheckBox custom = new CheckBox { Content = Loc.T("Customize parameters") };
     private readonly TextBox parameters = new TextBox();
-    private readonly CheckBox shortpaths = new CheckBox { Content = "Use short paths" };
-    private readonly CheckBox linuxpaths = new CheckBox { Content = "Use Linux-style paths" };
+    private readonly CheckBox shortpaths = new CheckBox { Content = Loc.T("Use short paths") };
+    private readonly CheckBox linuxpaths = new CheckBox { Content = Loc.T("Use Linux-style paths") };
     private readonly TextBlock example = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap, Opacity = 0.7 };
     private readonly StackPanel customarea = new StackPanel { Spacing = 4 };
     private readonly StackPanel modeslist = new StackPanel { Spacing = 2 };
@@ -42,8 +44,8 @@ public sealed class ConfigWindow : Window
     private readonly Dictionary<CheckBox, ModeChoice> modeboxes = new Dictionary<CheckBox, ModeChoice>();
     private bool loading;
 
-    public Button OkButton { get; } = new Button { Content = "OK", MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
-    public Button CancelButton { get; } = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button OkButton { get; } = new Button { Content = Loc.T("OK"), MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button CancelButton { get; } = new Button { Content = Loc.T("Cancel"), MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
 
     /// <summary>True when OK was chosen and the resources changed.</summary>
     public bool ReloadResources { get { return model.ReloadResources; } }
@@ -64,7 +66,7 @@ public sealed class ConfigWindow : Window
 
     public ConfigWindow(int page = -1)
     {
-        Title = "Game Configurations";
+        Title = Loc.T("Game Configurations");
         Width = 880;
         Height = 560;
         MinWidth = 700;
@@ -128,7 +130,7 @@ public sealed class ConfigWindow : Window
 
     private Control TestingPage_()
     {
-        var browse = new Button { Content = "Browse..." };
+        var browse = new Button { Content = Loc.T("Browse...") };
         browse.Click += (s, e) => BrowseProgram();
         // Watch the property itself so programmatic changes count too, not only typing
         program.PropertyChanged += (s, e) =>
@@ -280,7 +282,7 @@ public sealed class ConfigWindow : Window
 
         var files = DialogPump.Run(() => storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Select test program",
+            Title = Loc.T("Select test program"),
             AllowMultiple = false,
             FileTypeFilter = OperatingSystem.IsWindows()
                 ? new[] { new FilePickerFileType("Programs") { Patterns = new[] { "*.exe", "*.bat", "*.cmd" } }, FilePickerFileTypes.All }
