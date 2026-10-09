@@ -107,7 +107,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         Viewport.ContextFailed += reason => StatusText.Text = "OpenGL is not available: " + reason;
         Viewport.FramePainted += OnFramePainted;
         // A new GL context replaced a lost one: the backend put back what it had copies of; the sky is drawn on the GPU, so it is made again
-        Viewport.Backend.ContextRestored += () => Dispatcher.UIThread.Post(() =>
+        Viewport.ContextRestored += () => Dispatcher.UIThread.Post(() =>
         {
             if (General.Map != null) General.Map.Data.SetupSkybox();
             Viewport.RequestRedraw();
@@ -500,9 +500,25 @@ public partial class MainWindow : Avalonia.Controls.Window
     }
 
     // Test/diagnostic hook: UDB_SCREENSHOT=file.png saves the first settled frame with a map in it and exits.
+    private bool openedother;
+    private int otherframes;
+
     private unsafe void OnFramePainted(GL gl, int fb, PixelSize size)
     {
         if (Environment.GetEnvironmentVariable("UDB_LOG_FRAMES") == "1") Console.WriteLine("[frame] " + Environment.TickCount64 + (General.Map != null ? " cam " + General.Map.VisualCamera.AngleXY.ToString("0.0000") + " " + General.Map.VisualCamera.AngleZ.ToString("0.0000") : ""));
+        // UDB_OPEN_AFTER=<wad>|<map> opens that map (as File > Open Map would, without the dialogs) after the second frame: to see what the display does
+        string openafter = Environment.GetEnvironmentVariable("UDB_OPEN_AFTER");
+        if (!string.IsNullOrEmpty(openafter) && General.Map != null && !openedother && ++otherframes == 2)
+        {
+            openedother = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                string[] parts = openafter.Split('|');
+                using var model = new CodeImp.DoomBuilder.Windows.OpenMapOptionsModel(parts[0], null);
+                model.SelectMap(parts[1]);
+                General.OpenMapFileWithOptions(parts[0], model.BuildOptions());
+            });
+        }
         // UDB_SCREENSHOT_PASSIVE=file.png keeps the last frame the program painted by itself (nothing is forced), to see what the user sees
         string passive = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_PASSIVE");
         if (!string.IsNullOrEmpty(passive) && General.Map != null) { SaveFrame(gl, fb, size, passive); return; }

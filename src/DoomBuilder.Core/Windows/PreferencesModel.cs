@@ -180,6 +180,8 @@ namespace CodeImp.DoomBuilder.Windows
 			Hue("Whitespace", "colorscriptwhitespace", () => c.ScriptWhitespace, v => c.ScriptWhitespace = v, ScriptTab, "Colors");
 			Hue("Selected text", "colorselectionfore", () => c.ScriptSelectionForeColor, v => c.ScriptSelectionForeColor = v, ScriptTab, "Colors");
 			Hue("Selection background", "colorselectionback", () => c.ScriptSelectionBackColor, v => c.ScriptSelectionBackColor = v, ScriptTab, "Colors");
+			Hue("Fold button", "colorscriptfoldfore", () => c.ScriptFoldForeColor, v => c.ScriptFoldForeColor = v, ScriptTab, "Colors");
+			Hue("Fold margin", "colorscriptfoldback", () => c.ScriptFoldBackColor, v => c.ScriptFoldBackColor = v, ScriptTab, "Colors");
 			Hue("Same word highlight", "colorscriptindicator", () => c.ScriptIndicator, v => c.ScriptIndicator = v, ScriptTab, "Colors");
 
 			foreach(Preference p in items) p.Load();

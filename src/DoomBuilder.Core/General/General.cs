@@ -1424,11 +1424,17 @@ namespace CodeImp.DoomBuilder
 			openfile.ValidateNames = true;
 			if(openfile.ShowDialog(mainwindow) == DialogResult.OK)
 			{
+				WriteLogLine("Open Map: file chosen \"" + openfile.FileName + "\"");
+
 				// Update main window
 				mainwindow.Update();
 
 				// Open map file
 				OpenMapFile(openfile.FileName, null);
+			}
+			else
+			{
+				WriteLogLine("Open Map: no file was chosen.");
 			}
 
 			openfile.Dispose();
@@ -1438,8 +1444,10 @@ namespace CodeImp.DoomBuilder
 		[BeginAction("openmapincurrentwad")]
 		internal static void OpenMapInCurrentWad() 
 		{
+			WriteLogLine("Opening a map from the current WAD...");
 			if(map == null || string.IsNullOrEmpty(map.FilePathName) || !File.Exists(map.FilePathName))
 			{
+				WriteLogLine("Unable to open a map from the current WAD: " + (map == null ? "no map is open" : string.IsNullOrEmpty(map.FilePathName) ? "the map has no file yet" : "\"" + map.FilePathName + "\" does not exist"));
 				Interface.DisplayStatus(StatusType.Warning, "Unable to open map from current WAD!");
 				return;
 			}
@@ -1448,11 +1456,19 @@ namespace CodeImp.DoomBuilder
 			Editing.DisengageVolatileMode();
 
 			// Ask the user to save changes (if any)
-			if(!AskSaveMap()) return;
+			if(!AskSaveMap())
+			{
+				WriteLogLine("Opening a map from the current WAD was cancelled when asked to save the changes.");
+				return;
+			}
 
 			// Open map options dialog
 			ChangeMapForm changemapwindow = new ChangeMapForm(map.FilePathName, map.Options);
-			if(changemapwindow.ShowDialog(mainwindow) != DialogResult.OK) return;
+			if(changemapwindow.ShowDialog(mainwindow) != DialogResult.OK)
+			{
+				WriteLogLine("The Change Map dialog was cancelled or could not be shown.");
+				return;
+			}
 
 			// Display status
 			mainwindow.DisplayStatus(StatusType.Busy, "Switching to map \"" + changemapwindow.Options.CurrentName + "\"...");
@@ -1527,6 +1543,12 @@ namespace CodeImp.DoomBuilder
 
 				if(openmapwindow.ShowDialog(mainwindow) == DialogResult.OK)
 					OpenMapFileWithOptions(filename, openmapwindow.Options);
+				else
+					WriteLogLine("Opening \"" + filename + "\": the map options dialog was cancelled or could not be shown.");
+			}
+			else
+			{
+				WriteLogLine("Opening \"" + filename + "\" was aborted: the changes of the open map were not saved (cancelled, or saving failed).");
 			}
 		}
 		

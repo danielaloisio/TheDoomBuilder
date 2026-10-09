@@ -95,6 +95,9 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
     private readonly ComboBox navigator = new ComboBox { MinWidth = 220, PlaceholderText = Loc.T("Scripts and functions"), IsEnabled = false };
     private readonly Avalonia.Threading.DispatcherTimer navigatortimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
     private bool updatingnavigator;
+    private readonly ComboBox scripttype = new ComboBox { MinWidth = 140, IsEnabled = false };
+    private List<ScriptConfiguration> scripttypes = new List<ScriptConfiguration>();
+    private bool updatingscripttype;
     private List<CompilerError> navigatorerrors = new List<CompilerError>();
 
     /// <summary>The open editor, if any (the Core owns the lifetime through ScriptEditorForm; tests look it up here).</summary>
@@ -145,6 +148,12 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
         }
         navigator.Margin = new Thickness(0, 0, 8, 4);
         toolbar.Children.Add(navigator);
+        scripttype.Margin = new Thickness(0, 0, 8, 4);
+        ToolTip.SetTip(scripttype, Loc.T("Script type of this file"));
+        scripttypes = ScriptTypes();
+        scripttype.ItemsSource = scripttypes.Select(c => c.Description).ToList();
+        scripttype.SelectionChanged += (s, e) => OnScriptTypeSelected();
+        toolbar.Children.Add(scripttype);
         navigator.SelectionChanged += (s, e) => OnNavigatorSelected();
         navigatortimer.Tick += (s, e) => { navigatortimer.Stop(); UpdateNavigator(Current); if(Current != null) UpdateFolding(Current); };
 
@@ -177,7 +186,7 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
         root.Children.Add(tabs);
         Content = root;
 
-        tabs.SelectionChanged += (s, e) => { UpdateStatus(); UpdateNavigator(Current); };
+        tabs.SelectionChanged += (s, e) => { UpdateStatus(); UpdateNavigator(Current); UpdateScriptTypeBox(); };
         KeyDown += OnWindowKeyDown;
         Closing += OnClosing;
         Closed += (s, e) => { closed = true; if(Instance == this) Instance = null; };
@@ -443,10 +452,86 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
         else if(!fold && tab.Folding != null) { FoldingManager.Uninstall(tab.Folding); tab.Folding = null; }
     }
 
+    /// <summary>Shows the script type of the current tab; it can be changed for files (lumps and resources have the type their place gives them).</summary>
+    private void UpdateScriptTypeBox()
+    {
+        DocTab tab = Current;
+        updatingscripttype = true;
+        try
+        {
+            scripttype.IsEnabled = tab != null && tab.Kind == DocKind.File;
+            int index = tab == null ? -1 : scripttypes.FindIndex(c => ReferenceEquals(c, tab.Config) || (c.Description == tab.Config.Description && c.Lexer == tab.Config.Lexer));
+            scripttype.SelectedIndex = index;
+        }
+        finally { updatingscripttype = false; }
+    }
+
+    private void OnScriptTypeSelected()
+    {
+        if(updatingscripttype) return;
+        DocTab tab = Current;
+        int index = scripttype.SelectedIndex;
+        if(tab == null || tab.Kind != DocKind.File || index < 0 || index >= scripttypes.Count) return;
+        ChangeScriptType(tab, scripttypes[index]);
+    }
+
+    /// <summary>Gives a tab another script type: its highlighting, folding, indentation, completion and function list follow.</summary>
+    internal void ChangeScriptType(DocTab tab, ScriptConfiguration config)
+    {
+        if(tab == null || ReferenceEquals(tab.Config, config)) return;
+
+        tab.Editor.TextArea.TextView.LineTransformers.Remove(tab.Colorizer);
+        tab.Editor.TextArea.TextView.BackgroundRenderers.Remove(tab.Highlight);
+        tab.Config = config;
+        tab.Colorizer = new ScriptSyntaxColorizer(config);
+        tab.Editor.TextArea.TextView.LineTransformers.Add(tab.Colorizer);
+        tab.Highlight = new ScriptHighlightRenderer(config, tab.Editor.TextArea);
+        tab.Editor.TextArea.TextView.BackgroundRenderers.Add(tab.Highlight);
+        if(tab.Folding != null) { FoldingManager.Uninstall(tab.Folding); tab.Folding = null; }   // reinstalled when the new type folds
+        ApplySettings(tab);
+        UpdateFolding(tab);
+        UpdateNavigator(tab);
+        UpdateStatus();
+        UpdateScriptTypeBox();
+    }
+
     private void UpdateFolding(DocTab tab)
     {
         if(tab.Folding == null) return;
         tab.Folding.UpdateFoldings(ScriptFolding.Find(tab.Editor.Text, tab.Config), -1);
+        ApplyFoldColors(tab);
+    }
+
+    /// <summary>The colors of the fold button and of the margin it sits in (Preferences > Script editor).</summary>
+    private static void ApplyFoldColors(DocTab tab)
+    {
+        PixelColor fore = General.Colors.ScriptFoldForeColor, back = General.Colors.ScriptFoldBackColor;
+        var foreBrush = new SolidColorBrush(Color.FromArgb(255, fore.r, fore.g, fore.b));
+        var backBrush = new SolidColorBrush(Color.FromArgb(255, back.r, back.g, back.b));
+        foreach(FoldingMargin margin in tab.Editor.TextArea.LeftMargins.OfType<FoldingMargin>())
+        {
+            margin.FoldingMarkerBrush = foreBrush;
+            margin.SelectedFoldingMarkerBrush = foreBrush;
+            margin.FoldingMarkerBackgroundBrush = backBrush;
+            margin.SelectedFoldingMarkerBackgroundBrush = backBrush;
+        }
+    }
+
+    /// <summary>The lines (1-based) where a fold is collapsed.</summary>
+    private static HashSet<int> CollapsedFoldLines(DocTab tab)
+    {
+        var lines = new HashSet<int>();
+        if(tab.Folding == null) return lines;
+        foreach(FoldingSection section in tab.Folding.AllFoldings)
+            if(section.IsFolded) lines.Add(tab.Editor.Document.GetLineByOffset(section.StartOffset).LineNumber);
+        return lines;
+    }
+
+    private static void CollapseFoldLines(DocTab tab, HashSet<int> lines)
+    {
+        if(tab.Folding == null || lines == null || lines.Count == 0) return;
+        foreach(FoldingSection section in tab.Folding.AllFoldings)
+            if(lines.Contains(tab.Editor.Document.GetLineByOffset(section.StartOffset).LineNumber)) section.IsFolded = true;
     }
 
     private static void UpdateHighlight(DocTab tab)
@@ -587,6 +672,10 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
     internal bool SaveCurrent() { return Save(Current); }
     internal bool SaveCurrentAs() { return SaveAs(Current); }
     internal bool CloseCurrentTab() { return CloseTab(Current); }
+    internal FoldingManager CurrentFolding => Current?.Folding;
+    internal void RefreshFoldings() { foreach(DocTab t in docs) UpdateFolding(t); }
+    internal ScriptConfiguration CurrentConfig => Current?.Config;
+    internal void SetCurrentScriptType(ScriptConfiguration config) => ChangeScriptType(Current, config);
     internal IReadOnlyList<string> TabTitles() { return docs.Select(t => (string)t.Item.Header).ToList(); }
 
     /// <summary>Closes a tab of a file or resource, asking to save its changes first. Map lumps stay.</summary>
@@ -620,11 +709,25 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
         return true;
     }
 
-    private static void RestoreView(DocTab tab, ScriptDocumentSettings saved)
+    private void RestoreView(DocTab tab, ScriptDocumentSettings saved)
     {
+        if(tab.Folding != null)
+        {
+            UpdateFolding(tab);
+            if(saved.FoldLevels != null && saved.FoldLevels.TryGetValue(1, out HashSet<int> folded)) CollapseFoldLines(tab, folded);
+        }
         int length = tab.Editor.Document.TextLength;
         tab.Editor.TextArea.Caret.Offset = Math.Max(0, Math.Min(saved.CaretPosition, length));
         if(saved.FirstVisibleLine > 0) tab.Editor.ScrollToLine(Math.Min(saved.FirstVisibleLine + 1, tab.Editor.Document.LineCount));
+    }
+
+    // The saved format is <fold level, lines>; the folds here are not nested by level, so the collapsed ones go under level 1
+    private static Dictionary<int, HashSet<int>> FoldLevelsOf(DocTab tab)
+    {
+        var result = new Dictionary<int, HashSet<int>>();
+        HashSet<int> lines = CollapsedFoldLines(tab);
+        if(lines.Count > 0) result[1] = lines;
+        return result;
     }
 
     /// <summary>Remembers the open scripts and their view in the map's options (they are saved with the map).</summary>
@@ -637,7 +740,7 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
             if(t.Kind == DocKind.File && t.FilePath.Length == 0) continue;   // never saved: nothing to come back to
             General.Map.Options.ScriptDocumentSettings[t.SettingsKey] = new ScriptDocumentSettings
             {
-                FoldLevels = new Dictionary<int, HashSet<int>>(),
+                FoldLevels = FoldLevelsOf(t),
                 CaretPosition = t.Editor.CaretOffset,
                 FirstVisibleLine = Math.Max(0, (int)(t.Editor.TextArea.TextView.VerticalOffset / Math.Max(1, t.Editor.TextArea.TextView.DefaultLineHeight))),
                 Filename = t.SettingsKey,

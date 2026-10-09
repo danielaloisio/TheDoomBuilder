@@ -418,4 +418,72 @@ public class ScriptEditorTests : EditorTestBase
         }
         finally { colors.ScriptBackground = CodeImp.DoomBuilder.Rendering.PixelColor.FromInt(old); }
     }
+
+    [AvaloniaFact]
+    public void Collapsed_folds_are_kept_in_the_map_options_and_come_back()
+    {
+        ScriptEditorWindow editor = OpenScriptEditor();
+        var text = CurrentText(editor);
+        text.Text = "script 1 (void)\n{\n    Print(s:\"a\");\n}\n\nscript 2 (void)\n{\n    Print(s:\"b\");\n}\n";
+        editor.RefreshFoldings();
+        var folding = editor.CurrentFolding;
+        Assert.NotNull(folding);
+        var second = folding.AllFoldings.OrderBy(f => f.StartOffset).Last();
+        second.IsFolded = true;
+
+        General.Map.ScriptEditor.Editor.WriteOpenFilesToConfiguration();
+        var saved = General.Map.Options.ScriptDocumentSettings["SCRIPTS"];   // case-insensitive, like the lump names
+        Assert.Equal(new[] { 7 }, saved.FoldLevels[1].ToArray());      // the second block opens with its "{" on line 7 (1-based)
+
+        General.Map.CloseScriptEditor(false);
+        Flush();
+        General.Actions.InvokeAction("builder_openscripteditor");
+        Flush();
+        var again = ScriptEditorWindow.Instance;
+        var folds = again.CurrentFolding.AllFoldings.OrderBy(f => f.StartOffset).ToList();
+        Assert.Equal(new[] { false, true }, folds.Select(f => f.IsFolded));
+    }
+
+    [AvaloniaFact]
+    public void The_fold_colors_of_the_preferences_reach_the_fold_margin()
+    {
+        ScriptEditorWindow editor = OpenScriptEditor();
+        var text = CurrentText(editor);
+        text.Text = "script 1 (void)\n{\n}\n";
+        var colors = General.Colors;
+        var old = colors.ScriptFoldForeColor;
+        try
+        {
+            colors.ScriptFoldForeColor = CodeImp.DoomBuilder.Rendering.PixelColor.FromInt(unchecked((int)0xFF0A141E));
+            editor.RefreshFoldings();
+            var margin = text.TextArea.LeftMargins.OfType<AvaloniaEdit.Folding.FoldingMargin>().Single();
+            var brush = (Avalonia.Media.SolidColorBrush)margin.FoldingMarkerBrush;
+            Assert.Equal(Avalonia.Media.Color.FromRgb(0x0A, 0x14, 0x1E), brush.Color);
+            Assert.Contains(new CodeImp.DoomBuilder.Windows.PreferencesModel().InTab("Script editor"), p => p.Key == "colorscriptfoldback");
+        }
+        finally { colors.ScriptFoldForeColor = old; }
+    }
+
+    [AvaloniaFact]
+    public void The_script_type_of_a_file_tab_can_be_changed()
+    {
+        ScriptEditorWindow editor = OpenScriptEditor();
+        string path = Path.Combine(dir, "notes.dat");
+        File.WriteAllText(path, "script 1 (void)\n{\n}\n");
+        editor.OpenFile(path);
+        Flush();
+        var plain = editor.CurrentConfig;
+        var text = CurrentText(editor);
+        Assert.Null(editor.CurrentFolding);                    // plain text does not fold
+
+        var acs = General.GetScriptConfiguration(CodeImp.DoomBuilder.Config.ScriptType.ACS);
+        Assert.NotNull(acs);
+        editor.SetCurrentScriptType(acs);
+        Assert.Same(acs, editor.CurrentConfig);
+        Assert.NotSame(plain, editor.CurrentConfig);
+        Assert.NotNull(editor.CurrentFolding);                 // now it does
+        editor.RefreshFoldings();
+        Assert.Single(editor.CurrentFolding.AllFoldings);
+        Assert.True(text.TextArea.TextView.LineTransformers.OfType<ScriptSyntaxColorizer>().Count() == 1);
+    }
 }

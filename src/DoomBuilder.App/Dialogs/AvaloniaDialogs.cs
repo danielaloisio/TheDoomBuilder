@@ -136,7 +136,11 @@ internal sealed class AvaloniaDialogs : NoDialogs
 
     public override DialogResult ShowChangeMap(ChangeMapForm form)
     {
-        if (Owner == null) return DialogResult.Cancel;
+        if (Owner == null)
+        {
+            General.WriteLogLine("The Change Map dialog cannot be shown: there is no main window to own it.");
+            return DialogResult.Cancel;
+        }
 
         var model = new OpenMapOptionsModel(form.FileName, form.Options);
         try

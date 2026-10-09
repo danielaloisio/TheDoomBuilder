@@ -30,6 +30,54 @@ public class LocalizerTests : IDisposable
     }
 
     [Fact]
+    public void A_message_built_by_concatenation_matches_a_text_with_values_and_the_values_are_translated_too()
+    {
+        Write("xx", "{ \"language\": \"Xish\", \"strings\": { \"Deleted {0} linedefs.\": \"Borrado {0} lineas.\", \"Edit {0}\": \"Editar {0}\", " +
+                    "\"{0} undone.\": \"{0} deshecho.\", \"Snap to grid is {0}\": \"Rejilla: {0}\", \"ENABLED\": \"ACTIVA\", \"linedef\": \"linea\", " +
+                    "\"Changed index of {oldindex} to {newindex}.\": \"Indice {oldindex} a {newindex}.\" } }");
+        Localizer.Load(dir, "xx");
+
+        Assert.Equal("Borrado 12 lineas.", Localizer.T("Deleted 12 linedefs."));
+        Assert.Equal("Editar linea", Localizer.T("Edit linedef"));             // the value is a text of its own
+        Assert.Equal("Editar linea deshecho.", Localizer.T("Edit linedef undone."));   // value inside a value: "{0} undone." then "Edit {0}"
+        Assert.Equal("Rejilla: ACTIVA", Localizer.T("Snap to grid is ENABLED"));
+        Assert.Equal("Indice 3 a 7.", Localizer.T("Changed index of 3 to 7."));  // named holes (interpolated strings)
+        Assert.Equal("Something else", Localizer.T("Something else"));
+        Assert.Equal("Deleted 12 linedefs.", Localizer.Exact("Deleted 12 linedefs.") ?? "Deleted 12 linedefs.");
+    }
+
+    [Fact]
+    public void Exact_only_finds_texts_with_an_entry_and_ignores_the_access_key_style()
+    {
+        Write("xx", "{ \"language\": \"Xish\", \"strings\": { \"&Select\": \"&Selecta\", \"Edit {0}\": \"Editar {0}\", \"Name:\": \"Nombre:\" } }");
+        Localizer.Load(dir, "xx");
+
+        Assert.Equal("Nombre:", Localizer.Exact("Name:"));
+        Assert.Equal("_Selecta", Localizer.Exact("_Select"));        // Avalonia style
+        Assert.Equal("&Selecta", Localizer.Exact("&Select"));
+        Assert.Null(Localizer.Exact("Edit foo"));                    // templates are not for user data
+        Assert.Null(Localizer.Exact("Other"));
+        Assert.Equal("Editar foo", Localizer.T("Edit foo"));
+    }
+
+    [Fact]
+    public void The_shipped_portuguese_file_keeps_the_values_of_every_text_with_holes()
+    {
+        string file = Path.Combine(AppContext.BaseDirectory, Localizer.FolderName, "pt-BR.json");
+        if (!File.Exists(file)) file = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "Common", Localizer.FolderName, "pt-BR.json"));
+        Assert.True(File.Exists(file), file);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(file));
+        var holes = new System.Text.RegularExpressions.Regex(@"\{\w+\}");
+        foreach (var p in doc.RootElement.GetProperty("strings").EnumerateObject())
+        {
+            var want = holes.Matches(p.Name).Select(m => m.Value).OrderBy(x => x).ToList();
+            var got = holes.Matches(p.Value.GetString()).Select(m => m.Value).OrderBy(x => x).ToList();
+            Assert.True(want.SequenceEqual(got), "values differ in: " + p.Name);
+        }
+    }
+
+    [Fact]
     public void The_language_is_chosen_by_code_then_by_the_language_without_the_country()
     {
         Write("pt-BR", "{ \"language\": \"Português (Brasil)\", \"strings\": { \"Save\": \"Salvar\" } }");

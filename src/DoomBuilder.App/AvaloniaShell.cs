@@ -137,7 +137,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     // ---- rendering / threading
 
-    public override IRenderBackend CreateRenderBackend() => viewport.Backend;
+    public override IRenderBackend CreateRenderBackend() => viewport.RenewBackend();
 
     /// <summary>How many redraws were asked for (diagnostics and tests).</summary>
     public int RedrawRequests { get; private set; }
@@ -156,10 +156,40 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     // ---- status
 
+    // UDB's status resetter: a message stays 5 seconds, then the status is computed again (Ready: empty, or "Loading resources..." while images
+    // are still being loaded). Without it "Loading resources..." would stay in the status bar after the loading is done.
+    private const int StatusResetDelay = 5000;
+    private DispatcherTimer statusResetter;
+
+    /// <summary>The status will go back to Ready when its time comes.</summary>
+    public bool StatusResetPending => statusResetter != null && statusResetter.IsEnabled;
+
+    /// <summary>Runs what the status resetter does when its time comes (tests and diagnostics).</summary>
+    internal void ResetStatusNow()
+    {
+        statusResetter?.Stop();
+        DisplayReady();
+    }
+
+    private void RestartStatusReset()
+    {
+        if (statusResetter == null)
+        {
+            statusResetter = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(StatusResetDelay) };
+            statusResetter.Tick += (s, e) => { statusResetter.Stop(); DisplayReady(); };
+        }
+        statusResetter.Stop();
+        statusResetter.Start();
+    }
+
     public override void DisplayStatus(StatusInfo newstatus)
     {
         base.DisplayStatus(newstatus);
-        StatusChanged?.Invoke(newstatus.message);
+        StatusChanged?.Invoke(CodeImp.DoomBuilder.Localization.Localizer.T(newstatus.message));
+
+        // Busy stays until whoever set it says otherwise
+        if (newstatus.type == StatusType.Busy) RunOnUIThread(() => statusResetter?.Stop());
+        else RunOnUIThread(RestartStatusReset);
     }
 
     public override void DisplayStatus(StatusType type, string message) => DisplayStatus(new StatusInfo(type, message));

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace CodeImp.DoomBuilder.Localization
 {
@@ -27,6 +28,19 @@ namespace CodeImp.DoomBuilder.Localization
 
 		private static Dictionary<string, string> strings = new Dictionary<string, string>(StringComparer.Ordinal);
 		private static string current = "en";
+
+		// Texts with values in them ("Edit {0} linedefs"): the call sites build messages by concatenation, so a message that has no exact entry is
+		// matched against these. The values are translated too ("Undo {0}" with an undo description).
+		private sealed class Template
+		{
+			public Regex Pattern;
+			public string Translation;
+			public int Count;
+		}
+		private static List<Template> templates = new List<Template>();
+		private static readonly Dictionary<string, string> templatecache = new Dictionary<string, string>(StringComparer.Ordinal); // text -> result ("" = no template fits)
+		private const int MaxCache = 4096;
+		[ThreadStatic] private static int depth;
 
 		/// <summary>The code of the language in use ("en" when the texts are the English ones).</summary>
 		public static string CurrentLanguage { get { return current; } }
@@ -61,6 +75,8 @@ namespace CodeImp.DoomBuilder.Localization
 		{
 			Language chosen = Choose(Available(appdirectory), string.IsNullOrEmpty(requested) ? CultureInfo.CurrentUICulture.Name : requested);
 			strings = new Dictionary<string, string>(StringComparer.Ordinal);
+			templates = new List<Template>();
+			lock(templatecache) { templatecache.Clear(); }
 			current = "en";
 			if(chosen == null) return current;
 
@@ -72,12 +88,14 @@ namespace CodeImp.DoomBuilder.Localization
 						foreach(JsonProperty p in list.EnumerateObject())
 							if(p.Value.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(p.Value.GetString())) strings[p.Name] = p.Value.GetString();
 				}
+				templates = BuildTemplates(strings);
 				current = chosen.Code;
 			}
 			catch(Exception e)
 			{
 				General.WriteLogLine("Unable to load the language file \"" + chosen.File + "\": " + e.Message);
 				strings = new Dictionary<string, string>(StringComparer.Ordinal);
+				templates = new List<Template>();
 			}
 			return current;
 		}
@@ -97,14 +115,98 @@ namespace CodeImp.DoomBuilder.Localization
 		public static void Reset()
 		{
 			strings = new Dictionary<string, string>(StringComparer.Ordinal);
+			templates = new List<Template>();
+			lock(templatecache) { templatecache.Clear(); }
 			current = "en";
+		}
+
+		private static List<Template> BuildTemplates(Dictionary<string, string> table)
+		{
+			var result = new List<Template>();
+			foreach(KeyValuePair<string, string> pair in table)
+			{
+				MatchCollection holes = Regex.Matches(pair.Key, @"\{(\w+)\}");
+				if(holes.Count == 0) continue;
+
+				// Longest literal text first when two templates both match
+				string pattern = "^" + Regex.Replace(Regex.Escape(pair.Key), @"\\\{(\w+)\}", m => "(?<v" + m.Groups[1].Value + ">.*?)") + "$";
+				try
+				{
+					result.Add(new Template { Pattern = new Regex(pattern, RegexOptions.Singleline | RegexOptions.CultureInvariant), Translation = pair.Value, Count = holes.Count });
+				}
+				catch(ArgumentException) { /* a key that is not a usable pattern stays exact-only */ }
+			}
+			return result.OrderByDescending(t => t.Pattern.ToString().Length).ToList();
+		}
+
+		private static string ApplyTemplate(string text)
+		{
+			if(templates.Count == 0 || depth > 3) return null;
+			lock(templatecache)
+			{
+				if(templatecache.TryGetValue(text, out string cached)) return cached.Length == 0 ? null : cached;
+			}
+
+			string result = MatchTemplates(text);
+			if(depth == 0)
+			{
+				lock(templatecache)
+				{
+					if(templatecache.Count >= MaxCache) templatecache.Clear();
+					templatecache[text] = result ?? "";
+				}
+			}
+			return result;
+		}
+
+		private static string MatchTemplates(string text)
+		{
+			foreach(Template t in templates)
+			{
+				Match m = t.Pattern.Match(text);
+				if(!m.Success) continue;
+
+				depth++;
+				try
+				{
+					return Regex.Replace(t.Translation, @"\{(\w+)\}", h =>
+					{
+						Group g = m.Groups["v" + h.Groups[1].Value];
+						if(!g.Success) return h.Value;
+
+						// The value may be a text of its own (" linedefs", "SHOWN"): translate it without its surrounding spaces
+						string value = g.Value, trimmed = value.Trim();
+						if(trimmed.Length == 0) return value;
+						int lead = value.IndexOf(trimmed, StringComparison.Ordinal);
+						return value.Substring(0, lead) + T(trimmed) + value.Substring(lead + trimmed.Length);
+					});
+				}
+				finally { depth--; }
+			}
+			return null;
 		}
 
 		/// <summary>The text in the language in use; the same text when there is no translation.</summary>
 		public static string T(string text)
 		{
 			if(string.IsNullOrEmpty(text)) return text;
-			return strings.TryGetValue(text, out string translated) ? translated : text;
+			if(strings.TryGetValue(text, out string translated)) return translated;
+			return ApplyTemplate(text) ?? text;
+		}
+
+		/// <summary>
+		/// The translation of a text that has an entry of its own, or null. Unlike <see cref="T(string)"/> it never matches a template, so it is safe for
+		/// text that may be user data. Access keys are matched in either style: "&amp;File" (WinForms) and "_File" (Avalonia).
+		/// </summary>
+		public static string Exact(string text)
+		{
+			if(string.IsNullOrEmpty(text) || strings.Count == 0) return null;
+			if(strings.TryGetValue(text, out string translated)) return translated;
+
+			int amp = text.IndexOf('&'), und = text.IndexOf('_');
+			if(und >= 0 && amp < 0 && strings.TryGetValue(text.Remove(und, 1).Insert(und, "&"), out translated)) return translated.Replace('&', '_');
+			if(amp >= 0 && und < 0 && strings.TryGetValue(text.Remove(amp, 1).Insert(amp, "_"), out translated)) return translated.Replace('_', '&');
+			return null;
 		}
 
 		/// <summary>A translated text with values in it ({0}, {1}...).</summary>
