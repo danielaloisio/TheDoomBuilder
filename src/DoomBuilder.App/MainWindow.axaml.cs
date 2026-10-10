@@ -43,6 +43,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
         shell = new AvaloniaShell(Viewport) { WindowIsActive = () => activity.IsActive(PlatformIsActive()) };
         ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
+        SplashImage.Source = DoomBuilder.App.Shell.ImageCache.Get("Splash3_trans");
         MenuHost.Content = ui.Menu;
         ToolbarHost.Content = ui.Toolbar;
         ModesHost.Content = ui.ModesBar;
@@ -199,6 +200,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         plugins.Refresh();
         ApplyDockers();
 
+        SplashHost.IsVisible = General.Map == null;
         InfoHost.IsVisible = General.Map != null && shell.IsInfoPanelExpanded;
         if (shell.InfoObject == null) infoPanel.Show(General.Map != null ? CodeImp.DoomBuilder.Windows.ElementInfoBuilder.ForStatistics() : null);   // (the mode or the map changed)
 

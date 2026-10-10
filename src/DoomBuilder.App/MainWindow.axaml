@@ -29,6 +29,10 @@
         <!-- The transparent panel is what receives the pointer: a GL control is not hit-testable on its own -->
         <Panel x:Name="InputSurface" Background="Transparent">
             <local:MapViewport x:Name="Viewport" />
+            <!-- What the display shows while no map is open (the splash logo of UDB, on its dark background) -->
+            <Border x:Name="SplashHost" Background="#202028" IsHitTestVisible="False">
+                <Image x:Name="SplashImage" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
         </Panel>
     </DockPanel>
 </Window>
