@@ -65,7 +65,7 @@ public class ScriptEditorTests : EditorTestBase
     }
 
     private static TextBox Box(Avalonia.Visual v, string watermark) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(v).OfType<TextBox>().First(b => b.PlaceholderText == watermark);
-    private static Button Btn(Avalonia.Visual v, string text) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(v).OfType<Button>().First(b => (string)b.Content == text);
+    private static Button Btn(Avalonia.Visual v, string text) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(v).OfType<Button>().First(b => b.Content as string == text);
 
     [AvaloniaFact]
     public void Find_next_wraps_around_and_replace_all_honours_whole_word()

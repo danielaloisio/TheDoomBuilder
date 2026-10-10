@@ -41,7 +41,15 @@ public sealed class UiItem
     public bool IsSeparator { get { return Type == "separator"; } }
 
     [JsonIgnore]
-    public bool InvokesAction { get { return Handler == "InvokeTaggedAction" && !string.IsNullOrEmpty(Action); } }
+    public bool InvokesAction
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Action)) return false;
+            // The main part of a split button has no Click handler in the designer (ButtonClick runs the tagged action)
+            return Handler == "InvokeTaggedAction" || (Type == "split" && string.IsNullOrEmpty(Handler));
+        }
+    }
 
     /// <summary>Text without the access-key marker.</summary>
     [JsonIgnore]

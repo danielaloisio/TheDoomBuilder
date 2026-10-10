@@ -247,6 +247,18 @@ internal sealed class PluginUi
         ui.ModesBar.IsVisible = map && ui.ModesPanel.Children.Count > 0;
         ui.ModeControlsBar.IsVisible = map && ui.ModeControlsPanel.Children.Count > 0;
 
+        // The edit modes bar is vertical (at the left of the display, like in UDB): its separators lie flat
+        foreach (AvControl c in ui.ModesPanel.Children)
+        {
+            // local padding wins over the style of the bar: set it here so that the whole column fits the window
+            if (c is Avalonia.Controls.Primitives.ToggleButton toggle && toggle.Padding != new Avalonia.Thickness(2)) toggle.Padding = new Avalonia.Thickness(2);
+            if (c is Border b && b.Classes.Contains(ToolStripBinder.SeparatorClass) && b.Height != 1)
+            {
+                b.Width = 20;
+                b.Height = 1;
+                b.Margin = new Avalonia.Thickness(0, 4);
+            }
+        }
         HideRedundantSeparators(ui.ModesPanel.Children);
         HideRedundantSeparators(ui.ModeControlsPanel.Children);
         HideRedundantSeparators(ui.FindMenu("menumode")?.Items.OfType<AvControl>().ToList(), menu: true);
@@ -260,7 +272,7 @@ internal sealed class PluginUi
         AvControl lastSeparator = null;
         foreach (AvControl c in controls.ToList())
         {
-            bool separator = menu ? c is Separator : c is Border { Width: 1 };
+            bool separator = menu ? c is Separator : c is Border b && b.Classes.Contains(ToolStripBinder.SeparatorClass);
             if (separator)
             {
                 c.IsVisible = previousIsEntry;

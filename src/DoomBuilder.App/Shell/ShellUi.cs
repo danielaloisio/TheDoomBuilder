@@ -25,6 +25,7 @@ public sealed class ShellUi
         public TextBlock ShortcutText;  // the shortcut next to it (menus)
         public MenuItem MenuItem;
         public ToggleButton Button;
+        public Image Icon;              // the picture of a toolbar button or menu item: swapped for a gray one when disabled
     }
 
     private readonly ShellCommands commands;
@@ -33,13 +34,15 @@ public sealed class ShellUi
     private readonly Dictionary<string, Bound> byName = new Dictionary<string, Bound>();
     private readonly Dictionary<Control, ItemsControl> menuOwner = new Dictionary<Control, ItemsControl>();   // separators and items of the menus
     private WrapPanel toolbarPanel;
+    private readonly FilterDropdowns filterdropdowns = new FilterDropdowns();   // things filters and linedef color presets (live data)
+    private readonly List<Panel> toolbarPanels = new List<Panel>();   // the strips built from the UI description (separators are tidied in them)
     private bool refreshing;
 
     public Menu Menu { get; }
     public Control Toolbar { get; }
 
-    /// <summary>The row of edit mode buttons (filled by the plugins through AddEditModeButton).</summary>
-    public WrapPanel ModesPanel { get; } = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 1) };
+    /// <summary>The column of edit mode buttons at the left of the display (filled by the plugins through AddEditModeButton).</summary>
+    public WrapPanel ModesPanel { get; } = new WrapPanel { Orientation = Orientation.Vertical, Margin = new Thickness(1, 4) };
     public Control ModesBar { get; }
 
     /// <summary>The row of the controls of the active mode (the options of the drawing modes...).</summary>
@@ -53,7 +56,14 @@ public sealed class ShellUi
         var model = UiModel.Load();
         Menu = BuildMenu(model["menumain"]);
         Toolbar = BuildToolbar(model["toolbar"]);
-        ModesBar = new Border { Child = ModesPanel, BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = Brushes.Gray, IsVisible = false };
+        ModesBar = new Border { Child = ModesPanel, BorderThickness = new Thickness(0, 0, 1, 0), BorderBrush = Brushes.Gray, IsVisible = false };
+        // The column of modes has many buttons: tighter than the theme's minimum size so it fits in one column
+        var compact = new Avalonia.Styling.Style(x => Avalonia.Styling.Selectors.OfType<ToggleButton>(x));
+        compact.Setters.Add(new Avalonia.Styling.Setter(Layoutable.MinHeightProperty, 0.0));
+        compact.Setters.Add(new Avalonia.Styling.Setter(Layoutable.MinWidthProperty, 0.0));
+        compact.Setters.Add(new Avalonia.Styling.Setter(Decorator.PaddingProperty, new Thickness(2)));
+        compact.Setters.Add(new Avalonia.Styling.Setter(Layoutable.MarginProperty, new Thickness(1, 0)));
+        ((Border)ModesBar).Styles.Add(compact);
         ModeControlsBar = new Border { Child = ModeControlsPanel, BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = Brushes.Gray, IsVisible = false };
         Refresh();
     }
@@ -113,7 +123,7 @@ public sealed class ShellUi
             menuitem.Click += (s, e) => Run(item);
         }
 
-        Register(new Bound { Item = item, Control = menuitem, MenuItem = menuitem, Caption = caption, ShortcutText = shortcut });
+        Register(new Bound { Item = item, Control = menuitem, MenuItem = menuitem, Caption = caption, ShortcutText = shortcut, Icon = menuitem.Icon as Image });
         return menuitem;
     }
 
@@ -132,6 +142,7 @@ public sealed class ShellUi
     {
         var panel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 2) };
         toolbarPanel = panel;
+        toolbarPanels.Add(panel);
         foreach (UiItem item in strip.Items)
             if (BuildToolbarItem(item) is { } control) panel.Children.Add(control);
 
@@ -142,31 +153,55 @@ public sealed class ShellUi
     {
         if (item.IsSeparator)
         {
-            var line = new Border { Width = 1, Height = 20, Margin = new Thickness(5, 2), Background = Brushes.Gray, Opacity = 0.5 };
+            var line = new Border { Width = 1, Height = 20, Margin = new Thickness(5, 2), Background = Brushes.Gray, Opacity = 0.5, Classes = { ToolStripBinder.SeparatorClass } };
             Register(new Bound { Item = item, Control = line });
             return line;
         }
 
+        // The drop-downs fed from the open map (the entries are not in the UI description)
+        if (item.Name == "thingfilters" || item.Name == "linedefcolorpresets")
+        {
+            Control live = item.Name == "thingfilters" ? filterdropdowns.CreateThingsFilters() : filterdropdowns.CreateColorPresets();
+            Register(new Bound { Item = item, Control = live });
+            return live;
+        }
+
         // Split/drop-down buttons list their entries in a flyout; the ones fed from live data (things filters, line color
-        // presets) are built when those lists are ported.
-        if (item.Type == "dropdown" || item.Type == "split")
+        // presets) are built when those lists are ported. A split button without entries is a plain button, and with
+        // entries its main part runs the action while a small arrow opens the list (like the WinForms split button).
+        bool split = item.Type == "split" && !string.IsNullOrEmpty(item.Action);
+        if ((item.Type == "dropdown" || item.Type == "split") && !(split && item.Items.Count == 0))
         {
             if (item.Items.Count == 0) return null;
             var flyout = new MenuFlyout();
             foreach (UiItem child in item.Items)
                 if (!child.IsSeparator) flyout.Items.Add(BuildMenuItem(child));
 
-            var drop = new ToggleButton { Content = ContentOf(item), Flyout = flyout, Padding = new Thickness(4) };
-            drop.Click += (s, e) => { drop.IsChecked = false; flyout.ShowAt(drop); };
-            ToolTip.SetTip(drop, item.Tooltip ?? item.PlainText);
-            Register(new Bound { Item = item, Control = drop, Button = drop });
-            return drop;
+            if (!split)
+            {
+                var drop = new ToggleButton { Content = ContentOf(item), Flyout = flyout, Padding = new Thickness(4) };
+                drop.Click += (s, e) => { drop.IsChecked = false; flyout.ShowAt(drop); };
+                ToolTip.SetTip(drop, item.Tooltip ?? item.PlainText);
+                Register(new Bound { Item = item, Control = drop, Button = drop, Icon = drop.Content as Image });
+                return drop;
+            }
+
+            var main = new ToggleButton { Content = ContentOf(item), Padding = new Thickness(4, 4, 2, 4), Margin = new Thickness(1, 1, 0, 1) };
+            main.Click += (s, e) => Run(item);
+            ToolTip.SetTip(main, item.Tooltip ?? item.PlainText);
+            var arrow = new ToggleButton { Content = "\u25BE", Padding = new Thickness(2, 4), Margin = new Thickness(0, 1, 1, 1), MinWidth = 0, FontSize = 10 };
+            arrow.Click += (s, e) => { arrow.IsChecked = false; flyout.ShowAt(main); };
+            var panel = new StackPanel { Orientation = Orientation.Horizontal };
+            panel.Children.Add(main);
+            panel.Children.Add(arrow);
+            Register(new Bound { Item = item, Control = panel, Button = main, Icon = main.Content as Image });
+            return panel;
         }
 
         var button = new ToggleButton { Content = ContentOf(item), Padding = new Thickness(4), Margin = new Thickness(1) };
         ToolTip.SetTip(button, item.Tooltip ?? item.PlainText);
         button.Click += (s, e) => Run(item);
-        Register(new Bound { Item = item, Control = button, Button = button });
+        Register(new Bound { Item = item, Control = button, Button = button, Icon = button.Content as Image });
         return button;
     }
 
@@ -343,10 +378,15 @@ public sealed class ShellUi
             {
                 ItemState? state = UiRules.For(b.Item);
 
+                // A separator without a rule is there; HideStraySeparators decides below whether it makes sense
+                if (state == null && b.Item.IsSeparator && b.Control is Border) b.Control.IsVisible = true;
+
                 if (state is { } s)
                 {
                     b.Control.IsVisible = s.Visible;
                     b.Control.IsEnabled = s.Enabled;
+                    if (b.Icon != null && !string.IsNullOrEmpty(b.Item.Image))
+                        b.Icon.Source = (s.Enabled ? ImageCache.Get(b.Item.Image) : ImageCache.GetDisabled(b.Item.Image)) ?? b.Icon.Source;
                     if (b.MenuItem != null)
                     {
                         // Only items that are checkable get a check mark
@@ -366,8 +406,34 @@ public sealed class ShellUi
 
                 if (b.ShortcutText != null) b.ShortcutText.Text = ShortcutOf(b.Item);
             }
+
+            foreach (Panel strip in toolbarPanels) HideStraySeparators(strip);
+            filterdropdowns.Refresh();
         }
         finally { refreshing = false; }
+    }
+
+    /// <summary>
+    /// A toolbar separator only shows between two visible items: the ones at the start or the end of the strip, or next to
+    /// another separator (every group of buttons hidden, e.g. when there is no map) are hidden. The WinForms toolbar of
+    /// the UDB did this by hand, group by group.
+    /// </summary>
+    private void HideStraySeparators(Panel strip)
+    {
+        Control lastSeparator = null;
+        bool itemSinceSeparator = false;
+        foreach (Control child in strip.Children)
+        {
+            if (child is Border { Width: 1 } line && bound.Exists(x => ReferenceEquals(x.Control, line) && x.Item.IsSeparator))
+            {
+                if (!line.IsVisible) continue;       // hidden by its own rule
+                if (!itemSinceSeparator) { line.IsVisible = false; continue; }
+                lastSeparator = line;
+                itemSinceSeparator = false;
+            }
+            else if (child.IsVisible) itemSinceSeparator = true;
+        }
+        if (!itemSinceSeparator && lastSeparator != null) lastSeparator.IsVisible = false;
     }
 
     // The key bound to the item's action, as the user sees it in the shortcuts list

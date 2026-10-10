@@ -7,8 +7,8 @@
     <DockPanel>
         <ContentControl x:Name="MenuHost" DockPanel.Dock="Top" />
         <ContentControl x:Name="ToolbarHost" DockPanel.Dock="Top" />
-        <ContentControl x:Name="ModesHost" DockPanel.Dock="Top" />
         <ContentControl x:Name="ModeControlsHost" DockPanel.Dock="Top" />
+        <ContentControl x:Name="ModesHost" DockPanel.Dock="Left" />
 
         <Border DockPanel.Dock="Bottom" Padding="8,3" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">

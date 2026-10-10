@@ -33,10 +33,16 @@ public static class UiRules
         // menus and items of the File menu that need a map
         "menuedit", "menuview", "menumode", "menuprefabs",
         "itemclosemap", "itemsavemap", "itemsavemapas", "itemsavemapinto", "itemopenmapincurwad", "itemimport", "itemexport",
-        "seperatorfileopen", "seperatorfilesave", "buttonsavemap",
+        "seperatorfileopen", "seperatorfilesave",
         "itemreloadresources", "seperatortoolsconfig", "itemsavescreenshot", "itemsaveeditareascreenshot",
         "separatortoolsscreenshots", "itemtestmap", "itemhelpeditmode",
         "itemtogglefixedthingsscale",
+    };
+
+    // Toolbar drop-downs and split buttons whose names do not start with "button"
+    private static readonly HashSet<string> ToolbarDropdowns = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "dynamiclightmode", "modelrendermode", "thingfilters", "linedefcolorpresets",
     };
 
     /// <summary>The state of an item, or null when no rule applies (the item keeps its defaults).</summary>
@@ -47,7 +53,13 @@ public static class UiRules
 
         // The window is built before the editor starts: no settings, no map, so only what needs neither is usable
         if (General.Settings == null)
-            return VisibleOnlyWithMap.Contains(name) || name.StartsWith("button") ? new ItemState { Visible = false, Enabled = false } : (ItemState?)null;
+        {
+            // the file buttons are there from the start; Save is grayed out until a map is open (as in UDB)
+            if (name == "buttonnewmap" || name == "buttonopenmap") return new ItemState { Visible = true, Enabled = true };
+            if (name == "buttonsavemap") return new ItemState { Visible = true, Enabled = false };
+        }
+        if (General.Settings == null)
+            return VisibleOnlyWithMap.Contains(name) || name.StartsWith("button") || ToolbarDropdowns.Contains(name) ? new ItemState { Visible = false, Enabled = false } : (ItemState?)null;
 
         // the extra rules first: they refine the generic "needs a map"
         switch (name)
@@ -119,6 +131,7 @@ public static class UiRules
             case "buttontogglesky": return Toolbar(General.Settings.GZToolbarGZDoom && map, General.Settings.GZDrawSky);
             case "buttontogglevisualvertices": return Toolbar(General.Settings.GZToolbarGZDoom && map && Udmf, General.Settings.GZShowVisualVertices);
             case "buttonnewmap": case "buttonopenmap": return Toolbar(General.Settings.ToolbarFile);
+            case "buttonsavemap": return new ItemState { Visible = General.Settings.ToolbarFile, Enabled = map };   // shown, grayed out without a map
         }
 
         if (VisibleOnlyWithMap.Contains(name)) return new ItemState { Visible = map, Enabled = true };
