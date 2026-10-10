@@ -104,6 +104,13 @@ public class MouseCaptureTests : IDisposable
         public void MoveTo(int x, int y) => Moves.Add((x, y));
     }
 
+    private sealed class FakeRaw : DoomBuilder.App.Input.IRelativeMotionSource
+    {
+        public CodeImp.DoomBuilder.Geometry.Vector2D Next;
+        public CodeImp.DoomBuilder.Geometry.Vector2D Poll() { var d = Next; Next = new CodeImp.DoomBuilder.Geometry.Vector2D(); return d; }
+        public void Dispose() { }
+    }
+
     private MainWindow window;
 
     public void Dispose() => window?.Close();
@@ -142,6 +149,36 @@ public class MouseCaptureTests : IDisposable
         Assert.Equal(2, warp.Moves.Count);
         window.MouseMove(surface.TranslatePoint(center, window).Value);
         Assert.Equal(0, capture.Poll().x, 3);
+        Assert.Equal(2, warp.Moves.Count);
+    }
+
+    [AvaloniaFact]
+    public void With_raw_motion_the_pointer_is_put_back_in_the_middle_now_and_then_so_it_stays_in_the_view()
+    {
+        window = new MainWindow(startEditor: false) { Width = 600, Height = 400 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var viewport = window.FindControl<MapViewport>("Viewport");
+        viewport.InputSurface = window.FindControl<Avalonia.Controls.Panel>("InputSurface");
+        var warp = new FakeWarp();
+        var raw = new FakeRaw();
+
+        using var capture = new DoomBuilder.App.Input.ViewportMouseCapture(viewport, warp, raw);
+        Assert.Single(warp.Moves);                       // put in the middle when the capture starts
+
+        raw.Next = new CodeImp.DoomBuilder.Geometry.Vector2D(10, -4);
+        var delta = capture.Poll();
+        Assert.Equal(10, delta.x, 3);                    // the camera gets the device movement as it is
+        Assert.Equal(-4, delta.y, 3);
+        Assert.Single(warp.Moves);                       // a little movement: no need to move the pointer
+
+        raw.Next = new CodeImp.DoomBuilder.Geometry.Vector2D(20, 0);   // 30 in total since it was in the middle
+        Assert.Equal(20, capture.Poll().x, 3);
+        Assert.Equal(2, warp.Moves.Count);               // brought back before it can leave the window
+        Assert.Equal(warp.Moves[0], warp.Moves[1]);      // to the same point as at the start
+
+        Assert.Equal(0, capture.Poll().x, 3);            // standing still: nothing to do
         Assert.Equal(2, warp.Moves.Count);
     }
 }
