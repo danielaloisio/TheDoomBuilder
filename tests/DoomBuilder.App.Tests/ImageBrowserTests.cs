@@ -60,7 +60,7 @@ public class ImageBrowserTests : EditorTestBase
     public void Cancelling_the_browser_keeps_the_current_name()
     {
         OpenEditor();
-        WhenShown<ImageBrowserWindow>(browser => Click(browser.GetVisualDescendants().OfType<Button>().First(b => (string)b.Content == "Cancel")));
+        WhenShown<ImageBrowserWindow>(browser => Click(browser.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == "Cancel")));
 
         string result = ImageBrowserWindow.Browse(window, "STARTAN2", false);
 
@@ -71,7 +71,7 @@ public class ImageBrowserTests : EditorTestBase
     public void The_dialog_service_browses_through_the_same_window()
     {
         OpenEditor();
-        WhenShown<ImageBrowserWindow>(browser => Click(browser.GetVisualDescendants().OfType<Button>().First(b => (string)b.Content == "Cancel")));
+        WhenShown<ImageBrowserWindow>(browser => Click(browser.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == "Cancel")));
 
         Assert.Equal("FLOOR4_8", General.Dialogs.BrowseImage("FLOOR4_8", true));
     }

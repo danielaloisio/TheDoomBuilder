@@ -87,7 +87,7 @@ public class ScriptEditorTests : EditorTestBase
         Click(Btn(editor, "Previous"));
         Assert.Equal(27, text.SelectionStart);                      // and back
 
-        Find<CheckBox>(editor, c => (string)c.Content == "Whole word").IsChecked = true;
+        Find<CheckBox>(editor, c => c.Content as string == "Whole word").IsChecked = true;
         Box(editor, "Replace with").Text = "dog";
         Click(Btn(editor, "Replace all"));
         Assert.Equal("int dog; int category; int dog;", text.Text);

@@ -63,7 +63,7 @@ public class TagPluginsTests : EditorTestBase
         => nodes.SelectMany(n => new[] { n }.Concat(AllNodes(n.Nodes)));
 
     private static Button Named(Window w, string text)
-        => w.GetVisualDescendants().OfType<Button>().First(b => (string)b.Content == text && b.IsEffectivelyVisible);
+        => w.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == text && b.IsEffectivelyVisible);
 
     // ---------------------------------------------------------------- Tag Explorer
 
@@ -258,7 +258,7 @@ public class TagPluginsTests : EditorTestBase
 
     private static NumberBox[] Numbers(Window d) => d.GetVisualDescendants().OfType<NumberBox>().ToArray();
 
-    private static CheckBox Check(Window d, string text) => d.GetVisualDescendants().OfType<CheckBox>().First(c => (string)c.Content == text);
+    private static CheckBox Check(Window d, string text) => d.GetVisualDescendants().OfType<CheckBox>().First(c => c.Content as string == text);
 
     [AvaloniaFact]
     public void The_tag_range_action_is_registered_and_its_button_is_on_the_toolbar_only_in_the_modes_with_tags()
