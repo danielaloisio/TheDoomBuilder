@@ -46,4 +46,45 @@ public class DisplayScaleTests : EditorTestBase
         }
         finally { MainForm.DPIScalerChanged -= Count; MainForm.DPIScaler = original; }
     }
+
+    [AvaloniaFact]
+    public void Plotter_lines_and_the_fixed_thing_size_follow_the_display_scale()
+    {
+        OpenEditor();
+        SizeF original = MainForm.DPIScaler;
+        try
+        {
+            var renderer = (Renderer2D)General.Map.Renderer2D;
+            MainForm.DPIScaler = new SizeF(1f, 1f);
+            renderer.ScaleView(2f);
+            float fixedsize = renderer.FixedThingSize;
+            MainForm.DPIScaler = new SizeF(2f, 2f);
+            renderer.ScaleView(2f + 0.001f);
+            Assert.Equal(fixedsize * 2f, renderer.FixedThingSize);
+        }
+        finally { MainForm.DPIScaler = original; }
+
+        // A line of the plotter is as many pixels wide as the thickness says
+        var plotter = new Plotter(64, 64);
+        var color = new PixelColor(255, 255, 255, 255);
+        plotter.DrawLineSolid(10, 10, 40, 10, ref color);
+        int thin = CountPainted(plotter);
+        plotter.Clear();
+        plotter.Thickness = 2;
+        plotter.DrawLineSolid(10, 10, 40, 10, ref color);
+        Assert.Equal(thin * 2, CountPainted(plotter));
+        plotter.Dispose();
+    }
+
+    private static int CountPainted(Plotter plotter)
+    {
+        int count = 0;
+        for(int y = 0; y < plotter.Height; y++)
+            for(int x = 0; x < plotter.Width; x++)
+            {
+                PixelColor c = plotter.GetPixel(x, y);
+                if(c.a != 0) count++;
+            }
+        return count;
+    }
 }

@@ -486,4 +486,24 @@ public class ScriptEditorTests : EditorTestBase
         Assert.Single(editor.CurrentFolding.AllFoldings);
         Assert.True(text.TextArea.TextView.LineTransformers.OfType<ScriptSyntaxColorizer>().Count() == 1);
     }
+
+    [AvaloniaFact]
+    public void The_script_type_picked_for_a_file_tab_comes_back_when_the_editor_is_opened_again()
+    {
+        ScriptEditorWindow editor = OpenScriptEditor();
+        string path = Path.Combine(dir, "typed.dat");
+        File.WriteAllText(path, "script 1 (void)\n{\n}\n");
+        editor.OpenFile(path);
+        Flush();
+        var acs = General.GetScriptConfiguration(CodeImp.DoomBuilder.Config.ScriptType.ACS);
+        editor.SetCurrentScriptType(acs);
+
+        General.Map.CloseScriptEditor(false);
+        Flush();
+        General.Actions.InvokeAction("builder_openscripteditor");
+        Flush();
+        var again = ScriptEditorWindow.Instance;
+        Assert.Contains("typed.dat", again.TabTitles());
+        Assert.Equal(CodeImp.DoomBuilder.Config.ScriptType.ACS, again.CurrentConfig.ScriptType);
+    }
 }

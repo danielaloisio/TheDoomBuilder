@@ -223,7 +223,18 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
         // Files and resources that were open when the editor was closed
         foreach(ScriptDocumentSettings saved in General.Map.Options.ScriptDocumentSettings.Values.ToList())
         {
-            if(saved.TabType == ScriptDocumentTabType.FILE && File.Exists(saved.Filename)) OpenFile(saved.Filename);
+            if(saved.TabType == ScriptDocumentTabType.FILE && File.Exists(saved.Filename))
+            {
+                if(!OpenFile(saved.Filename)) continue;
+
+                // The type picked in the tab's box wins over the one the extension gives
+                DocTab filetab = docs.FirstOrDefault(t => t.Kind == DocKind.File && string.Equals(t.FilePath, saved.Filename, StringComparison.OrdinalIgnoreCase));
+                if(filetab != null && saved.ScriptType != ScriptType.UNKNOWN && filetab.Config.ScriptType != saved.ScriptType)
+                {
+                    ScriptConfiguration picked = scripttypes.FirstOrDefault(c => c.ScriptType == saved.ScriptType);
+                    if(picked != null) ChangeScriptType(filetab, picked);
+                }
+            }
             else if(saved.TabType == ScriptDocumentTabType.RESOURCE)
             {
                 ScriptResource resource = FindResource(saved.ScriptType, saved.Filename);
@@ -745,7 +756,7 @@ public sealed class ScriptEditorWindow : Window, IScriptEditorHost
                 FirstVisibleLine = Math.Max(0, (int)(t.Editor.TextArea.TextView.VerticalOffset / Math.Max(1, t.Editor.TextArea.TextView.DefaultLineHeight))),
                 Filename = t.SettingsKey,
                 TabType = t.Kind switch { DocKind.Lump => ScriptDocumentTabType.LUMP, DocKind.File => ScriptDocumentTabType.FILE, _ => ScriptDocumentTabType.RESOURCE },
-                ScriptType = t.Kind == DocKind.Resource ? t.Resource.ScriptType : ScriptType.UNKNOWN,
+                ScriptType = t.Kind == DocKind.Resource ? t.Resource.ScriptType : (t.Kind == DocKind.File ? t.Config.ScriptType : ScriptType.UNKNOWN),
                 ResourceLocation = t.Kind == DocKind.Resource ? t.Resource.Resource?.Location.location : null,
                 IsActiveTab = ReferenceEquals(Current, t),
             };
