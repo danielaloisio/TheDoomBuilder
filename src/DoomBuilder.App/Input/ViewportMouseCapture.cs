@@ -22,6 +22,7 @@ public sealed class ViewportMouseCapture : IMouseCapture
     private readonly TopLevel window;         // the whole window hides the pointer, not just the view: it drifts out of the view when it cannot be moved back
     private readonly Cursor previouswindowcursor;
     private PixelPoint screencenter;
+    private Vector2D rawdrift;                // raw movement since the pointer was last put back in the middle
 
     /// <param name="raw">Device movement that does not depend on the pointer's position (X11/XWayland); the capture owns it. Without one, the movement is measured from the pointer's positions.</param>
     public ViewportMouseCapture(MapViewport viewport, IPointerWarp warp, IRelativeMotionSource raw = null)
@@ -72,7 +73,30 @@ public sealed class ViewportMouseCapture : IMouseCapture
             warp.MoveTo(screencenter.X, screencenter.Y);
     }
 
-    public Vector2D Poll() => raw != null ? raw.Poll() : tracker.Poll();
+    // How much raw movement is let go by before the pointer is put back in the middle of the view
+    private const double RecenterAfter = 24.0;
+
+    public Vector2D Poll()
+    {
+        if (raw == null) return tracker.Poll();
+
+        Vector2D delta = raw.Poll();
+
+        // The movement is read from the device, so nothing needs the pointer to be in the middle for the camera. But the pointer still
+        // is somewhere: on plain X11 it would walk out of the view, and on XWayland the pointer is locked while it is hidden, only as
+        // long as the position the X server believes it is at stays inside the window (otherwise the lock is dropped and the real
+        // pointer is free: it goes over to the other monitor). Putting it back in the middle now and then keeps that position inside.
+        if (warp.Supported && (delta.x != 0 || delta.y != 0))
+        {
+            rawdrift += delta;
+            if (Math.Abs(rawdrift.x) > RecenterAfter || Math.Abs(rawdrift.y) > RecenterAfter)
+            {
+                warp.MoveTo(screencenter.X, screencenter.Y);
+                rawdrift = new Vector2D();
+            }
+        }
+        return delta;
+    }
 
     public void Dispose()
     {
