@@ -282,6 +282,8 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     public override void SetupInterface() => RaiseInterfaceChanged();
     public override void UpdateMapChangedStatus() => RaiseInterfaceChanged();
     public override void UpdateThingsFilters() => RaiseInterfaceChanged();
+    public override void UpdateLinedefColorPresets() => RaiseInterfaceChanged();
+    public override void ReflectThingsFilter() => RaiseInterfaceChanged();
     public override void EditModeChanged()
     {
         // As MainForm did: check the button (and menu entry) of the mode that is active now

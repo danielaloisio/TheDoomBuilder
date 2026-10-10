@@ -70,7 +70,7 @@ thing { x = 64.0; y = 64.0; type = 1; angle = 90; skill1 = true; skill2 = true; 
     }
 
     private static Button Named(Window w, string text)
-        => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(w).OfType<Button>().First(b => (string)b.Content == text);
+        => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(w).OfType<Button>().First(b => b.Content as string == text);
 
     // The whole flow: right click on the wall, click a texture in the dialog, answer the texture browser, OK, and do it again
     [AvaloniaFact]

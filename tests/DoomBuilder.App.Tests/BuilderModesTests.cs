@@ -361,7 +361,7 @@ public class DrawDockersTests : EditorTestBase
         Assert.Equal(8, checks.Count);                         // five textures, two heights and the brightness
         Assert.All(checks, c => Assert.NotEqual(true, c.IsChecked == true && !c.IsEnabled));
 
-        var floor = checks.First(c => (string)c.Content == "Floor");
+        var floor = checks.First(c => c.Content as string == "Floor");
         Assert.Equal(General.Map.Options.OverrideFloorTexture, floor.IsChecked == true);
         floor.IsChecked = !General.Map.Options.OverrideFloorTexture;
         Assert.Equal(floor.IsChecked == true, General.Map.Options.OverrideFloorTexture);
@@ -384,7 +384,7 @@ public class DrawDockersTests : EditorTestBase
         sector.Selected = true;
         Flush();
 
-        var fillall = All<Avalonia.Controls.Button>(DockerContent("Draw Settings")).First(b => (string)b.Content == "Fill all");
+        var fillall = All<Avalonia.Controls.Button>(DockerContent("Draw Settings")).First(b => b.Content as string == "Fill all");
         Click(fillall);
 
         Assert.Equal("FLOOR4_8", sector.FloorTexture);

@@ -69,7 +69,7 @@ sector { heightfloor = 0; heightceiling = 256; texturefloor = ""FLOOR4_8""; text
     }
 
     private static Avalonia.Controls.Button Named(Avalonia.Controls.Window w, string text)
-        => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(w).OfType<Avalonia.Controls.Button>().First(b => (string)b.Content == text && b.IsEffectivelyVisible);
+        => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(w).OfType<Avalonia.Controls.Button>().First(b => b.Content as string == text && b.IsEffectivelyVisible);
 
     // The mode does this when Edit is pressed on a selected sector (3D floor editor, then the floors are built in the map)
     [AvaloniaFact]
@@ -96,7 +96,7 @@ sector { heightfloor = 0; heightceiling = 256; texturefloor = ""FLOOR4_8""; text
 
             var ctrl = editor.UsedControls.First();
             Assert.True(ctrl.IsNew);
-            Assert.Contains(ctrl.Buttons, b => (string)b.Content == "Duplicate");
+            Assert.Contains(ctrl.Buttons, b => b.Content as string == "Duplicate");
             Assert.Equal(1, ctrl.checkedListBoxSectors.Items.Count);               // the selected sector
             Assert.Equal(System.Windows.Forms.CheckState.Checked, ctrl.checkedListBoxSectors.GetItemCheckState(0));
 

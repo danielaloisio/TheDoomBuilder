@@ -52,7 +52,7 @@ namespace CodeImp.DoomBuilder.Rendering
 		private const int THING_BUFFER_SIZE = 100;
 		private const float MINIMUM_THING_RADIUS = 1.5f; //mxd
 		private const float MINIMUM_SPRITE_RADIUS = 8.0f; //mxd
-		internal const float FIXED_THING_SIZE = 48.0f; //mxd
+		internal const float FIXED_THING_SIZE = 48.0f; //mxd. In logical pixels: see FixedThingSize
 
 		internal const int NUM_VIEW_MODES = 4;
 		
@@ -61,6 +61,7 @@ namespace CodeImp.DoomBuilder.Rendering
 		#region ================== Variables
 
 		// Rendertargets
+		private float fixedthingsize = FIXED_THING_SIZE;
 		private Plotter gridplotter;
         private Plotter plotter;
         private Texture thingstex;
@@ -376,6 +377,7 @@ namespace CodeImp.DoomBuilder.Rendering
 
 			// Create rendertargets textures
 			plotter = new Plotter(windowsize.Width, windowsize.Height);
+			plotter.Thickness = Math.Max(1, (int)(Math.Max(1f, CodeImp.DoomBuilder.Windows.MainForm.DPIScaler.Width) + 0.5f));
             gridplotter = new Plotter(windowsize.Width, windowsize.Height);
             thingstex = new Texture(windowsize.Width, windowsize.Height, TextureFormat.Rgba8);
 			surfacetex = new Texture(windowsize.Width, windowsize.Height, TextureFormat.Rgba8);
@@ -469,6 +471,9 @@ namespace CodeImp.DoomBuilder.Rendering
 			UpdateTransformations();
 		}
 		
+		// Largest size things get on the display with fixed things scale (device pixels)
+		public float FixedThingSize { get { return fixedthingsize; } }
+
 		// This changes zoom
 		public void ScaleView(float scale)
 		{
@@ -488,6 +493,8 @@ namespace CodeImp.DoomBuilder.Rendering
 			translatey = -offsety - (windowsize.Height * 0.5f) * scaleinv;
 			float dpi = Math.Max(1f, CodeImp.DoomBuilder.Windows.MainForm.DPIScaler.Width); // the display is drawn in device pixels
 			linenormalsize = 10f * dpi * scaleinv;
+			fixedthingsize = FIXED_THING_SIZE * dpi; // the cap on how large things get is in device pixels
+			if(plotter != null) plotter.Thickness = Math.Max(1, (int)(dpi + 0.5f));
 			minlinelength = linenormalsize * 0.0625f; //mxd
 			minlinenormallength = linenormalsize * 2f; //mxd
 
@@ -1086,9 +1093,9 @@ namespace CodeImp.DoomBuilder.Rendering
 				circlesize = t.Size;
 				bboxsize = -1;
 			}
-			else if(General.Settings.FixedThingsScale && t.Size * scale > FIXED_THING_SIZE)
+			else if(General.Settings.FixedThingsScale && t.Size * scale > FixedThingSize)
 			{
-				circlesize = FIXED_THING_SIZE;
+				circlesize = FixedThingSize;
 				bboxsize = t.Size * scale;
 			}
 			else
@@ -1169,8 +1176,8 @@ namespace CodeImp.DoomBuilder.Rendering
 			float arrowsize;
 			if(t.FixedSize && scale > 1.0f)
 				arrowsize = t.Size * THING_ARROW_SIZE;
-			else if(General.Settings.FixedThingsScale && t.Size * scale > FIXED_THING_SIZE)
-				arrowsize = FIXED_THING_SIZE * THING_ARROW_SIZE;
+			else if(General.Settings.FixedThingsScale && t.Size * scale > FixedThingSize)
+				arrowsize = FixedThingSize * THING_ARROW_SIZE;
 			else
 				arrowsize = t.Size * scale * THING_ARROW_SIZE;
 
@@ -1410,9 +1417,9 @@ namespace CodeImp.DoomBuilder.Rendering
 								spritescale = 1.0f;
 								forcespriterendering = true; // Always render sprite when thing size is affected by FixedSize setting
 							}
-							else if(General.Settings.FixedThingsScale && t.Size * scale > FIXED_THING_SIZE)
+							else if(General.Settings.FixedThingsScale && t.Size * scale > FixedThingSize)
 							{
-								spritescale = FIXED_THING_SIZE / t.Size;
+								spritescale = FixedThingSize / t.Size;
 								forcespriterendering = true; // Always render sprite when thing size is affected by FixedThingsScale setting
 							}
 							else

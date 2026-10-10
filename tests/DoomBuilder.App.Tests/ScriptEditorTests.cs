@@ -65,7 +65,7 @@ public class ScriptEditorTests : EditorTestBase
     }
 
     private static TextBox Box(Avalonia.Visual v, string watermark) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(v).OfType<TextBox>().First(b => b.PlaceholderText == watermark);
-    private static Button Btn(Avalonia.Visual v, string text) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(v).OfType<Button>().First(b => (string)b.Content == text);
+    private static Button Btn(Avalonia.Visual v, string text) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(v).OfType<Button>().First(b => b.Content as string == text);
 
     [AvaloniaFact]
     public void Find_next_wraps_around_and_replace_all_honours_whole_word()
@@ -87,7 +87,7 @@ public class ScriptEditorTests : EditorTestBase
         Click(Btn(editor, "Previous"));
         Assert.Equal(27, text.SelectionStart);                      // and back
 
-        Find<CheckBox>(editor, c => (string)c.Content == "Whole word").IsChecked = true;
+        Find<CheckBox>(editor, c => c.Content as string == "Whole word").IsChecked = true;
         Box(editor, "Replace with").Text = "dog";
         Click(Btn(editor, "Replace all"));
         Assert.Equal("int dog; int category; int dog;", text.Text);
@@ -322,6 +322,8 @@ public class ScriptEditorTests : EditorTestBase
         var settings = General.Settings;
         bool autoindent = settings.ScriptAutoIndent, tabs = settings.ScriptUseTabs, allman = settings.ScriptAllmanStyle, close = settings.ScriptAutoCloseBrackets;
         int width = settings.ScriptTabWidth;
+        // The editor starts a line with the newline of the platform (CR LF on Windows): compare without it
+        static string Unix(string value) => value.Replace("\r\n", "\n");
         try
         {
             settings.ScriptAutoIndent = true; settings.ScriptUseTabs = false; settings.ScriptTabWidth = 4; settings.ScriptAllmanStyle = false; settings.ScriptAutoCloseBrackets = false;
@@ -330,25 +332,25 @@ public class ScriptEditorTests : EditorTestBase
             text.Text = "  foo";
             text.CaretOffset = 5;
             text.TextArea.PerformTextInput("\n");
-            Assert.Equal("  foo\n  ", text.Text);                        // the indentation of the line above
+            Assert.Equal("  foo\n  ", Unix(text.Text));                        // the indentation of the line above
             Assert.Equal(text.Text.Length, text.CaretOffset);
 
             text.Text = "{";
             text.CaretOffset = 1;
             text.TextArea.PerformTextInput("\n");
-            Assert.Equal("{\n    ", text.Text);                         // one level deeper after an opening brace
+            Assert.Equal("{\n    ", Unix(text.Text));                         // one level deeper after an opening brace
 
             text.Text = "{}";
             text.CaretOffset = 1;
             text.TextArea.PerformTextInput("\n");
-            Assert.Equal("{\n    \n}", text.Text);                      // the closing brace on its own line
-            Assert.Equal(6, text.CaretOffset);                          // and the caret on the indented line between
+            Assert.Equal("{\n    \n}", Unix(text.Text));                      // the closing brace on its own line
+            Assert.Equal(6 + (text.Text.Contains("\r\n") ? 1 : 0), text.CaretOffset);                          // and the caret on the indented line between
 
             settings.ScriptAllmanStyle = true;
             text.Text = "if(x) {";
             text.CaretOffset = 7;
             text.TextArea.PerformTextInput("\n");
-            Assert.Equal("if(x)\n{\n    ", text.Text);                   // the brace moved to its own line
+            Assert.Equal("if(x)\n{\n    ", Unix(text.Text));                   // the brace moved to its own line
         }
         finally
         {
@@ -485,5 +487,25 @@ public class ScriptEditorTests : EditorTestBase
         editor.RefreshFoldings();
         Assert.Single(editor.CurrentFolding.AllFoldings);
         Assert.True(text.TextArea.TextView.LineTransformers.OfType<ScriptSyntaxColorizer>().Count() == 1);
+    }
+
+    [AvaloniaFact]
+    public void The_script_type_picked_for_a_file_tab_comes_back_when_the_editor_is_opened_again()
+    {
+        ScriptEditorWindow editor = OpenScriptEditor();
+        string path = Path.Combine(dir, "typed.dat");
+        File.WriteAllText(path, "script 1 (void)\n{\n}\n");
+        editor.OpenFile(path);
+        Flush();
+        var acs = General.GetScriptConfiguration(CodeImp.DoomBuilder.Config.ScriptType.ACS);
+        editor.SetCurrentScriptType(acs);
+
+        General.Map.CloseScriptEditor(false);
+        Flush();
+        General.Actions.InvokeAction("builder_openscripteditor");
+        Flush();
+        var again = ScriptEditorWindow.Instance;
+        Assert.Contains("typed.dat", again.TabTitles());
+        Assert.Equal(CodeImp.DoomBuilder.Config.ScriptType.ACS, again.CurrentConfig.ScriptType);
     }
 }

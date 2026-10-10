@@ -88,7 +88,7 @@ public class AuxiliaryDialogTests : EditorTestBase
         WhenShown<SimpleDialog>(dialog =>
         {
             // every property is a condition; turn all off with one toggle (they start on), so only identical-by-nothing remains: everything
-            var toggle = All<Avalonia.Controls.Button>((Avalonia.Controls.Control)dialog.Content).Concat(dialog.ExtraButtons.Children.OfType<Avalonia.Controls.Button>()).First(b => (string)b.Content == "Toggle All");
+            var toggle = All<Avalonia.Controls.Button>((Avalonia.Controls.Control)dialog.Content).Concat(dialog.ExtraButtons.Children.OfType<Avalonia.Controls.Button>()).First(b => b.Content as string == "Toggle All");
             Click(toggle);
             Click(dialog.OkButton);
         });
@@ -122,7 +122,7 @@ public class AuxiliaryDialogTests : EditorTestBase
         {
             var boxes = All<Avalonia.Controls.CheckBox>((Avalonia.Controls.Control)dialog.Content);
             Assert.NotEmpty(boxes);
-            boxes.First(b => (string)b.Content == "Floor height").IsChecked = !before;
+            boxes.First(b => b.Content as string == "Floor height").IsChecked = !before;
             Click(dialog.OkButton);
         });
 

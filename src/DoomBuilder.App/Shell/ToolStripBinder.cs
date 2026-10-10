@@ -40,6 +40,9 @@ public sealed class ToolStripBinder
     /// <summary>Runs a click of an item that carries an action name or a mode (what UDB's InvokeTaggedAction did).</summary>
     public Action<ToolStripItem> Clicked { get; set; }
 
+    /// <summary>Style class of the separators the binder makes (they are turned on their side in a vertical bar).</summary>
+    public const string SeparatorClass = "toolbar-separator";
+
     // ---- toolbar items
 
     /// <summary>The control for a toolbar item. <paramref name="gate"/> adds a condition for the item to be visible.</summary>
@@ -51,7 +54,7 @@ public sealed class ToolStripBinder
         switch (item)
         {
             case ToolStripSeparator _:
-                control = new Border { Width = 1, Height = 20, Margin = new Thickness(5, 2), Background = Brushes.Gray, Opacity = 0.5 };
+                control = new Border { Width = 1, Height = 20, Margin = new Thickness(5, 2), Background = Brushes.Gray, Opacity = 0.5, Classes = { SeparatorClass } };
                 update = () => { };
                 break;
 

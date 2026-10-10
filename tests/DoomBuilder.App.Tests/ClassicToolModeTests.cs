@@ -69,7 +69,7 @@ sector { heightfloor = 0; heightceiling = 128; texturefloor = ""FLOOR4_8""; text
         Assert.True(options.IsVisible);
 
         // OK builds the bridge and leaves the mode (the window goes away with it)
-        var ok = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(options).OfType<Avalonia.Controls.Button>().First(b => (string)b.Content == "OK");
+        var ok = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(options).OfType<Avalonia.Controls.Button>().First(b => b.Content as string == "OK");
         Click(ok);
         Flush();
         Assert.NotEqual("BridgeMode", General.Editing.Mode.GetType().Name);
@@ -91,7 +91,7 @@ sector { heightfloor = 0; heightceiling = 128; texturefloor = ""FLOOR4_8""; text
         Flush();
         Assert.Equal("BridgeMode", General.Editing.Mode.GetType().Name);
         var options = window.OwnedWindows.First(w => w.Title == "Options");
-        var cancel = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(options).OfType<Avalonia.Controls.Button>().First(b => (string)b.Content == "Cancel");
+        var cancel = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(options).OfType<Avalonia.Controls.Button>().First(b => b.Content as string == "Cancel");
         Click(cancel);
         Flush();
         Assert.NotEqual("BridgeMode", General.Editing.Mode.GetType().Name);

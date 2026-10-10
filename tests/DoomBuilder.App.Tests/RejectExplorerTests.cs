@@ -100,7 +100,7 @@ public class RejectExplorerTests : EditorTestBase
             fields[0].HexBox.Text = "#12";                    // half typed: ignored
             Assert.Equal(new PixelColor(255, 0x10, 0x20, 0x30).ToInt(), fields[0].Color.ToInt());
 
-            Click(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(d).OfType<Avalonia.Controls.Button>().First(b => (string)b.Content == "Reset colors"));
+            Click(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(d).OfType<Avalonia.Controls.Button>().First(b => b.Content as string == "Reset colors"));
             Assert.Equal(BuilderPlug.Me.DefaultColorSettings.Default, fields[0].Color.ToInt());
             fields[0].HexBox.Text = "#102030";
             Click(d.OkButton);
