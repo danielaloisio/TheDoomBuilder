@@ -140,7 +140,7 @@ public sealed class ResourcesEditor : UserControl
             FileTypeFilter = new[]
             {
                 new FilePickerFileType("Doom resources") { Patterns = new[] { "*.wad", "*.pk3", "*.pk7", "*.zip", "*.ipk3", "*.ipk7" } },
-                FilePickerFileTypes.All,
+                FileFilter.AllFiles,
             },
             SuggestedStartLocation = StartFolder(storage),
         }));

@@ -220,6 +220,28 @@ public class DialogTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void A_missing_nodebuilder_program_says_so_once_and_testing_goes_on_without_nodes()
+    {
+        OpenEditor();
+        // The Linux package has the ZenNode configuration but not the program
+        General.Map.ConfigSettings.NodebuilderTest = "zennode_normal";
+        Assert.False(System.IO.File.Exists(General.GetNodebuilderByName("zennode_normal").Compiler.ProgramPath));
+        General.Map.IsChanged = true;
+
+        bool anybox = false;
+        WhenShown<MessageBoxWindow>(box => { anybox = true; Click(box.ButtonFor(System.Windows.Forms.DialogResult.OK)); });
+
+        string target = System.IO.Path.Combine(dir, "test-output.wad");
+        bool saved = General.Map.SaveMap(target, CodeImp.DoomBuilder.SavePurpose.Testing);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(saved, "the test map was not written");
+        Assert.False(anybox, "a message box was shown for a test map without a nodebuilder program");
+        Assert.Equal(CodeImp.DoomBuilder.Windows.StatusType.Warning, General.MainWindow.Status.type);
+        Assert.Contains("not installed", General.MainWindow.Status.message);
+    }
+
+    [AvaloniaFact]
     public void Declining_the_missing_resources_question_keeps_the_dialog_open_and_opens_nothing()
     {
         OpenEditor(withMap: false);

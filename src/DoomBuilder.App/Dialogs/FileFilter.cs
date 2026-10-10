@@ -7,6 +7,12 @@ namespace DoomBuilder.App.Dialogs;
 /// <summary>Converts WinForms file filters ("Doom WAD Files (*.wad)|*.wad;*.WAD|All files|*.*") to Avalonia picker file types.</summary>
 public static class FileFilter
 {
+    /// <summary>
+    /// Every file, by name pattern only. Avalonia's own FilePickerFileTypes.All also carries MIME types ("*/*"), which the Linux portal turns
+    /// into a content-type filter that leaves executables (application/x-pie-executable) out of the list.
+    /// </summary>
+    public static FilePickerFileType AllFiles { get; } = new FilePickerFileType("All files") { Patterns = new[] { "*" } };
+
     public static List<FilePickerFileType> Parse(string filter)
     {
         var types = new List<FilePickerFileType>();

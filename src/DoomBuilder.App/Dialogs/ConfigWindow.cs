@@ -280,13 +280,21 @@ public sealed class ConfigWindow : Window
         var storage = GetTopLevel(this)?.StorageProvider;
         if (storage == null) return;
 
+        // Start where the program is now, when it is somewhere
+        IStorageFolder start = null;
+        string folder = string.IsNullOrWhiteSpace(program.Text) ? null : Path.GetDirectoryName(program.Text.Trim());
+        if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+            start = DialogPump.Run(() => storage.TryGetFolderFromPathAsync(folder));
+
+        // No type filter outside Windows: a program there has no extension to filter by
         var files = DialogPump.Run(() => storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = Loc.T("Select test program"),
             AllowMultiple = false,
+            SuggestedStartLocation = start,
             FileTypeFilter = OperatingSystem.IsWindows()
-                ? new[] { new FilePickerFileType("Programs") { Patterns = new[] { "*.exe", "*.bat", "*.cmd" } }, FilePickerFileTypes.All }
-                : new[] { FilePickerFileTypes.All },
+                ? new[] { new FilePickerFileType("Programs") { Patterns = new[] { "*.exe", "*.bat", "*.cmd" } }, FileFilter.AllFiles }
+                : new[] { FileFilter.AllFiles },
         }));
         if (files != null && files.Count > 0 && files[0].TryGetLocalPath() is string path) program.Text = path;
     }
