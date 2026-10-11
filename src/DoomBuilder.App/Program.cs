@@ -28,6 +28,12 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // macOS: Avalonia 12 renders with Metal first (Metal, OpenGl, Software), and then the map display, which is an
+            // OpenGL control, never gets a context (OnOpenGlInit is not called, nothing is drawn, no error). OpenGl first.
+            .With(new AvaloniaNativePlatformOptions
+            {
+                RenderingMode = new[] { AvaloniaNativeRenderingMode.OpenGl, AvaloniaNativeRenderingMode.Software },
+            })
 #if DEBUG
             .WithDeveloperTools()
 #endif
