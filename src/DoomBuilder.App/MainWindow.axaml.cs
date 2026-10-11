@@ -204,7 +204,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         InfoHost.IsVisible = General.Map != null && shell.IsInfoPanelExpanded;
         if (shell.InfoObject == null) infoPanel.Show(General.Map != null ? CodeImp.DoomBuilder.Windows.ElementInfoBuilder.ForStatistics() : null);   // (the mode or the map changed)
 
-        string program = "TheDoomBuilder";
+        string program = "The Doom Builder";
         if (General.Map != null)
         {
             string maptitle = !string.IsNullOrEmpty(General.Map.Data?.MapInfo?.Title) ? ": " + General.Map.Data.MapInfo.Title : "";
