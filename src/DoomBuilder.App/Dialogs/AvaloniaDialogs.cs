@@ -110,12 +110,12 @@ internal sealed class AvaloniaDialogs : NoDialogs
         {
             if (model.LoadError != null)
             {
-                ShowMessage(model.LoadError, "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                ShowMessage(model.LoadError, "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
                 return DialogResult.Cancel;
             }
             if (model.NothingToOpen)
             {
-                ShowMessage("Unable to find maps using any game configuration.\nDoes this wad contain any maps at all?..", "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
+                ShowMessage("Unable to find maps using any game configuration.\nDoes this wad contain any maps at all?..", "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
                 return DialogResult.Cancel;
             }
 
@@ -147,7 +147,7 @@ internal sealed class AvaloniaDialogs : NoDialogs
         {
             if (model.LoadError != null)
             {
-                ShowMessage(model.LoadError, "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                ShowMessage(model.LoadError, "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
                 return DialogResult.Cancel;
             }
 
@@ -197,7 +197,7 @@ internal sealed class AvaloniaDialogs : NoDialogs
         var model = new MapOptionsModel(form.Options, form.NewMap);
         if (model.Configs.Count == 0)
         {
-            ShowMessage("There is no game configuration enabled. Enable one in the game configurations first.", "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
+            ShowMessage("There is no game configuration enabled. Enable one in the game configurations first.", "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
             return DialogResult.Cancel;
         }
 

@@ -23,7 +23,7 @@ public sealed class MessageBoxWindow : Window
     public MessageBoxWindow(string text, string caption, MessageBoxButtons kind, MessageBoxIcon icon, MessageBoxDefaultButton defaultbutton)
     {
         Message = text;
-        Title = string.IsNullOrEmpty(caption) ? "TheDoomBuilder" : caption;
+        Title = string.IsNullOrEmpty(caption) ? "The Doom Builder" : caption;
         SizeToContent = SizeToContent.WidthAndHeight;
         MinWidth = 320;
         MaxWidth = 640;

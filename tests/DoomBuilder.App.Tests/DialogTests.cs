@@ -447,7 +447,7 @@ public class ErrorsAndAboutTests : EditorTestBase
         bool about = false, errors = false;
         WhenShown<AboutWindow>(w =>
         {
-            about = w.VersionBlock.Text.StartsWith("TheDoomBuilder v");
+            about = w.VersionBlock.Text.StartsWith("The Doom Builder v");
             w.Close();
         });
         var model = DoomBuilder.App.Shell.UiModel.Load();

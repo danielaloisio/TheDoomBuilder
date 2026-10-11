@@ -40,7 +40,7 @@ namespace System.Windows.Forms
     {
         public static string ExecutablePath => Environment.ProcessPath ?? string.Empty;
         public static string StartupPath => AppContext.BaseDirectory;
-        public static string ProductName => "TheDoomBuilder";
+        public static string ProductName => "The Doom Builder";
         public static string ProductVersion => "0.0";
         public static event Action<object, System.Threading.ThreadExceptionEventArgs> ThreadException { add { } remove { } }
         public static void DoEvents() { }

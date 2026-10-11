@@ -179,7 +179,7 @@ public sealed class PreferencesWindow : Window
         string problem = model.Validate();
         if (problem != null)
         {
-            General.Dialogs.ShowMessage(problem, "TheDoomBuilder", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error, System.Windows.Forms.MessageBoxDefaultButton.Button1);
+            General.Dialogs.ShowMessage(problem, "The Doom Builder", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error, System.Windows.Forms.MessageBoxDefaultButton.Button1);
             return;
         }
 

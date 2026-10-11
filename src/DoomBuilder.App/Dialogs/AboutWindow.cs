@@ -70,7 +70,7 @@ public sealed class AboutWindow : Window
 
     public TextBlock VersionBlock { get; }
 
-    public static string ProductName => "TheDoomBuilder";
+    public static string ProductName => "The Doom Builder";
 
     /// <summary>The version number, without the commit hash a build from git adds after a plus sign.</summary>
     public static string PlainVersion
