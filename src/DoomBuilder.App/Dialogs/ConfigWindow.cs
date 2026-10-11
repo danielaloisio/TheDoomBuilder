@@ -304,7 +304,7 @@ public sealed class ConfigWindow : Window
         ConfigEntry bad = model.FindInvalidResources();
         if (bad != null)
         {
-            General.Dialogs.ShowMessage("At least one resource doesn't exist in \"" + bad.Name + "\" game configuration!", "TheDoomBuilder",
+            General.Dialogs.ShowMessage("At least one resource doesn't exist in \"" + bad.Name + "\" game configuration!", "The Doom Builder",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning, System.Windows.Forms.MessageBoxDefaultButton.Button1);
             tabs.SelectedIndex = ResourcesPage;
             configs.SelectedIndex = model.Entries.ToList().IndexOf(bad);

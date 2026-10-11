@@ -17,7 +17,7 @@ public sealed class AboutWindow : Window
 {
     private static readonly (string Label, string Url)[] Links =
     {
-        ("TheDoomBuilder: port of Ultimate Doom Builder to Avalonia", "https://github.com/danielaloisio/TheDoomBuilder"),
+        ("The Doom Builder: port of Ultimate Doom Builder to Avalonia", "https://github.com/danielaloisio/TheDoomBuilder"),
         ("Ultimate Doom Builder", "https://github.com/jewalky/UltimateDoomBuilder"),
         ("Ultimate Doom Builder thread on the ZDoom forum", "https://forum.zdoom.org/viewtopic.php?f=232&t=66745"),
         ("GZDoom Builder (mxd)", "https://github.com/m-x-d/GZDoom-Builder"),
@@ -39,7 +39,10 @@ public sealed class AboutWindow : Window
         panel.Children.Add(new TextBlock
         {
             Text = "Based on Doom Builder by Pascal vd Heiden, with the changes of GZDoom Builder and Ultimate Doom Builder. Released under the GNU General Public License.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap, MaxWidth = 380, Opacity = 0.7, Margin = new Thickness(0, 6, 0, 6),
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            MaxWidth = 380,
+            Opacity = 0.7,
+            Margin = new Thickness(0, 6, 0, 6),
         });
         foreach (var (label, url) in Links)
         {
@@ -67,7 +70,7 @@ public sealed class AboutWindow : Window
 
     public TextBlock VersionBlock { get; }
 
-    public static string ProductName => "TheDoomBuilder";
+    public static string ProductName => "The Doom Builder";
 
     /// <summary>The version number, without the commit hash a build from git adds after a plus sign.</summary>
     public static string PlainVersion

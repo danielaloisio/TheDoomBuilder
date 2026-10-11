@@ -3,7 +3,7 @@
         xmlns:local="using:DoomBuilder.App"
         x:Class="DoomBuilder.App.MainWindow"
         Width="1200" Height="800"
-        Title="TheDoomBuilder">
+        Title="The Doom Builder">
     <DockPanel>
         <ContentControl x:Name="MenuHost" DockPanel.Dock="Top" />
         <ContentControl x:Name="ToolbarHost" DockPanel.Dock="Top" />

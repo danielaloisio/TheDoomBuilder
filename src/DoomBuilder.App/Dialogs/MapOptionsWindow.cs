@@ -137,13 +137,13 @@ public sealed class MapOptionsWindow : Window
         var (error, confirmations) = validate();
         if (error != null)
         {
-            General.Dialogs.ShowMessage(error, "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
+            General.Dialogs.ShowMessage(error, "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
             return;
         }
 
         foreach (string question in confirmations)
         {
-            if (General.Dialogs.ShowMessage(question, "TheDoomBuilder", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+            if (General.Dialogs.ShowMessage(question, "The Doom Builder", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
                 return;
         }
 
