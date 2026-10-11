@@ -284,7 +284,14 @@ namespace DoomBuilder.Rendering
 
 		public string GetError() { return error; }
 
-		private void SetError(string message) { error = message; }
+		private void SetError(string message)
+		{
+			error = message;
+			Diagnostic?.Invoke(message);
+		}
+
+		/// <summary>Every error the backend records (OpenGL errors, shader compile failures...), so the host can log them. May repeat.</summary>
+		public event Action<string> Diagnostic;
 
 		public void DeclareUniform(UniformName name, string glslname, UniformType type)
 		{
