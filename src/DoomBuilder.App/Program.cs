@@ -32,5 +32,6 @@ class Program
             .WithDeveloperTools()
 #endif
             .WithInterFont()
-            .LogToTrace();
+            .LogToTrace()
+            .AfterSetup(_ => Avalonia.Logging.Logger.Sink = new AvaloniaLogSink(Avalonia.Logging.Logger.Sink));
 }

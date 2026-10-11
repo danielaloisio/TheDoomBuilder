@@ -20,6 +20,7 @@ public class MapViewport : OpenGlControlBase
 {
     private GL silk;
     private bool firstFrameLogged;
+    private bool initCalled;
     private bool gles;
 
     /// <summary>The backend the Core renders with. It exists before the GL context does.</summary>
@@ -101,6 +102,7 @@ public class MapViewport : OpenGlControlBase
         Backend.ContextRestored += OnBackendContextRestored;
         Backend.CommandFailed += OnBackendProblem;
         Backend.Diagnostic += OnBackendProblem;
+        LogOnce("viewport created");
         ClipToBounds = true;
         Focusable = true;
     }
@@ -144,8 +146,37 @@ public class MapViewport : OpenGlControlBase
         RequestNextFrameRendering();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        LogOnce("viewport attached to " + (TopLevel.GetTopLevel(this)?.GetType().Name ?? "nothing"));
+
+        // The context is made by Avalonia once the control is shown: if nothing came of it, say what the control knows
+        var watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        watchdog.Tick += (s, a) =>
+        {
+            watchdog.Stop();
+            if (!initCalled)
+                LogOnce("OnOpenGlInit was not called 4 s after the viewport was attached (visible " + IsEffectivelyVisible +
+                        ", bounds " + Bounds.Width + "x" + Bounds.Height + ", attached " + IsAttachedToVisualTree() + ")");
+        };
+        watchdog.Start();
+    }
+
+    private bool IsAttachedToVisualTree() => TopLevel.GetTopLevel(this) != null;
+
+    protected override void OnOpenGlLost()
+    {
+        string version;
+        try { version = GlVersion.ToString(); }
+        catch (Exception) { version = "unknown"; }
+        LogOnce("Avalonia reports the OpenGL context as lost or unavailable (version " + version + ")");
+        base.OnOpenGlLost();
+    }
+
     protected override void OnOpenGlInit(GlInterface gl)
     {
+        initCalled = true;
         try
         {
             silk = GL.GetApi(gl.GetProcAddress);
