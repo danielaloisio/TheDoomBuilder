@@ -212,6 +212,24 @@ public class ShellWindowTests : EditorTestBase
         Assert.Equal(!was, preset.Enabled);
     }
 
+    [AvaloniaFact]
+    public void The_splash_logo_shows_in_the_display_only_while_no_map_is_open()
+    {
+        OpenEditor();
+        RefreshShell();
+        var splash = Avalonia.Controls.NameScopeExtensions.Find<Border>(window, "SplashHost");
+        var image = Avalonia.Controls.NameScopeExtensions.Find<Avalonia.Controls.Image>(window, "SplashImage");
+        Assert.NotNull(splash);
+        Assert.NotNull(image.Source);                    // UDB's logo (Splash3_trans) is loaded
+        Assert.False(splash.IsVisible);                  // a map is open: the display is the map
+
+        General.Actions.InvokeAction("builder_closemap");
+        Assert.Null(General.Map);
+        RefreshShell();
+        Assert.True(splash.IsVisible);                   // no map: the logo, as in UDB
+        Assert.False(splash.IsHitTestVisible);           // the pointer still reaches the display under it
+    }
+
     private void AssertSeparatorsTidy()
     {
         var strip = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<WrapPanel>()
