@@ -208,8 +208,17 @@ public class ShellWindowTests : EditorTestBase
 
         // Clicking a preset turns it off (and the button says so)
         bool was = preset.Enabled;
-        ((MenuItem)presetflyout.Items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        var first = (MenuItem)presetflyout.Items[0];
+        first.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         Assert.Equal(!was, preset.Enabled);
+        Assert.Same(first, presetflyout.Items[0]);                // the items are kept, so an open menu is not disturbed
+        Assert.Equal(preset.Enabled, first.IsChecked);
+
+        // The menu closes after a plain click, and stays open (to toggle several items) while Shift is held
+        first.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, KeyModifiers = Avalonia.Input.KeyModifiers.None });
+        Assert.False(first.StaysOpenOnClick);
+        first.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, KeyModifiers = Avalonia.Input.KeyModifiers.Shift });
+        Assert.True(first.StaysOpenOnClick);
     }
 
     [AvaloniaFact]

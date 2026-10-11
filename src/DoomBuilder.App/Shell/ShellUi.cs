@@ -64,7 +64,7 @@ public sealed class ShellUi
         compact.Setters.Add(new Avalonia.Styling.Setter(Decorator.PaddingProperty, new Thickness(2)));
         compact.Setters.Add(new Avalonia.Styling.Setter(Layoutable.MarginProperty, new Thickness(1, 0)));
         ((Border)ModesBar).Styles.Add(compact);
-        ModeControlsBar = new Border { Child = ModeControlsPanel, BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = Brushes.Gray, IsVisible = false };
+        ModeControlsBar = new Border { Child = ModeControlsPanel, IsVisible = false };
         Refresh();
     }
 
