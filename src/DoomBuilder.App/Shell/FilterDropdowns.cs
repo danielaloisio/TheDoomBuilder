@@ -4,6 +4,8 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using CodeImp.DoomBuilder;
@@ -122,7 +124,7 @@ internal sealed class FilterDropdowns
         LinedefColorPreset[] all = map.ConfigSettings.LinedefColorPresets ?? Array.Empty<LinedefColorPreset>();
         presets.Caption.Text = ActiveNames(all);
 
-        string signature = string.Join("\n", all.Select(p => p.Name + "|" + p.Color.ToInt() + "|" + p.Enabled + "|" + p.IsValid()));
+        string signature = PresetsSignature(all);
         if (signature == presets.Signature) return;
         presets.Signature = signature;
 
@@ -140,12 +142,20 @@ internal sealed class FilterDropdowns
                     BorderBrush = Brushes.Black, BorderThickness = new Thickness(1),
                 }
                 : (ImageCache.Get("Warning") is { } warning ? new Image { Source = warning, Width = 16, Height = 16 } : null);
-            item.Click += (s, e) => TogglePreset(preset);
+            // Like the UDB (MainForm: AutoClose = no Shift), the menu stays open for a click made with Shift held
+            item.AddHandler(InputElement.PointerPressedEvent,
+                (s, e) => item.StaysOpenOnClick = e.KeyModifiers.HasFlag(KeyModifiers.Shift), RoutingStrategies.Tunnel);
+            item.AddHandler(InputElement.KeyDownEvent,
+                (s, e) => item.StaysOpenOnClick = e.KeyModifiers.HasFlag(KeyModifiers.Shift), RoutingStrategies.Tunnel);
+            item.Click += (s, e) => TogglePreset(preset, item);
             presets.Flyout.Items.Add(item);
         }
     }
 
-    private void TogglePreset(LinedefColorPreset preset)
+    private static string PresetsSignature(LinedefColorPreset[] all) =>
+        string.Join("\n", all.Select(p => p.Name + "|" + p.Color.ToInt() + "|" + p.Enabled + "|" + p.IsValid()));
+
+    private void TogglePreset(LinedefColorPreset preset, MenuItem item)
     {
         var map = General.Map;
         if (map == null) return;
@@ -155,8 +165,11 @@ internal sealed class FilterDropdowns
         map.ConfigSettings.Changed = true;
         if (General.Editing.Mode is ClassicMode) General.Interface.RedrawDisplay();
 
-        presets.Signature = null;        // the check marks follow the settings
-        RefreshPresets();
+        // The check marks follow the settings. The items are kept (not rebuilt) so that an open menu is not disturbed.
+        item.IsChecked = preset.Enabled;
+        LinedefColorPreset[] all = map.ConfigSettings.LinedefColorPresets ?? Array.Empty<LinedefColorPreset>();
+        presets.Caption.Text = ActiveNames(all);
+        presets.Signature = PresetsSignature(all);
     }
 
     // The names of the active presets, or how many there are when they do not fit
