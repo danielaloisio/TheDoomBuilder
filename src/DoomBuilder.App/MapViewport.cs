@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using CodeImp.DoomBuilder;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.OpenGL;
@@ -17,6 +19,8 @@ namespace DoomBuilder.App;
 public class MapViewport : OpenGlControlBase
 {
     private GL silk;
+    private bool firstFrameLogged;
+    private bool initCalled;
     private bool gles;
 
     /// <summary>The backend the Core renders with. It exists before the GL context does.</summary>
@@ -35,9 +39,13 @@ public class MapViewport : OpenGlControlBase
 
         Backend.FrameRequested -= OnBackendFrameRequested;
         Backend.ContextRestored -= OnBackendContextRestored;
+        Backend.CommandFailed -= OnBackendProblem;
+        Backend.Diagnostic -= OnBackendProblem;
         Backend = new GlRenderBackend();
         Backend.FrameRequested += OnBackendFrameRequested;
         Backend.ContextRestored += OnBackendContextRestored;
+        Backend.CommandFailed += OnBackendProblem;
+        Backend.Diagnostic += OnBackendProblem;
         UpdateSurfaceSize();
         return Backend;
     }
@@ -46,6 +54,30 @@ public class MapViewport : OpenGlControlBase
     private void OnBackendFrameRequested() => Dispatcher.UIThread.Post(RequestRedraw);
 
     private void OnBackendContextRestored() => ContextRestored?.Invoke();
+
+    private void OnBackendProblem(string message) => LogOnce("error: " + message);
+
+    // What reaches stderr is lost when the app is opened from the desktop (macOS .app, Windows), so what is needed to tell
+    // why nothing is drawn goes to the log file too. Each message once, a frame loop would repeat it 60 times a second.
+    private static readonly HashSet<string> logged = new HashSet<string>();
+
+    private static void LogOnce(string message)
+    {
+        lock (logged)
+        {
+            if (!logged.Add(message)) return;
+        }
+        Console.Error.WriteLine("[GL] " + message);
+        try { General.WriteLogLine("[GL] " + message); }
+        catch (Exception) { }
+    }
+
+    private string ContextDescription(GlInterface gl)
+    {
+        GlVersion v = gl.ContextInfo.Version;
+        return Backend.GlInfo + " | context " + v.Type + " " + v.Major + "." + v.Minor + " | scale " +
+               (TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0);
+    }
 
     /// <summary>Raised inside a frame (context current): the editor draws the map here.</summary>
     public event Action Paint;
@@ -68,6 +100,9 @@ public class MapViewport : OpenGlControlBase
     {
         Backend.FrameRequested += OnBackendFrameRequested;
         Backend.ContextRestored += OnBackendContextRestored;
+        Backend.CommandFailed += OnBackendProblem;
+        Backend.Diagnostic += OnBackendProblem;
+        LogOnce("viewport created");
         ClipToBounds = true;
         Focusable = true;
     }
@@ -111,19 +146,48 @@ public class MapViewport : OpenGlControlBase
         RequestNextFrameRendering();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        LogOnce("viewport attached to " + (TopLevel.GetTopLevel(this)?.GetType().Name ?? "nothing"));
+
+        // The context is made by Avalonia once the control is shown: if nothing came of it, say what the control knows
+        var watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        watchdog.Tick += (s, a) =>
+        {
+            watchdog.Stop();
+            if (!initCalled)
+                LogOnce("OnOpenGlInit was not called 4 s after the viewport was attached (visible " + IsEffectivelyVisible +
+                        ", bounds " + Bounds.Width + "x" + Bounds.Height + ", attached " + IsAttachedToVisualTree() + ")");
+        };
+        watchdog.Start();
+    }
+
+    private bool IsAttachedToVisualTree() => TopLevel.GetTopLevel(this) != null;
+
+    protected override void OnOpenGlLost()
+    {
+        string version;
+        try { version = GlVersion.ToString(); }
+        catch (Exception) { version = "unknown"; }
+        LogOnce("Avalonia reports the OpenGL context as lost or unavailable (version " + version + ")");
+        base.OnOpenGlLost();
+    }
+
     protected override void OnOpenGlInit(GlInterface gl)
     {
+        initCalled = true;
         try
         {
             silk = GL.GetApi(gl.GetProcAddress);
             gles = gl.ContextInfo.Version.Type == GlProfileType.OpenGLES;
             Backend.AttachContext(silk, gles);
             UpdateSurfaceSize();
-            Console.WriteLine("[GL] " + Backend.GlInfo);
+            LogOnce("context ready: " + ContextDescription(gl));
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine("[GL] context setup failed: " + e);
+            LogOnce("context setup failed: " + e);
             Dispatcher.UIThread.Post(() => ContextFailed?.Invoke(e.Message));
             return;
         }
@@ -135,12 +199,21 @@ public class MapViewport : OpenGlControlBase
         // A backend made for a map opened after another one was closed meets the context here, where it is current
         if (!Backend.HasContext && silk != null)
         {
-            try { Backend.AttachContext(silk, gles); }
-            catch (Exception e) { Console.Error.WriteLine("[GL] context setup failed: " + e); }
+            try
+            {
+                Backend.AttachContext(silk, gles);
+                LogOnce("context ready (new backend): " + ContextDescription(gl));
+            }
+            catch (Exception e) { LogOnce("context setup failed: " + e); }
         }
         if (!Backend.HasContext) return;
 
         PixelSize size = PixelSize;
+        if (!firstFrameLogged)
+        {
+            firstFrameLogged = true;
+            LogOnce("first frame: framebuffer " + fb + ", surface " + size.Width + "x" + size.Height);
+        }
         Backend.BeginFrame(fb, new System.Drawing.Size(size.Width, size.Height));
         try
         {
@@ -149,7 +222,7 @@ public class MapViewport : OpenGlControlBase
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine("[GL] frame failed: " + e);
+            LogOnce("frame failed: " + e);
         }
         finally
         {

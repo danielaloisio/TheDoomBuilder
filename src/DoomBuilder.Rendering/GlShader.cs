@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
 
 namespace DoomBuilder.Rendering
@@ -62,10 +64,16 @@ namespace DoomBuilder.Rendering
 
 		private void CreateProgram(GL gl, bool gles, IReadOnlyList<string> uniformNames)
 		{
-			string version = gles ? "#version 300 es\nprecision highp float;\nprecision highp int;\n" : "#version 330\n";
+			// A 3.2 core context (what macOS gives when it is not asked for 4.1) only speaks GLSL 1.50: no #version 330 and no
+			// layout(location) on the vertex inputs. The locations are then bound by name before linking.
+			bool legacy = !gles && !SupportsGlsl330(gl.GetStringS(StringName.ShadingLanguageVersion));
+			string version = gles ? "#version 300 es\nprecision highp float;\nprecision highp int;\n" : (legacy ? "#version 150\n" : "#version 330\n");
 			string prefix = version + (alphatest ? "#define ALPHA_TEST\n" : "") + "#line 1\n";
 
-			vertexShader = Compile(gl, prefix + vertexText, ShaderType.VertexShader);
+			var inputs = new List<KeyValuePair<uint, string>>();
+			string vertextext = legacy ? StripInputLocations(vertexText, inputs) : vertexText;
+
+			vertexShader = Compile(gl, prefix + vertextext, ShaderType.VertexShader);
 			if(vertexShader == 0) return;
 			fragmentShader = Compile(gl, prefix + fragmentText, ShaderType.FragmentShader);
 			if(fragmentShader == 0) return;
@@ -77,6 +85,7 @@ namespace DoomBuilder.Rendering
 			gl.BindAttribLocation(Program, AttrColor, "AttrColor");
 			gl.BindAttribLocation(Program, AttrUV, "AttrUV");
 			gl.BindAttribLocation(Program, AttrNormal, "AttrNormal");
+			foreach(KeyValuePair<uint, string> input in inputs) gl.BindAttribLocation(Program, input.Key, input.Value);
 			gl.LinkProgram(Program);
 
 			gl.GetProgram(Program, ProgramPropertyARB.LinkStatus, out int status);
@@ -94,6 +103,29 @@ namespace DoomBuilder.Rendering
 			UniformLocations = new int[uniformNames.Count];
 			for(int i = 0; i < uniformNames.Count; i++)
 				UniformLocations[i] = string.IsNullOrEmpty(uniformNames[i]) ? -1 : gl.GetUniformLocation(Program, uniformNames[i]);
+		}
+
+		private static readonly Regex InputLocation = new Regex(
+			@"layout\s*\(\s*location\s*=\s*(\d+)\s*\)\s*in\s+(\w+)\s+(\w+)\s*;", RegexOptions.CultureInvariant);
+
+		/// <summary>True when the GLSL version string ("4.10 ...", "3.30", "OpenGL ES GLSL ES 3.00") is 3.30 or newer. Unknown counts as yes.</summary>
+		internal static bool SupportsGlsl330(string glslversion)
+		{
+			Match m = Regex.Match(glslversion ?? string.Empty, @"(\d+)\.(\d+)");
+			if(!m.Success) return true;
+			int major = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+			int minor = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+			return major > 3 || (major == 3 && minor >= 30);
+		}
+
+		/// <summary>Turns "layout(location = N) in T name;" into "in T name;" and tells which location each name had.</summary>
+		internal static string StripInputLocations(string source, List<KeyValuePair<uint, string>> inputs)
+		{
+			return InputLocation.Replace(source, delegate(Match m)
+			{
+				inputs.Add(new KeyValuePair<uint, string>(uint.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture), m.Groups[3].Value));
+				return "in " + m.Groups[2].Value + " " + m.Groups[3].Value + ";";
+			});
 		}
 
 		private uint Compile(GL gl, string code, ShaderType type)
