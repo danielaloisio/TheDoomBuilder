@@ -139,7 +139,7 @@ functions
 		//is face facing away from light source?
 		//      update 01.02.2017: offset the equation by 3px back to try to emulate GZDoom's broken visibility check.
 		float diffuseContribution = dot(Normal, normalize(lPosAndRadius.xyz - PosW + Normal * 3.0));
-		if (diffuseContribution < 0.0 && (ignoreNormals == 0 || (lColor.a > 0.979 && lColor.a < 0.981))) // attenuated light and facing away
+		if (diffuseContribution < 0.0 && (ignoreNormals == 0.0 || (lColor.a > 0.979 && lColor.a < 0.981))) // attenuated light and facing away
 			return light;
 		
 		diffuseContribution = max(diffuseContribution, 0.0); // to make sure
@@ -175,7 +175,7 @@ functions
 		// for w/e reason GZDoom also does this
 		power *= lColor.a;
 
-		if (lColor.a >= 1)
+		if (lColor.a >= 1.0)
 			return light.rgb - lColor.rgb * power;
 
 		return light.rgb + lColor.rgb * power;
@@ -187,11 +187,11 @@ functions
 		vec3 light = vec3(0, 0, 0);
 		vec3 addlight = vec3(0, 0, 0);
 
-		if (lightsEnabled != 0)
+		if (lightsEnabled != 0.0)
 		{
 			for (int i = 0; i < 64; i++)
 			{
-				if (lightColor[i].a == 0)
+				if (lightColor[i].a == 0.0)
 					break;
 				if (lightColor[i].a < 0.4) // additive
 					addlight = getOneDynLightContribution(PosW, Normal, addlight, lightColor[i], lightPosAndRadius[i], lightOrientation[i], light2Radius[i], lightStrengthAndLinearity[i]);
