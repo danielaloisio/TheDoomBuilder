@@ -67,6 +67,14 @@ namespace CodeImp.DoomBuilder.Windows
 		// Edit dialogs run with the editing input paused, as in UDB
 		private DialogResult ShowEditDialog(Func<DialogResult> show)
 		{
+			return RunModal(show);
+		}
+
+		// Any modal dialog must pause the exclusive mouse capture (3D mouselook) and processing while it is open: otherwise the
+		// capture keeps expecting the pointer at the center of the view while the user actually moves it over the dialog, and the
+		// jump back once the dialog closes is read as one huge mouse-look delta (the view snaps as soon as the dialog closes).
+		private T RunModal<T>(Func<T> show)
+		{
 			DisableProcessing();
 			BreakExclusiveMouseInput();
 			try { return show(); }
@@ -164,8 +172,8 @@ namespace CodeImp.DoomBuilder.Windows
 		public virtual int BrowseLinedefActions(IWin32Window owner, int initialvalue, bool addanyaction) { return initialvalue; }
 		public virtual int BrowseSectorEffect(IWin32Window owner, int initialvalue) { return initialvalue; }
 		public virtual int BrowseSectorEffect(IWin32Window owner, int initialvalue, bool addanyeffect) { return initialvalue; }
-		public virtual string BrowseTexture(IWin32Window owner, string initialvalue) { return General.Dialogs.BrowseImage(initialvalue, false); }
-		public virtual string BrowseFlat(IWin32Window owner, string initialvalue) { return General.Dialogs.BrowseImage(initialvalue, true); }
+		public virtual string BrowseTexture(IWin32Window owner, string initialvalue) { return RunModal(() => General.Dialogs.BrowseImage(initialvalue, false)); }
+		public virtual string BrowseFlat(IWin32Window owner, string initialvalue) { return RunModal(() => General.Dialogs.BrowseImage(initialvalue, true)); }
 		public virtual int BrowseThingType(IWin32Window owner, int initialvalue) { return initialvalue; }
 
 		public virtual void AddMenu(ToolStripItem menu) { }
