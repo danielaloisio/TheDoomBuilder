@@ -39,6 +39,8 @@ public sealed class RelativePointerTracker
     private bool warppending;
     private long warpedat;
     private int unanswered;
+    private bool settling;
+    private long settlingsince;
 
     public RelativePointerTracker() : this(() => Stopwatch.GetTimestamp() * 1000 / Stopwatch.Frequency) { }
 
@@ -75,11 +77,17 @@ public sealed class RelativePointerTracker
         // The first position is only where the pointer is
         if (!previous) return false;
 
-        // The first one after the capture began: a pointer that is not near the center did not get there, so this is not a movement
-        if (fresh)
+        // Right after the capture (re)began: the platform can deliver more than one stale event before the warp's own jump catches
+        // up (seen on Windows after a modal dialog closes: first the pointer's real, far-away position, written where it was clicking
+        // OK, and only then the jump to the center). Discarding only the first such event let the second one - the real jump, read
+        // from a position the tracker never otherwise saw - through as one huge "movement" (the view snapped). Discard every event
+        // that is still far from the center for as long as the settle window runs, not just the first one.
+        if (settling)
         {
-            fresh = false;
-            if (DistanceToCenter(x, y) > 100) { warppending = false; return false; }
+            bool stillsettling = clock() - settlingsince <= SettleWindowMilliseconds;
+            if (stillsettling && DistanceToCenter(x, y) > SettleRadius) return false;
+            settling = false;    // close to the center (the warp caught up), or the window ran out: movement counts again from here
+            return false;        // either way, this particular event is not read as movement itself
         }
 
         if (UsesWarp && warppending)
@@ -118,20 +126,25 @@ public sealed class RelativePointerTracker
         return false;
     }
 
+    /// <summary>How long to keep discarding stale positions after <see cref="Begin"/>, waiting for the warp to catch up (ms).</summary>
+    private const long SettleWindowMilliseconds = 200;
+
+    /// <summary>How far from the center a position can be and still count as "the warp landed" while settling.</summary>
+    private const double SettleRadius = 100.0;
+
     /// <summary>
-    /// The capture starts: the pointer is being put on the center. Movement counts from there; the first position that arrives far
-    /// from the center is only where the pointer happens to be (the warp that starts the capture did not take effect, or has not yet),
-    /// and the jump that the warp makes when it does is skipped like any other.
+    /// The capture starts: the pointer is being put on the center. Movement counts from there; whatever arrives far from the center
+    /// before the warp catches up (the first position, and possibly more after it) is only where the pointer used to be, not a
+    /// movement; see the settling check in <see cref="Feed"/>.
     /// </summary>
     public void Begin()
     {
-        lastx = centerx; lasty = centery; haslast = true;
+        haslast = false;
         warppending = false;
         unanswered = 0;
-        fresh = true;
+        settling = true;
+        settlingsince = clock();
     }
-
-    private bool fresh;
 
     /// <summary>Movement in pixels since the last call.</summary>
     public Vector2D Poll()

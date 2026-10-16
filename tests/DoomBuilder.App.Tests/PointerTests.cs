@@ -145,6 +145,51 @@ public class RelativePointerTrackerTests
         tracker.Feed(405, 300);
         Assert.Equal(5, tracker.Poll().x);
     }
+
+    [Fact]
+    public void After_Begin_a_stale_position_followed_by_the_warps_echo_is_not_one_huge_movement()
+    {
+        // What happens on Windows once a modal dialog (texture browser, Edit Linedef...) closes: the pointer's real position (far
+        // away, wherever the dialog's OK button was) arrives as one event, and only after it does the warp's own jump to the center
+        // arrive as a second event. Neither is real mouse movement: the second being read as a huge jump from the first was the bug.
+        long now = 0;
+        var tracker = new RelativePointerTracker(() => now);
+        tracker.SetCenter(400, 300);
+        tracker.Begin();
+
+        Assert.False(tracker.Feed(50, 900));       // stale: wherever the pointer really was (e.g. a dialog's OK button)
+        now += 5;
+        Assert.False(tracker.Feed(401, 299));      // the warp's own jump to the center, arriving second
+        var settled = tracker.Poll();
+        Assert.Equal(0, settled.x, 3);
+        Assert.Equal(0, settled.y, 3);
+
+        // From here on, real movement is read normally again
+        now += 5;
+        Assert.False(tracker.Feed(406, 303));
+        var moved = tracker.Poll();
+        Assert.Equal(5, moved.x, 3);
+        Assert.Equal(4, moved.y, 3);
+    }
+
+    [Fact]
+    public void After_Begin_settling_gives_up_once_the_window_runs_out_without_the_warp_catching_up()
+    {
+        // Where the warp never lands near the center at all (platform cannot warp, or the session ignores it), settling must not
+        // lock the tracker up forever: once its window elapses, movement is read again from wherever the pointer actually is.
+        long now = 0;
+        var tracker = new RelativePointerTracker(() => now) { UsesWarp = false };
+        tracker.SetCenter(400, 300);
+        tracker.Begin();
+
+        Assert.False(tracker.Feed(900, 100));      // far from the center, and stays far: settling is still waiting
+        now += 500;                                // well past the settle window
+        Assert.False(tracker.Feed(905, 100));      // the window ran out: this position is accepted as the new baseline, not movement
+        Assert.Equal(0, tracker.Poll().x, 3);
+
+        Assert.False(tracker.Feed(915, 100));       // real movement, measured from the baseline above
+        Assert.Equal(10, tracker.Poll().x, 3);
+    }
 }
 
 public class PointerWarpTests
