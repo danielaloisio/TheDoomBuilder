@@ -18,6 +18,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - run: dotnet build DoomBuilder.slnx -c Release
+      - run: dotnet build TheDoomBuilder.slnx -c Release
       # --blame-hang-timeout kills a test that stops responding and names it in the log
-      - run: dotnet test DoomBuilder.slnx -c Release --no-build --blame-hang --blame-hang-timeout 3m
+      - run: dotnet test TheDoomBuilder.slnx -c Release --no-build --blame-hang --blame-hang-timeout 3m
