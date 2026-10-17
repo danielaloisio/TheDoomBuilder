@@ -8,9 +8,12 @@
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.Styles>
-        <semi:SemiTheme />
+        <FluentTheme />
         <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+        <!--
+        <semi:SemiTheme />
         <semiedit:AvaloniaEditSemiTheme />
+        -->
     </Application.Styles>
 
     <!-- macOS only: the generated app menu's "About" item otherwise stays the Avalonia placeholder (unlike Hide/Quit,
