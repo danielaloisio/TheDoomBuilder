@@ -10,7 +10,7 @@ using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// The five arguments of an action (UDB's ArgumentsControl): a caption and a box each, the captions following the action (or the

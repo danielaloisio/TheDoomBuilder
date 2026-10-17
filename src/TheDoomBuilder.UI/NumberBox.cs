@@ -8,7 +8,7 @@ using Avalonia.Media;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Controls;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// UDB's ButtonsNumericTextbox: a text box for numbers with up/down buttons and the mouse wheel. It takes expressions and

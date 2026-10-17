@@ -8,7 +8,7 @@ using Avalonia.Layout;
 using CodeImp.DoomBuilder.Controls;
 using CodeImp.DoomBuilder.Types;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// UDB's tag selector: an editable list of the tags in use, with buttons for a new tag, an unused tag, clearing, and stepping.

@@ -36,7 +36,7 @@ namespace CodeImp.DoomBuilder.BuilderModes.Editing
 
 		public void Show(System.Drawing.Point screenposition)
 		{
-			Window owner = global::DoomBuilder.UI.DialogHost.Owner == null ? null : global::DoomBuilder.UI.DialogHost.Owner();
+			Window owner = global::TheDoomBuilder.UI.DialogHost.Owner == null ? null : global::TheDoomBuilder.UI.DialogHost.Owner();
 			if(owner != null) menu.Open(owner);
 		}
 	}

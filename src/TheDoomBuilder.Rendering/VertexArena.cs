@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using CodeImp.DoomBuilder.Rendering;
 
-namespace DoomBuilder.Rendering
+namespace TheDoomBuilder.Rendering
 {
 	/// <summary>
 	/// CPU-side bookkeeping for the big shared vertex buffer of one vertex format. Every <see cref="VertexBuffer"/> the

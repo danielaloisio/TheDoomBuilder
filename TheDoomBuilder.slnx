@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/TheDoomBuilder.App/TheDoomBuilder.App.csproj" />
+    <Project Path="src/TheDoomBuilder.Application/TheDoomBuilder.Application.csproj" />
     <Project Path="src/TheDoomBuilder.Core/TheDoomBuilder.Core.csproj" />
     <Project Path="src/TheDoomBuilder.Rendering/TheDoomBuilder.Rendering.csproj" />
     <Project Path="src/TheDoomBuilder.UI/TheDoomBuilder.UI.csproj" />
@@ -26,7 +26,7 @@
     <Project Path="src/Plugins/CommentsPanel/CommentsPanel.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/TheDoomBuilder.App.Tests/TheDoomBuilder.App.Tests.csproj" />
+    <Project Path="tests/TheDoomBuilder.Application.Tests/TheDoomBuilder.Application.Tests.csproj" />
     <Project Path="tests/TheDoomBuilder.Core.Tests/TheDoomBuilder.Core.Tests.csproj" />
     <Project Path="tests/TheDoomBuilder.Rendering.Tests/TheDoomBuilder.Rendering.Tests.csproj" />
   </Folder>

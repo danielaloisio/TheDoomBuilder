@@ -6,9 +6,8 @@
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- The project/folder name tracks the product name; the C# namespace and assembly name stay as they were. -->
-    <RootNamespace>DoomBuilder.Rendering</RootNamespace>
-    <AssemblyName>DoomBuilder.Rendering</AssemblyName>
+    <RootNamespace>TheDoomBuilder.Rendering</RootNamespace>
+    <AssemblyName>TheDoomBuilder.Rendering</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

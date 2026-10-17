@@ -7,7 +7,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// One argument of an action (UDB's ArgumentBox): a list of choices when the type has them, a browse button when it can be browsed,

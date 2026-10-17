@@ -12,7 +12,7 @@ using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.Data;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// UDB's thing type browser: the tree of categories and things with a filter, the type number, and what is known about the

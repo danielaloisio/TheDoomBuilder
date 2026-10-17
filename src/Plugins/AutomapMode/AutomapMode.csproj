@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="TheDoomBuilder.App" />
-    <InternalsVisibleTo Include="TheDoomBuilder.App.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Application" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Application.Tests" />
     <InternalsVisibleTo Include="TheDoomBuilder.Core.Tests" />
   </ItemGroup>
 

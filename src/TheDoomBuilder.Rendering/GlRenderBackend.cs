@@ -19,7 +19,7 @@ using CubeMapFace = CodeImp.DoomBuilder.Rendering.CubeMapFace;
 using Texture = CodeImp.DoomBuilder.Rendering.Texture;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 
-namespace DoomBuilder.Rendering
+namespace TheDoomBuilder.Rendering
 {
 	/// <summary>
 	/// OpenGL implementation of <see cref="IRenderBackend"/> on Silk.NET: a managed port of UDB's BuilderNative renderer

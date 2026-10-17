@@ -4,7 +4,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using CodeImp.DoomBuilder.ColorPicker.Controls;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.ColorPicker.Windows
 {

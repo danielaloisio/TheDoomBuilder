@@ -9,7 +9,7 @@ using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Types;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// UDB's sector dialog (Doom/Hexen and UDMF): heights, flats, brightness, effect and tag; in UDMF also the flags, more tags and the

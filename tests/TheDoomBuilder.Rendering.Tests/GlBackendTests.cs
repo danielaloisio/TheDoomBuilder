@@ -4,13 +4,13 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Rendering;
-using DoomBuilder.Rendering;
+using TheDoomBuilder.Rendering;
 using Silk.NET.OpenGL;
 using Xunit;
 using Texture = CodeImp.DoomBuilder.Rendering.Texture;
 using PrimitiveType = CodeImp.DoomBuilder.Rendering.PrimitiveType;
 
-namespace DoomBuilder.Rendering.Tests;
+namespace TheDoomBuilder.Rendering.Tests;
 
 /// <summary>Runs the OpenGL backend against a real GL 3.3 core context (skipped when the machine has none).</summary>
 [Collection("OpenGL")]

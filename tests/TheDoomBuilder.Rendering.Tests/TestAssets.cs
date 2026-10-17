@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace DoomBuilder.Rendering.Tests;
+namespace TheDoomBuilder.Rendering.Tests;
 
 internal static class TestAssets
 {

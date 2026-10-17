@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
 
-namespace DoomBuilder.Rendering
+namespace TheDoomBuilder.Rendering
 {
 	/// <summary>One GLSL program (vertex+fragment), built on first use. Every shader exists twice: plain and with ALPHA_TEST defined.</summary>
 	internal sealed class GlShader

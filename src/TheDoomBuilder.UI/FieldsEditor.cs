@@ -12,7 +12,7 @@ using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Types;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// The custom (UDMF) fields of the elements being edited: name, type and value per row, undefined fixed fields greyed out,

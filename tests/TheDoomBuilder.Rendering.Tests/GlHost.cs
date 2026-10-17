@@ -6,7 +6,7 @@ using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 
-namespace DoomBuilder.Rendering.Tests;
+namespace TheDoomBuilder.Rendering.Tests;
 
 /// <summary>
 /// A real OpenGL 3.3 core context for tests, on a hidden GLFW window. GL contexts belong to one thread, so the host

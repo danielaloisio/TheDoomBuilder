@@ -5,7 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using CodeImp.DoomBuilder.Rendering;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// A color to edit, as UDB's ColorControl: a swatch and the hex code (#RRGGBB). Avalonia has no color picker in its base package, so the code is typed;

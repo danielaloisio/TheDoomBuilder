@@ -12,12 +12,12 @@ root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 have = set(json.load(open(sys.argv[1], encoding='utf-8'))['strings'])
 keys = []
 
-for f in glob.glob(os.path.join(root, 'src', 'TheDoomBuilder.App', '**', '*.cs'), recursive=True):
+for f in glob.glob(os.path.join(root, 'src', 'TheDoomBuilder.Application', '**', '*.cs'), recursive=True):
     if os.sep + 'obj' + os.sep in f: continue
     for m in re.finditer(r'Loc\.T\("((?:[^"\\]|\\.)+)"', open(f, encoding='utf-8').read()):
         keys.append(m.group(1))
 
-ui = json.load(open(os.path.join(root, 'src', 'TheDoomBuilder.App', 'Resources', 'mainform-ui.json'), encoding='utf-8'))
+ui = json.load(open(os.path.join(root, 'src', 'TheDoomBuilder.Application', 'Resources', 'mainform-ui.json'), encoding='utf-8'))
 def walk(o):
     if isinstance(o, dict):
         for k in ('text', 'tooltip'):

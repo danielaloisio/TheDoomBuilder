@@ -77,7 +77,7 @@ namespace CodeImp.DoomBuilder.USDF
 		/// <summary>Shows the window, over the main window when the owner is asked for.</summary>
 		public void Show(bool ontop)
 		{
-			Window main = global::DoomBuilder.UI.DialogHost.Owner == null ? null : global::DoomBuilder.UI.DialogHost.Owner();
+			Window main = global::TheDoomBuilder.UI.DialogHost.Owner == null ? null : global::TheDoomBuilder.UI.DialogHost.Owner();
 			if(ontop && main != null) window.Show(main);
 			else window.Show();
 		}

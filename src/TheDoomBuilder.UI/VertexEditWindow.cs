@@ -7,7 +7,7 @@ using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>UDB's "Edit Vertex" dialog: position, the height offsets (UDMF) and the custom fields. Changes show on the map as they are made.</summary>
 public sealed class VertexEditWindow : EditDialogBase

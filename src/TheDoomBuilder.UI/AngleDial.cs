@@ -4,7 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// A dial for an angle in degrees (UDB's AngleControlEx): 0 points east and angles grow counter-clockwise, like in the map.

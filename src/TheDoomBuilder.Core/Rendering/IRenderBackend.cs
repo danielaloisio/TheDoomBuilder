@@ -6,7 +6,7 @@ namespace CodeImp.DoomBuilder.Rendering
 	/// <summary>
 	/// The graphics API behind <see cref="RenderDevice"/>. In UDB this was the native BuilderNative library
 	/// (OpenGL via P/Invoke); it is now a managed interface so the Avalonia host can supply an OpenGL
-	/// implementation (DoomBuilder.Rendering) bound to the context Avalonia owns, and tests can supply a fake.
+	/// implementation (TheDoomBuilder.Rendering) bound to the context Avalonia owns, and tests can supply a fake.
 	///
 	/// State setters only record state. Anything that touches the GPU may be deferred by the implementation until a
 	/// graphics context is available (the host only has one while it is rendering a frame).

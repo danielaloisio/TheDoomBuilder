@@ -1,0 +1,572 @@
+using System;
+using System.IO;
+using System.Windows.Forms;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using CodeImp.DoomBuilder;
+using TheDoomBuilder.Application.Input;
+using TheDoomBuilder.Application.Shell;
+using TheDoomBuilder.Application.Dialogs;
+using Silk.NET.OpenGL;
+using SkiaSharp;
+using KeyEventArgs = Avalonia.Input.KeyEventArgs;
+using Application = Avalonia.Application;
+
+namespace TheDoomBuilder.Application;
+
+public partial class MainWindow : Avalonia.Controls.Window
+{
+    private readonly AvaloniaShell shell;
+    private readonly ShellUi ui;
+    private bool started;
+    private int framecount;
+
+    private readonly WindowActivity activity = new WindowActivity();
+    internal WindowActivity Activity => activity;
+
+    /// <summary>The window system's answer to "is this window active"; tests replace it to play a compositor that never reports the activation back.</summary>
+    internal Func<bool> PlatformIsActive { get; set; }
+
+    public MainWindow() : this(true)
+    {
+    }
+
+    /// <param name="startEditor">False builds the window (viewport, input wiring) without starting the editor core: for tests of the UI parts alone.</param>
+    public MainWindow(bool startEditor)
+    {
+        InitializeComponent();
+        PlatformIsActive = () => IsActive;
+
+        shell = new AvaloniaShell(Viewport) { WindowIsActive = () => activity.IsActive(PlatformIsActive()) };
+        ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
+        SplashImage.Source = TheDoomBuilder.Application.Shell.ImageCache.Get("Splash3_trans");
+        MenuHost.Content = ui.Menu;
+        ToolbarHost.Content = ui.Toolbar;
+        ModesHost.Content = ui.ModesBar;
+        ModeControlsHost.Content = ui.ModeControlsBar;
+        plugins = new PluginUi(ui);              // the menus and buttons of the plugins
+        shell.Plugins = plugins;
+
+        // The side panel goes in front of the display (the last child of a DockPanel takes the rest of the space)
+        dockers = new DockerPanel(shell.Dockers) { IsVisible = false };
+        var layout = (DockPanel)Content;
+        layout.Children.Insert(layout.Children.IndexOf(InputSurface), dockers);
+        shell.Dockers.Changed += () => Dispatcher.UIThread.Post(ApplyDockers);
+
+        // The tooltip modes ask for over the display (comments of things, linedefs and sectors)
+        displayTip = new DisplayToolTip();
+        InputSurface.Children.Add(displayTip);
+        shell.Display.ToolTipRequested += (title, text, x, y) => Dispatcher.UIThread.Post(() => displayTip.ShowAt(title, text, x, y, RenderScaling, InputSurface.Bounds.Size));
+        shell.Display.ToolTipHidden += () => Dispatcher.UIThread.Post(displayTip.Hide);
+
+        // The info of the element under the mouse
+        infoPanel = new InfoPanel();
+        InfoHost.Content = infoPanel;
+        shell.InfoChanged += info => Dispatcher.UIThread.Post(() =>
+        {
+            // While nothing is highlighted the panel names the mode and counts the map's elements
+            infoPanel.Show(info ?? (General.Map != null ? CodeImp.DoomBuilder.Windows.ElementInfoBuilder.ForStatistics() : null));
+        });
+
+        // Offsets that plugins give in display pixels follow the screen's scale
+        UpdateDpiScaler();
+        ScalingChanged += (s, e) => { UpdateDpiScaler(); Viewport.OnScaleChanged(); };
+        Opened += (s, e) => UpdateDpiScaler();
+
+        // The command palette floats over the top of the display
+        palette = new CommandPalette();
+        InputSurface.Children.Add(palette);
+        shell.CommandPaletteRequested += () => Dispatcher.UIThread.Post(() => { if (EditorRunning) palette.Open(); });
+        palette.Closed += () => Focus();
+        AddHandler(PointerPressedEvent, (s, e) =>
+        {
+            activity.InputReceived();
+            if (palette.IsVisible && e.Source is Visual v && !palette.IsVisualAncestorOf(v) && v != palette) palette.Close();
+        }, RoutingStrategies.Tunnel);
+
+        shell.LanguageChanged += ApplyLanguage;
+        shell.StatusChanged += text => StatusText.Text = text;
+        shell.HintsChanged += text => HintsText.Text = RtfText.ToPlain(text).Replace('\n', ' ');
+        shell.ZoomChanged += scale => ZoomText.Text = (int)Math.Round(scale * 100) + "%";
+        shell.GridChanged += size => GridText.Text = size == 0 ? "--" : size + " mp";
+        shell.CoordinatesChanged += (coords, snapped) => CoordsText.Text = $"{coords.x:0}, {coords.y:0}";
+        shell.WarningsChanged += (count, blink) => WarningsText.Text = count.ToString();
+        WarningsText.Cursor = new Avalonia.Input.Cursor(StandardCursorType.Hand);
+        WarningsText.PointerPressed += (s, e) => { if (EditorRunning) shell.ShowErrors(); };
+        shell.InterfaceChanged += RefreshInterface;
+        shell.RecentFilesChanged += ShowRecentFiles;
+        Closing += OnClosing;
+        PositionChanged += (s, e) => RememberNormalBounds();
+        PropertyChanged += (s, e) => { if (e.Property == WidthProperty || e.Property == HeightProperty) RememberNormalBounds(); };
+        Closed += (s, e) => General.ExitRequested -= OnExitRequested;
+
+        Viewport.Paint += OnPaint;
+        Viewport.ContextFailed += reason => StatusText.Text = "OpenGL is not available: " + reason;
+        Viewport.FramePainted += OnFramePainted;
+        // A new GL context replaced a lost one: the backend put back what it had copies of; the sky is drawn on the GPU, so it is made again
+        Viewport.ContextRestored += () => Dispatcher.UIThread.Post(() =>
+        {
+            if (General.Map != null) General.Map.Data.SetupSkybox();
+            Viewport.RequestRedraw();
+        });
+
+        // Keyboard: tunnel so keys reach the editor wherever the focus is inside the window
+        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
+        Activated += (s, e) =>
+        {
+            activity.Activated();
+            if (!EditorRunning) return;
+            CodeImp.DoomBuilder.General.WriteLogLine("Main window activated.");
+            shell.Input.ReleaseAllKeys();      // like UDB: whatever was pressed while another window had the input is forgotten
+            Viewport.Focus();
+        };
+        Deactivated += (s, e) =>
+        {
+            activity.Deactivated();
+            if (!EditorRunning) return;
+            CodeImp.DoomBuilder.General.WriteLogLine("Main window deactivated.");
+            shell.Input.ReleaseAllKeys();
+        };
+
+        // Mouse
+        Viewport.InputSurface = InputSurface;
+        InputSurface.PointerEntered += OnPointerEntered;
+        InputSurface.PointerExited += (s, e) => { displayTip.Hide(); shell.Input.MouseLeave(EventArgs.Empty); };
+        InputSurface.PointerPressed += OnPointerPressed;
+        InputSurface.PointerReleased += OnPointerReleased;
+        InputSurface.PointerMoved += OnPointerMoved;
+        InputSurface.PointerWheelChanged += OnPointerWheel;
+
+        // In the 3D view the pointer is hidden and the movement is read from the device, so where the pointer happens to be says nothing
+        // about where the user means to click (where moving the pointer back has no effect it wanders out of the view). UDB keeps the
+        // cursor clipped to the display; here the buttons and the wheel count wherever they happen, while the mouse is exclusive.
+        AddHandler(PointerPressedEvent, (s, e) => { if (TakesOverClick(e)) { e.Handled = true; OnPointerPressed(InputSurface, e); } }, RoutingStrategies.Tunnel);
+        AddHandler(PointerWheelChangedEvent, (s, e) => { if (TakesOverClick(e)) { e.Handled = true; OnPointerWheel(InputSurface, e); } }, RoutingStrategies.Tunnel);
+
+        if (startEditor) Opened += (s, e) => Dispatcher.UIThread.Post(StartEditor, DispatcherPriority.Background);
+    }
+
+    private readonly DisplayToolTip displayTip;
+    private readonly InfoPanel infoPanel;
+
+    /// <summary>Loads the language of the settings and puts the menus and toolbars in it.</summary>
+    internal void ApplyLanguage()
+    {
+        CodeImp.DoomBuilder.Localization.Localizer.Load(General.AppPath, General.Settings?.Language);
+        ui.Retranslate();
+    }
+
+    private void UpdateDpiScaler()
+    {
+        float scale = (float)RenderScaling;
+        CodeImp.DoomBuilder.Windows.MainForm.DPIScaler = new System.Drawing.SizeF(scale, scale);
+    }
+
+    // MainForm.UpdateInterface: title, menus, toolbar and the status bar's config label
+    private readonly PluginUi plugins;
+    private readonly DockerPanel dockers;
+
+    /// <summary>The menus and buttons plugins added (tests look into it).</summary>
+    internal PluginUi Plugins => plugins;
+    private readonly CommandPalette palette;
+
+    /// <summary>The command palette (tests drive it).</summary>
+    internal CommandPalette Palette => palette;
+
+    /// <summary>The side panel of the dockers (tests look into it).</summary>
+    internal DockerPanel Dockers => dockers;
+
+    // Shown when a map is open and there is at least one docker; on the side the settings say (0 left, 1 right, 2 hidden)
+    private void ApplyDockers()
+    {
+        int position = General.Settings?.DockersPosition ?? 1;
+        bool show = position != 2 && General.Map != null && shell.Dockers.Dockers.Count > 0;
+        dockers.IsVisible = show;
+        if (!show) return;
+
+        DockPanel.SetDock(dockers, position == 0 ? Dock.Left : Dock.Right);
+        dockers.SetSide(position != 0);
+        dockers.Width = Math.Max(160, General.Settings?.DockersWidth ?? 250);
+    }
+
+    private void RefreshInterface()
+    {
+        ui.Refresh();
+        plugins.Refresh();
+        ApplyDockers();
+
+        SplashHost.IsVisible = General.Map == null;
+        InfoHost.IsVisible = General.Map != null && shell.IsInfoPanelExpanded;
+        if (shell.InfoObject == null) infoPanel.Show(General.Map != null ? CodeImp.DoomBuilder.Windows.ElementInfoBuilder.ForStatistics() : null);   // (the mode or the map changed)
+
+        string program = "The Doom Builder";
+        if (General.Map != null)
+        {
+            string maptitle = !string.IsNullOrEmpty(General.Map.Data?.MapInfo?.Title) ? ": " + General.Map.Data.MapInfo.Title : "";
+            Title = (General.Map.IsChanged ? "\u25CF " : "") + General.Map.FileTitle + " (" + General.Map.Options.CurrentName + maptitle + ") - " + program;
+            ConfigText.Text = General.Map.ConfigSettings?.Name ?? "";
+        }
+        else
+        {
+            Title = program;
+            ConfigText.Text = "";
+        }
+    }
+
+    // Terminate(true) comes from our own close (already closing); Terminate(false) is a fatal error: close the window
+    private void OnExitRequested(bool proper)
+    {
+        if (!proper) { terminating = true; Dispatcher.UIThread.Post(Close); }
+    }
+
+    private void ShowRecentFiles() => ui.SetRecentFiles(shell.Recent.Files, OpenRecent);
+
+    // MainForm.recentitem_Click
+    private static void OpenRecent(string filename)
+    {
+        string existing = CodeImp.DoomBuilder.Windows.RecentFiles.FindExistingFile(filename);
+        if (existing == null)
+        {
+            General.Interface.DisplayStatus(CodeImp.DoomBuilder.Windows.StatusType.Warning, $"The file '{filename}' could not be found.");
+            return;
+        }
+        General.OpenMapFile(existing, null);
+    }
+
+    // MainForm.OnFormClosing: the map must be closed (asking to save) before the program ends. A modal question cannot be
+    // asked from inside Closing (the window is already on its way out), so the close is cancelled, asked about from the
+    // dispatcher, and requested again once the user agreed.
+    private bool terminating, closeapproved, closeinprogress;
+
+    // The core exists between a successful Startup and Terminate; input arriving outside that has nothing to talk to
+    private bool EditorRunning => started && !terminating && General.Actions != null;
+
+    private void OnClosing(object sender, WindowClosingEventArgs e)
+    {
+        if (!started || terminating || closeapproved) return;
+
+        e.Cancel = true;
+        if (closeinprogress) return;       // already asking
+        closeinprogress = true;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                if (!General.CloseMap()) return;       // the user chose Cancel (or saving failed): stay open
+
+                General.WriteLogLine("Closing main interface window...");
+                shell.Input.StopExclusiveMouseInput();
+                shell.Input.StopProcessing();
+                shell.Recent.Save();
+                CapturePlacement().Save();
+
+                closeapproved = true;
+                General.Terminate(true);
+                terminating = true;
+                Close();
+            }
+            finally { closeinprogress = false; }
+        });
+    }
+
+    // The size and position of the last session, on a screen that still exists
+    private void RestorePlacement()
+    {
+        var saved = CodeImp.DoomBuilder.Windows.WindowPlacement.Load();
+        if (saved == null) return;
+
+        var screens = new System.Collections.Generic.List<int[]>();
+        foreach (var screen in Screens.All) screens.Add(new[] { screen.WorkingArea.X, screen.WorkingArea.Y, screen.WorkingArea.Width, screen.WorkingArea.Height });
+        var fit = saved.FitTo(screens);
+
+        WindowState = WindowState.Normal;
+        Position = new PixelPoint(fit.X, fit.Y);
+        Width = fit.Width / RenderScaling;
+        Height = fit.Height / RenderScaling;
+        if (fit.Maximized) WindowState = WindowState.Maximized;
+    }
+
+    // The restored bounds (not the maximized ones) are what comes back next time
+    private CodeImp.DoomBuilder.Windows.WindowPlacement CapturePlacement()
+    {
+        bool maximized = WindowState == WindowState.Maximized;
+        if (maximized && lastNormal != null) return new CodeImp.DoomBuilder.Windows.WindowPlacement(lastNormal.X, lastNormal.Y, lastNormal.Width, lastNormal.Height, true);
+        return new CodeImp.DoomBuilder.Windows.WindowPlacement(Position.X, Position.Y, (int)Math.Round(Width * RenderScaling), (int)Math.Round(Height * RenderScaling), maximized);
+    }
+
+    private CodeImp.DoomBuilder.Windows.WindowPlacement lastNormal;   // bounds of the window while it was not maximized
+
+    private void RememberNormalBounds()
+    {
+        if (WindowState == WindowState.Normal)
+            lastNormal = new CodeImp.DoomBuilder.Windows.WindowPlacement(Position.X, Position.Y, (int)Math.Round(Width * RenderScaling), (int)Math.Round(Height * RenderScaling), false);
+    }
+
+    // What MainForm.RedrawDisplay did: let the active edit mode draw
+    private void OnPaint()
+    {
+        if (General.Map == null || General.Editing.Mode == null) return;
+        General.Editing.Mode.OnRedrawDisplay();
+    }
+
+    private void StartEditor()
+    {
+        if (started) return;
+        started = true;
+
+        string appdir = Program.ApplicationDirectory ?? AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string settingsdir = Program.SettingsDirectory ?? Environment.GetEnvironmentVariable("UDB_SETTINGS_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TheDoomBuilder");
+        Directory.CreateDirectory(settingsdir);
+
+        General.ExitRequested += OnExitRequested;                           // the core wants the program to end (fatal errors, Terminate)
+        TheDoomBuilder.UI.DialogHost.Owner = () => this;
+        CodeImp.DoomBuilder.Windows.ScriptEditorForm.HostFactory = () => new Dialogs.ScriptEditorWindow();   // the script editor (AvaloniaEdit)
+        System.Windows.Forms.Clipboard.Provider = new SystemClipboard(() => this);   // copy and paste go through the system clipboard
+        General.Dialogs = new AvaloniaDialogs(() => this);                  // the real message boxes, file pickers and map options
+        General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderModes.BuilderPlug).Assembly);   // vertices, linedefs, sectors, things...
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ThreeDFloorMode.BuilderPlug).Assembly);   // 3D floors and slopes (after BuilderModes, which it uses)
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.StairSectorBuilderMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.SoundPropagationMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.WadAuthorMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.USDF.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.ImageDrawingExample.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.UDBScript.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BuilderEffects.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.ColorPicker.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.AutomapMode.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.VisplaneExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.Plugins.NodesViewer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.RejectExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.BlockmapExplorer.BuilderPlug).Assembly);
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.TagExplorer.BuilderPlug).Assembly);   // tags and actions of the map as a tree
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.TagRange.BuilderPlug).Assembly);   // tag ranges for a selection (after BuilderModes, which it uses)
+        General.BuiltInPluginAssemblies.Add(typeof(CodeImp.DoomBuilder.CommentsPanel.BuilderPlug).Assembly);   // UDMF comments as a list
+
+        if (!General.Startup(Program.Arguments, () => shell, appdir, settingsdir))
+        {
+            StatusText.Text = "Startup failed, see the log in " + settingsdir;
+            return;
+        }
+
+        AvaloniaShell.ApplyTheme();
+        ApplyLanguage();                                         // light, dark or the system theme
+        RestorePlacement();
+        General.Actions.BindMethods(shell);                                 // "showerrors" lives in the shell, like MainForm's actions
+        shell.Recent.Load();
+        ShowRecentFiles();
+
+        // What MainForm.Shown did: open the map from the command line now that the window is up
+        General.MainWindow.PerformAutoMapLoading();
+        Viewport.RequestRedraw();
+    }
+
+    // ---- keyboard
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        activity.InputReceived();
+        if (!EditorRunning || FocusIsInTextInput()) return;
+
+        Keys data = KeyMap.ToKeyData(e.Key, e.KeyModifiers);
+        if (data == Keys.None) return;
+
+        if (shell.Input.KeyDown(data)) e.Handled = true;
+    }
+
+    private void OnKeyUp(object sender, KeyEventArgs e)
+    {
+        if (!EditorRunning || FocusIsInTextInput()) return;
+
+        Keys data = KeyMap.ToKeyData(e.Key, e.KeyModifiers);
+        if (data == Keys.None) return;
+
+        if (shell.Input.KeyUp(data)) e.Handled = true;
+    }
+
+    // Typing into a text box must not trigger editor shortcuts
+    private bool FocusIsInTextInput() => TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox;
+
+    // ---- mouse
+
+    private MouseEventArgs ToMouseArgs(PointerEventArgs e, MouseButtons button, int clicks, int delta)
+    {
+        double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
+        Point p = e.GetPosition(InputSurface);
+        return new MouseEventArgs(button, clicks, (int)(p.X * scale), (int)(p.Y * scale), delta);
+    }
+
+    private static MouseButtons ToButton(PointerUpdateKind kind)
+    {
+        switch (kind)
+        {
+            case PointerUpdateKind.LeftButtonPressed: case PointerUpdateKind.LeftButtonReleased: return MouseButtons.Left;
+            case PointerUpdateKind.RightButtonPressed: case PointerUpdateKind.RightButtonReleased: return MouseButtons.Right;
+            case PointerUpdateKind.MiddleButtonPressed: case PointerUpdateKind.MiddleButtonReleased: return MouseButtons.Middle;
+            case PointerUpdateKind.XButton1Pressed: case PointerUpdateKind.XButton1Released: return MouseButtons.XButton1;
+            case PointerUpdateKind.XButton2Pressed: case PointerUpdateKind.XButton2Released: return MouseButtons.XButton2;
+            default: return MouseButtons.None;
+        }
+    }
+
+    private void OnPointerEntered(object sender, PointerEventArgs e)
+    {
+        if (!EditorRunning) return;
+        shell.Input.MouseEnter(EventArgs.Empty);
+        if (IsActive) Viewport.Focus();     // like UDB: the display takes the keyboard when the mouse is over it
+    }
+
+    /// <summary>True for input that landed outside the display while the mouse is exclusive (the editor takes it, the control under it does not).</summary>
+    private bool TakesOverClick(PointerEventArgs e)
+    {
+        if (!EditorRunning || !shell.Input.MouseExclusive) return false;
+        return !(e.Source is Visual v && (v == InputSurface || InputSurface.IsVisualAncestorOf(v)));
+    }
+
+    private void OnPointerPressed(object sender, PointerPressedEventArgs e)
+    {
+        if (!EditorRunning) return;
+
+        MouseButtons button = ToButton(e.GetCurrentPoint(InputSurface).Properties.PointerUpdateKind);
+        if (button == MouseButtons.None) return;
+
+        Viewport.Focus();
+        e.Pointer.Capture(InputSurface);       // keep getting the move/release events when dragging outside the view
+
+        var args = ToMouseArgs(e, button, e.ClickCount, 0);
+        shell.Input.MouseDown(args);
+        if (e.ClickCount >= 2) shell.Input.MouseDoubleClick(args);
+    }
+
+    private void OnPointerReleased(object sender, PointerReleasedEventArgs e)
+    {
+        if (!EditorRunning) return;
+
+        MouseButtons button = ToButton(e.InitialPressMouseButton switch
+        {
+            MouseButton.Left => PointerUpdateKind.LeftButtonReleased,
+            MouseButton.Right => PointerUpdateKind.RightButtonReleased,
+            MouseButton.Middle => PointerUpdateKind.MiddleButtonReleased,
+            MouseButton.XButton1 => PointerUpdateKind.XButton1Released,
+            MouseButton.XButton2 => PointerUpdateKind.XButton2Released,
+            _ => PointerUpdateKind.Other,
+        });
+        if (button == MouseButtons.None) return;
+
+        e.Pointer.Capture(null);
+        var args = ToMouseArgs(e, button, 1, 0);
+        shell.Input.MouseUp(args);
+        shell.Input.MouseClick(args);
+    }
+
+    private void OnPointerMoved(object sender, PointerEventArgs e)
+    {
+        if (!EditorRunning) return;
+        shell.Input.MouseMove(ToMouseArgs(e, shell.Input.MouseButtons, 0, 0));
+    }
+
+    private void OnPointerWheel(object sender, PointerWheelEventArgs e)
+    {
+        if (!EditorRunning) return;
+
+        if (e.Delta.Y != 0) shell.Input.Wheel(e.Delta.Y > 0 ? 120 : -120);
+        if (e.Delta.X != 0) shell.Input.HorizontalWheel(e.Delta.X > 0 ? 120 : -120);
+        e.Handled = true;
+    }
+
+    // Saves the frame that was just painted (GL rows start at the bottom)
+    private unsafe void SaveFrame(GL gl, int fb, PixelSize size, string path)
+    {
+        var pixels = new byte[size.Width * size.Height * 4];
+        gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)fb);
+        fixed (byte* p = pixels)
+            gl.ReadPixels(0, 0, (uint)size.Width, (uint)size.Height, Silk.NET.OpenGL.PixelFormat.Rgba, PixelType.UnsignedByte, p);
+
+        // GL rows start at the bottom
+        var flipped = new byte[pixels.Length];
+        int stride = size.Width * 4;
+        for (int y = 0; y < size.Height; y++)
+            System.Buffer.BlockCopy(pixels, y * stride, flipped, (size.Height - 1 - y) * stride, stride);
+
+        using var bitmap = new SKBitmap(new SKImageInfo(size.Width, size.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+        System.Runtime.InteropServices.Marshal.Copy(flipped, 0, bitmap.GetPixels(), flipped.Length);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using (var file = File.Create(path)) data.SaveTo(file);
+    }
+
+    // Test/diagnostic hook: UDB_SCREENSHOT=file.png saves the first settled frame with a map in it and exits.
+    private bool openedother;
+    private int otherframes;
+
+    private unsafe void OnFramePainted(GL gl, int fb, PixelSize size)
+    {
+        if (Environment.GetEnvironmentVariable("UDB_LOG_FRAMES") == "1") Console.WriteLine("[frame] " + Environment.TickCount64 + (General.Map != null ? " cam " + General.Map.VisualCamera.AngleXY.ToString("0.0000") + " " + General.Map.VisualCamera.AngleZ.ToString("0.0000") : ""));
+        // UDB_OPEN_AFTER=<wad>|<map> opens that map (as File > Open Map would, without the dialogs) after the second frame: to see what the display does
+        string openafter = Environment.GetEnvironmentVariable("UDB_OPEN_AFTER");
+        if (!string.IsNullOrEmpty(openafter) && General.Map != null && !openedother && ++otherframes == 2)
+        {
+            openedother = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                string[] parts = openafter.Split('|');
+                using var model = new CodeImp.DoomBuilder.Windows.OpenMapOptionsModel(parts[0], null);
+                model.SelectMap(parts[1]);
+                General.OpenMapFileWithOptions(parts[0], model.BuildOptions());
+            });
+        }
+        // UDB_SCREENSHOT_PASSIVE=file.png keeps the last frame the program painted by itself (nothing is forced), to see what the user sees
+        string passive = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_PASSIVE");
+        if (!string.IsNullOrEmpty(passive) && General.Map != null) { SaveFrame(gl, fb, size, passive); return; }
+
+        string path = Environment.GetEnvironmentVariable("UDB_SCREENSHOT");
+        if (string.IsNullOrEmpty(path) || General.Map == null) return;
+        // UDB_SCREENSHOT_MODE=<mode class name> (e.g. BaseVisualMode) switches to that mode first
+        string mode = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_MODE");
+        if (framecount == 1 && !string.IsNullOrEmpty(mode)) Dispatcher.UIThread.Post(() => General.Editing.ChangeMode(mode));
+        // UDB_SCREENSHOT_DOCKER=<docker title> (e.g. "Tag Explorer") shows that docker tab
+        string dockertitle = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_DOCKER");
+        if (framecount == 2 && !string.IsNullOrEmpty(dockertitle))
+            Dispatcher.UIThread.Post(() => { var d = System.Linq.Enumerable.FirstOrDefault(shell.Dockers.Dockers, x => x.Title == dockertitle); if (d != null) shell.Dockers.Select(d); });
+        // UDB_RUN_ACTION=<action name> runs an action once the map is loaded (to exercise e.g. builder_testmap from a script)
+        string action = Environment.GetEnvironmentVariable("UDB_RUN_ACTION");
+        if (framecount == 6 && !string.IsNullOrEmpty(action)) Dispatcher.UIThread.Post(() => General.Actions.InvokeAction(action));
+        // UDB_SIMULATE_CONTEXT_LOSS=1 takes the viewport out of the window and puts it back (the GL context is destroyed and created again)
+        if (framecount == 8 && Environment.GetEnvironmentVariable("UDB_SIMULATE_CONTEXT_LOSS") == "1")
+            Dispatcher.UIThread.Post(() => { var parent = (Avalonia.Controls.Panel)Viewport.Parent; parent.Children.Remove(Viewport); Dispatcher.UIThread.Post(() => parent.Children.Add(Viewport)); });
+        // UDB_SCREENSHOT_CAMERA=x,y,z,anglexy,anglez (degrees) places the 3D camera
+        string cam = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_CAMERA");
+        if (framecount == 5 && !string.IsNullOrEmpty(cam))
+            Dispatcher.UIThread.Post(() =>
+            {
+                string[] p = cam.Split(',');
+                var c = General.Map.VisualCamera;
+                c.Position = new CodeImp.DoomBuilder.Geometry.Vector3D(double.Parse(p[0], System.Globalization.CultureInfo.InvariantCulture), double.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture), double.Parse(p[2], System.Globalization.CultureInfo.InvariantCulture));
+                c.AngleXY = CodeImp.DoomBuilder.Geometry.Angle2D.DegToRad(double.Parse(p[3], System.Globalization.CultureInfo.InvariantCulture));
+                c.AngleZ = CodeImp.DoomBuilder.Geometry.Angle2D.DegToRad(double.Parse(p[4], System.Globalization.CultureInfo.InvariantCulture));
+            });
+        int needed = int.TryParse(Environment.GetEnvironmentVariable("UDB_SCREENSHOT_FRAMES"), out int f) ? f : (string.IsNullOrEmpty(mode) ? 4 : 12);   // frames to let queued GPU work and image loading settle
+        if (++framecount < needed) { Viewport.RequestRedraw(); return; }   // let queued GPU work settle
+
+        SaveFrame(gl, fb, size, path);
+        Console.WriteLine("[screenshot] " + path);
+
+        // The window's own UI (menus, toolbar, status bar) too: the GL content is not part of what Avalonia renders here
+        try
+        {
+            var size2 = new PixelSize((int)Bounds.Width, (int)Bounds.Height);
+            using var rtb = new Avalonia.Media.Imaging.RenderTargetBitmap(size2);
+            rtb.Render(this);
+            rtb.Save(Path.ChangeExtension(path, ".ui.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+            Console.WriteLine("[screenshot] " + Path.ChangeExtension(path, ".ui.png"));
+        }
+        catch (Exception e) { Console.Error.WriteLine("[screenshot] UI capture failed: " + e.Message); }
+        Dispatcher.UIThread.Post(() => (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Shutdown());
+    }
+}

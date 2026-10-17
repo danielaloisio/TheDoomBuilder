@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using CodeImp.DoomBuilder;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// The frame of UDB's edit dialogs (vertex, linedef, sector, thing): tabs, OK and Cancel, and the remembered tab. Closing with

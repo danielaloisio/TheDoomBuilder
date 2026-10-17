@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using DoomBuilder.Rendering;
+using TheDoomBuilder.Rendering;
 using Xunit;
 
-namespace DoomBuilder.Rendering.Tests;
+namespace TheDoomBuilder.Rendering.Tests;
 
 /// <summary>A 3.2 core context (macOS) only has GLSL 1.50: the shaders must fall back to it (no GPU needed to test the text).</summary>
 public class GlslFallbackTests

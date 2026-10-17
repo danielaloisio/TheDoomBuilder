@@ -12,7 +12,7 @@ using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Types;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// UDB's thing dialog (Doom/Hexen and UDMF): type, position, angle, flags, action with its arguments and tag; in UDMF also the custom

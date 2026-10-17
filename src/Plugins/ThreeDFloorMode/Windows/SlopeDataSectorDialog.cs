@@ -9,7 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using CodeImp.DoomBuilder.Geometry;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvButton = Avalonia.Controls.Button;
 
 namespace CodeImp.DoomBuilder.ThreeDFloorMode

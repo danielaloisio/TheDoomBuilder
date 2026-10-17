@@ -8,7 +8,7 @@ using Avalonia.Threading;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Data;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// A preview of a texture or flat with its name underneath (UDB's ImageSelectorControl): left click browses, right click clears

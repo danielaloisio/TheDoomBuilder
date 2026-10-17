@@ -2,7 +2,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using Avalonia.Media.Imaging;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>The plugins' images are the Core's System.Drawing stand-ins (Skia bitmaps); the Avalonia controls need their own bitmap type.</summary>
 public static class ImageConvert

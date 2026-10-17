@@ -10,7 +10,7 @@ using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.Controls;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// A number (linedef action, sector effect...) with the list of the known ones: typing a number selects its entry, picking an entry

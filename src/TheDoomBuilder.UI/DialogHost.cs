@@ -1,7 +1,7 @@
 using System;
 using Avalonia.Controls;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// How code that has no window of its own (the plugins) shows a modal dialog: over the main window, with the answer on the

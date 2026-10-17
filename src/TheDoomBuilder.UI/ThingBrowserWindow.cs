@@ -4,7 +4,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using CodeImp.DoomBuilder;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>UDB's "Browse thing type" dialog: the thing browser with OK and Cancel.</summary>
 public sealed class ThingBrowserWindow : Window

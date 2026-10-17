@@ -3,9 +3,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
-    <!-- The project/folder name tracks the product name; the C# namespace and assembly name stay as they were. -->
-    <RootNamespace>DoomBuilder.UI</RootNamespace>
-    <AssemblyName>DoomBuilder.UI</AssemblyName>
+    <RootNamespace>TheDoomBuilder.UI</RootNamespace>
+    <AssemblyName>TheDoomBuilder.UI</AssemblyName>
   </PropertyGroup>
 
   <!-- Avalonia controls and helpers shared by the app and the plugins (texture/flat selectors, image browser, dialog pump). -->
@@ -18,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="TheDoomBuilder.App" />
-    <InternalsVisibleTo Include="TheDoomBuilder.App.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Application" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Application.Tests" />
   </ItemGroup>
 </Project>

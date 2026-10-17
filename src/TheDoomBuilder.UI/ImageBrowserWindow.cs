@@ -13,7 +13,7 @@ using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Data;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// UDB's texture/flat browser: the tree of texture sets on the left, the thumbnails of the selected set on the right, filters by

@@ -5,7 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>A list of flags as check boxes (UDB's CheckboxArrayControl): three states, the middle one meaning the elements disagree.</summary>
 public sealed class FlagList : UserControl

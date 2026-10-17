@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using CodeImp.DoomBuilder.Config;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>UDB's PasteOptionsControl: what to do with the tags and actions of pasted elements.</summary>
 public sealed class PasteOptionsPanel : UserControl

@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using CodeImp.DoomBuilder.Rendering;
 
-namespace DoomBuilder.Rendering
+namespace TheDoomBuilder.Rendering
 {
 	/// <summary>Backend data attached to a <see cref="VertexBuffer"/>: its range inside the shared buffer.</summary>
 	internal sealed class GlVertexBuffer

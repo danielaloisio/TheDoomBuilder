@@ -1,9 +1,9 @@
 using System.Linq;
 using CodeImp.DoomBuilder.Rendering;
-using DoomBuilder.Rendering;
+using TheDoomBuilder.Rendering;
 using Xunit;
 
-namespace DoomBuilder.Rendering.Tests;
+namespace TheDoomBuilder.Rendering.Tests;
 
 public class VertexArenaTests
 {

@@ -11,7 +11,7 @@ using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Types;
 using CodeImp.DoomBuilder.Windows;
 
-namespace DoomBuilder.UI;
+namespace TheDoomBuilder.UI;
 
 /// <summary>
 /// UDB's linedef dialog (Doom/Hexen and UDMF): flags, activation, action with arguments and tag, and the front and back sides with
