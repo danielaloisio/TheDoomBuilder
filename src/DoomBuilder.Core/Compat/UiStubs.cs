@@ -119,10 +119,11 @@ namespace CodeImp.DoomBuilder.Controls
         public enum ImageIndex { None = -1, ScriptConstant = 0, ScriptKeyword = 1, ScriptError = 2, ScriptProperty = 3, ScriptSnippet = 4 }
         public static System.Text.Encoding Encoding { get; } = System.Text.Encoding.GetEncoding("iso-8859-1");
         public ScintillaNET.Scintilla Scintilla { get; } = new ScintillaNET.Scintilla();
-        public bool CheckImplicitChanges() => false;
-        public void ImplicitSave() { }
-        public void ShowErrors(System.Collections.Generic.IList<CodeImp.DoomBuilder.Compilers.CompilerError> errors, bool clear) { }
-        public void WriteOpenFilesToConfiguration() { }
+        internal CodeImp.DoomBuilder.Windows.IScriptEditorHost Host => CodeImp.DoomBuilder.Windows.ScriptEditorForm.CurrentHost;
+        public bool CheckImplicitChanges() => Host != null && Host.CheckImplicitChanges();
+        public void ImplicitSave() { Host?.ImplicitSave(); }
+        public void ShowErrors(System.Collections.Generic.IList<CodeImp.DoomBuilder.Compilers.CompilerError> errors, bool clear) { Host?.ShowErrors(errors, clear); }
+        public void WriteOpenFilesToConfiguration() { Host?.WriteOpenFilesToConfiguration(); }
         internal ScriptStyleType GetScriptStyle(int style) => ScriptStyleType.PlainText;
     }
     public class ScriptDocumentTab : System.Windows.Forms.Control { public string Filename { get; set; } public string Title { get; set; } }
@@ -130,11 +131,42 @@ namespace CodeImp.DoomBuilder.Controls
 
 namespace CodeImp.DoomBuilder.Windows
 {
+    /// <summary>What the Core needs from the script editor window; the App (Avalonia, AvaloniaEdit) implements it.</summary>
+    public interface IScriptEditorHost
+    {
+        bool IsClosed { get; }
+        bool IsShown { get; }
+        bool TopMost { set; }
+        void ShowWindow();
+        void Restore();
+        void ActivateWindow();
+        void CloseWindow();
+        bool AskSaveAll();
+        void DisplayError(CodeImp.DoomBuilder.ErrorItem error);
+        bool CheckImplicitChanges();
+        void ImplicitSave();
+        void ShowErrors(System.Collections.Generic.IList<CodeImp.DoomBuilder.Compilers.CompilerError> errors, bool clear);
+        void WriteOpenFilesToConfiguration();
+    }
+
     public class ScriptEditorForm : System.Windows.Forms.Form
     {
+        /// <summary>Set by the shell: creates the real window. Without it the editor does nothing (headless).</summary>
+        public static System.Func<IScriptEditorHost> HostFactory { get; set; }
+        internal static IScriptEditorHost CurrentHost { get; private set; }
+        private readonly IScriptEditorHost host;
         public CodeImp.DoomBuilder.Controls.ScriptEditorControl Editor { get; } = new CodeImp.DoomBuilder.Controls.ScriptEditorControl();
-        public bool AskSaveAll() => true;
-        public void DisplayError(CodeImp.DoomBuilder.ErrorItem error) { }
+        public ScriptEditorForm() { host = HostFactory?.Invoke(); CurrentHost = host; }
+        public new bool IsDisposed => host == null || host.IsClosed;
+        public new bool Visible => host != null && host.IsShown;
+        public new bool TopMost { set { if(host != null) host.TopMost = value; } }
+        public new System.Windows.Forms.FormWindowState WindowState { get; set; }
+        public new void Show() { host?.ShowWindow(); }
+        public new void Activate() { host?.ActivateWindow(); }
+        public new void Focus() { host?.ActivateWindow(); }
+        public new void Close() { host?.CloseWindow(); if(CurrentHost == host) CurrentHost = null; }
+        public bool AskSaveAll() => host == null || host.AskSaveAll();
+        public void DisplayError(CodeImp.DoomBuilder.ErrorItem error) { host?.DisplayError(error); }
     }
 }
 
@@ -167,6 +199,13 @@ namespace CodeImp.DoomBuilder.Windows
     /// <summary>What the plugins read from UDB's MainForm without having the form: the display scale (HiDPI). The shell sets it.</summary>
     public static class MainForm
     {
-        public static System.Drawing.SizeF DPIScaler = new System.Drawing.SizeF(1f, 1f);
+        private static System.Drawing.SizeF dpiscaler = new System.Drawing.SizeF(1f, 1f);
+        public static System.Drawing.SizeF DPIScaler
+        {
+            get { return dpiscaler; }
+            set { if(dpiscaler == value) return; dpiscaler = value; DPIScalerChanged?.Invoke(); }
+        }
+        /// <summary>Raised when the display scale changes (the window moved to another screen, or the system scale was changed).</summary>
+        public static event System.Action DPIScalerChanged;
     }
 }

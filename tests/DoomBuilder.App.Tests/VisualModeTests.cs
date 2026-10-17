@@ -133,7 +133,7 @@ public class VisualModeTests : EditorTestBase
         WhenShown<DoomBuilder.UI.SimpleDialog>(d =>
         {
             Assert.Equal("Fit Textures", d.Title);
-            Assert.Equal("Apply", (string)d.OkButton.Content);
+            Assert.Equal("Apply", d.OkButton.Content as string);
             Click(d.OkButton);
         });
         Assert.Equal(System.Windows.Forms.DialogResult.OK, form.ShowDialog(General.Interface));
@@ -225,7 +225,7 @@ public class VisualModeTests : EditorTestBase
         WhenShown<DoomBuilder.UI.SectorEditWindow>(w =>
         {
             shown = true;
-            Click(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(w).OfType<Avalonia.Controls.Button>().First(b => (string)b.Content == "Cancel"));
+            Click(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(w).OfType<Avalonia.Controls.Button>().First(b => b.Content as string == "Cancel"));
         });
         General.Actions.InvokeAction("builder_visualedit");
         Flush();

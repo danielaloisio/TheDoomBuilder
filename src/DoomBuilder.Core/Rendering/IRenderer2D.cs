@@ -34,6 +34,7 @@ namespace CodeImp.DoomBuilder.Rendering
 		float TranslateX { get; }
 		float TranslateY { get; }
 		float Scale { get; }
+		float FixedThingSize { get; } // largest size of a thing with fixed things scale, in device pixels
 		int VertexSize { get; }
 		bool DrawMapCenter { get; set; } //mxd
 		ViewMode ViewMode { get; }

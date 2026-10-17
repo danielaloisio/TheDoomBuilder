@@ -146,7 +146,7 @@ sector { heightfloor = 0; heightceiling = 128; texturefloor = ""FLOOR4_8""; text
         Assert.Equal("SoundEnvironmentMode", General.Editing.Mode.GetType().Name);
         // The environments are found by a worker: wait for them
         // (and for the panel to be told that they are all there: that is the last thing the worker does)
-        for (int i = 0; i < 1000 && (Panel.Nodes.Count < 2 || !BuilderPlug.Me.SoundEnvironmentIsUpdated || !((string)Panel.ShowWarningsOnly.Content).Contains("(")); i++) { Flush(); System.Threading.Thread.Sleep(10); }
+        for (int i = 0; i < 1000 && (Panel.Nodes.Count < 2 || !BuilderPlug.Me.SoundEnvironmentIsUpdated || !(Panel.ShowWarningsOnly.Content as string).Contains("(")); i++) { Flush(); System.Threading.Thread.Sleep(10); }
         Flush();
     }
 
@@ -178,7 +178,7 @@ sector { heightfloor = 0; heightceiling = 128; texturefloor = ""FLOOR4_8""; text
         Assert.Contains("(3 4)", b.Text);
 
         // Only the ones with warnings
-        Assert.Contains("(1)", (string)panel.ShowWarningsOnly.Content);
+        Assert.Contains("(1)", panel.ShowWarningsOnly.Content as string);
         panel.ShowWarningsOnly.IsChecked = true;
         Flush();
         Assert.Equal(1, panel.Nodes.Count);

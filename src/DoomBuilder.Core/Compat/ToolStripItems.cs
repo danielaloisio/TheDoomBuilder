@@ -154,7 +154,7 @@ namespace CodeImp.DoomBuilder.Controls
             if(action == null && Tag is CodeImp.DoomBuilder.Editing.EditModeInfo mode) action = mode.SwitchAction.GetFullActionName(mode.Plugin.Assembly);
             if(string.IsNullOrEmpty(action) || General.Actions == null || !General.Actions.Exists(action)) return;
             var a = General.Actions.GetActionByName(action);
-            if(baseToolTip == null) baseToolTip = string.IsNullOrWhiteSpace(ToolTipText) ? Text : ToolTipText;
+            if(baseToolTip == null) baseToolTip = CodeImp.DoomBuilder.Localization.Localizer.T(string.IsNullOrWhiteSpace(ToolTipText) ? Text : ToolTipText);
             ToolTipText = baseToolTip + (a.ShortcutKey == 0 ? "" : " (" + CodeImp.DoomBuilder.Actions.Action.GetShortcutKeyDesc(a.ShortcutKey) + ")");
         }
     }

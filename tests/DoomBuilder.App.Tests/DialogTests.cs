@@ -87,6 +87,161 @@ public class DialogTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void Opening_another_file_while_a_map_is_open_opens_that_file()
+    {
+        OpenEditor();                                                     // sample.wad, MAP01
+        string first = General.Map.FilePathName;
+        string other = WriteUdmfWad(UdmfSample);
+        Assert.NotEqual(first, other);
+
+        string shownfor = null;
+        WhenShown<MapOptionsWindow>(dialog => { shownfor = dialog.Title; Click(dialog.OkButton); });
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+
+        General.OpenMapFile(other, null);
+
+        Assert.Contains(System.IO.Path.GetFileName(other), shownfor);
+        Assert.Equal(other, General.Map.FilePathName);
+        // The first map's render backend was disposed with it: the new map must not draw with that dead one (it never gets a frame again)
+        var backend = window.Viewport.Backend;
+        Assert.False(backend.IsDisposed);
+        Assert.Same(backend, General.Map.Graphics.Backend);
+    }
+
+    private string TwoMapWad()
+    {
+        string path = System.IO.Path.Combine(dir, "two.wad");
+        System.IO.Directory.CreateDirectory(dir);
+        string one = "namespace = \"zdoom\";\nthing { x = 0.0; y = 0.0; type = 1; skill1 = true; single = true; }\n";
+        string two = one + "thing { x = 64.0; y = 0.0; type = 2001; skill1 = true; single = true; }\n";
+        using (var wad = new CodeImp.DoomBuilder.IO.WAD(path))
+        {
+            void Add(string name, byte[] data)
+            {
+                var lump = wad.Insert(name, wad.Lumps.Count, data.Length);
+                lump.Stream.Write(data, 0, data.Length);
+            }
+            Add("MAP01", new byte[0]); Add("TEXTMAP", System.Text.Encoding.ASCII.GetBytes(one)); Add("ENDMAP", new byte[0]);
+            Add("MAP02", new byte[0]); Add("TEXTMAP", System.Text.Encoding.ASCII.GetBytes(two)); Add("ENDMAP", new byte[0]);
+            wad.WriteHeaders();
+        }
+        return path;
+    }
+
+    [AvaloniaFact]
+    public void Opening_the_other_map_of_the_same_wad_through_the_dialog_opens_that_map()
+    {
+        OpenEditor(wadPath: TwoMapWad(), config: "GZDoom_DoomUDMF.cfg", mapName: "MAP01");
+        Assert.Equal("MAP01", General.Map.Options.CurrentName);
+        Assert.Single(General.Map.Map.Things);
+
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            var list = dialog.GetVisualDescendants().OfType<ListBox>().First();
+            list.SelectedItem = "MAP02";
+            Click(dialog.OkButton);
+        });
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+
+        General.OpenMapFile(General.Map.FilePathName, null);
+
+        Assert.Equal("MAP02", General.Map.Options.CurrentName);
+        Assert.Equal(2, General.Map.Map.Things.Count);
+    }
+
+    [AvaloniaFact]
+    public void Open_map_in_current_wad_switches_to_the_chosen_map()
+    {
+        OpenEditor(wadPath: TwoMapWad(), config: "GZDoom_DoomUDMF.cfg", mapName: "MAP01");
+        Assert.Single(General.Map.Map.Things);
+
+        bool shown = false;
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            shown = true;
+            dialog.GetVisualDescendants().OfType<ListBox>().First().SelectedItem = "MAP02";
+            Click(dialog.OkButton);
+        });
+        General.Actions.InvokeAction("builder_openmapincurrentwad");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shown, "the Change Map dialog did not open");
+        Assert.Equal("MAP02", General.Map.Options.CurrentName);
+        Assert.Equal(2, General.Map.Map.Things.Count);
+        RefreshShell();
+        Assert.Contains("MAP02", window.Title);                 // the window shows the map that is open now
+        Assert.DoesNotContain("MAP01", window.Title);
+    }
+
+    [AvaloniaFact]
+    public void A_map_opened_through_the_dialog_can_be_switched_with_open_map_in_current_wad()
+    {
+        OpenEditor(withMap: false);
+        string wad = TwoMapWad();
+        WhenShown<MapOptionsWindow>(dialog => Click(dialog.OkButton));
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+        General.OpenMapFile(wad, null);
+        Assert.NotNull(General.Map);
+        string first = General.Map.Options.CurrentName;
+
+        bool shown = false;
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            shown = true;
+            var list = dialog.GetVisualDescendants().OfType<ListBox>().First();
+            list.SelectedItem = first == "MAP01" ? "MAP02" : "MAP01";
+            Click(dialog.OkButton);
+        });
+        General.Actions.InvokeAction("builder_openmapincurrentwad");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shown, "the Change Map dialog did not open; status: " + General.MainWindow.Status.message);
+        Assert.NotEqual(first, General.Map.Options.CurrentName);
+    }
+
+    [AvaloniaFact]
+    public void Opening_another_file_with_unsaved_changes_asks_and_opens_it_when_discarding()
+    {
+        OpenEditor();                                                     // sample.wad, MAP01
+        General.Map.Map.CreateThing();                                    // an edit nobody saved
+        General.Map.IsChanged = true;
+        string other = WriteUdmfWad(UdmfSample);
+
+        bool asked = false, optionsshown = false;
+        WhenShown<MessageBoxWindow>(box => { asked = true; Click(box.ButtonFor(System.Windows.Forms.DialogResult.No)); });
+        WhenShown<MapOptionsWindow>(dialog => { optionsshown = true; Click(dialog.OkButton); });
+        WhenShown<MessageBoxWindow>(box => Click(box.ButtonFor(System.Windows.Forms.DialogResult.Yes)));
+
+        General.OpenMapFile(other, null);
+
+        Assert.True(asked, "the save question was not shown");
+        Assert.True(optionsshown, "the options of the map to open were not shown");
+        Assert.Equal(other, General.Map.FilePathName);
+    }
+
+    [AvaloniaFact]
+    public void A_missing_nodebuilder_program_says_so_once_and_testing_goes_on_without_nodes()
+    {
+        OpenEditor();
+        // The Linux package has the ZenNode configuration but not the program
+        General.Map.ConfigSettings.NodebuilderTest = "zennode_normal";
+        Assert.False(System.IO.File.Exists(General.GetNodebuilderByName("zennode_normal").Compiler.ProgramPath));
+        General.Map.IsChanged = true;
+
+        bool anybox = false;
+        WhenShown<MessageBoxWindow>(box => { anybox = true; Click(box.ButtonFor(System.Windows.Forms.DialogResult.OK)); });
+
+        string target = System.IO.Path.Combine(dir, "test-output.wad");
+        bool saved = General.Map.SaveMap(target, CodeImp.DoomBuilder.SavePurpose.Testing);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(saved, "the test map was not written");
+        Assert.False(anybox, "a message box was shown for a test map without a nodebuilder program");
+        Assert.Equal(CodeImp.DoomBuilder.Windows.StatusType.Warning, General.MainWindow.Status.type);
+        Assert.Contains("not installed", General.MainWindow.Status.message);
+    }
+
+    [AvaloniaFact]
     public void Declining_the_missing_resources_question_keeps_the_dialog_open_and_opens_nothing()
     {
         OpenEditor(withMap: false);
@@ -292,7 +447,7 @@ public class ErrorsAndAboutTests : EditorTestBase
         bool about = false, errors = false;
         WhenShown<AboutWindow>(w =>
         {
-            about = w.VersionBlock.Text.StartsWith("TheDoomBuilder v");
+            about = w.VersionBlock.Text.StartsWith("The Doom Builder v");
             w.Close();
         });
         var model = DoomBuilder.App.Shell.UiModel.Load();
@@ -497,14 +652,14 @@ public class PreferencesWindowTests : EditorTestBase
         {
             tabs = w.Tabs.ItemCount;
             editors = w.Model.Items.Count(i => w.EditorOf(i.Key) != null);
-            Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors", "Editing", "3D Floor Plugin", "UDBScript" }, w.Tabs.Items.OfType<TabItem>().Select(t => (string)t.Header));
+            Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors", "Script editor", "Editing", "3D Floor Plugin", "UDBScript" }, w.Tabs.Items.OfType<TabItem>().Select(t => (string)t.Header));
             Click(w.CancelButton);
         });
 
         General.Actions.InvokeAction("builder_preferences");
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
-        Assert.Equal(7, tabs);                    // the program's four, then the plugins' (BuilderModes, ThreeDFloorMode, UDBScript)
+        Assert.Equal(8, tabs);                    // the program's five (with the script editor), then the plugins' (BuilderModes, ThreeDFloorMode, UDBScript)
         Assert.True(editors > 40);
     }
 }

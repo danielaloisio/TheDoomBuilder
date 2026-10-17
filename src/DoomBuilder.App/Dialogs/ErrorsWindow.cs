@@ -10,22 +10,24 @@ using Avalonia.Threading;
 using CodeImp.DoomBuilder;
 using DoomBuilder.App.Shell;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>The errors and warnings collected by the <see cref="ErrorLogger"/> (UDB's ErrorsForm). New ones appear while it is open.</summary>
 public sealed class ErrorsWindow : Window
 {
     private readonly ListBox list = new ListBox { SelectionMode = SelectionMode.Multiple };
-    private readonly Button copy = new Button { Content = "Copy selected" };
-    private readonly Button showsource = new Button { Content = "Show source" };
-    private readonly Button clear = new Button { Content = "Clear list" };
-    private readonly CheckBox showonerrors = new CheckBox { Content = "Show this window when errors or warnings occur" };
+    private readonly Button copy = new Button { Content = Loc.T("Copy selected") };
+    private readonly Button showsource = new Button { Content = Loc.T("Show source") };
+    private readonly Button clear = new Button { Content = Loc.T("Clear list") };
+    private readonly CheckBox showonerrors = new CheckBox { Content = Loc.T("Show this window when errors or warnings occur") };
     private readonly DispatcherTimer watcher = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly List<ErrorItem> items = new List<ErrorItem>();
 
     public ErrorsWindow()
     {
-        Title = "Errors and Warnings";
+        Title = Loc.T("Errors and Warnings");
         Width = 640;
         Height = 360;
         MinWidth = 420;
@@ -34,7 +36,7 @@ public sealed class ErrorsWindow : Window
 
         showonerrors.IsChecked = General.Settings.ShowErrorsWindow;
 
-        var close = new Button { Content = "Close", MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center };
+        var close = new Button { Content = Loc.T("Close"), MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center };
         close.Click += (s, e) => Close();
         copy.Click += (s, e) => CopySelected();
         showsource.Click += (s, e) => ShowSource();

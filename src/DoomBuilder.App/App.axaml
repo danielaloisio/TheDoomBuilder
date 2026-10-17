@@ -1,10 +1,26 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:semi="https://irihi.tech/semi"
+             xmlns:semiedit="using:Semi.Avalonia.AvaloniaEdit"
              x:Class="DoomBuilder.App.App"
+             Name="TheDoomBuilder"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+        <!--
+        <semi:SemiTheme />
+        <semiedit:AvaloniaEditSemiTheme />
+        -->
     </Application.Styles>
+
+    <!-- macOS only: the generated app menu's "About" item otherwise stays the Avalonia placeholder (unlike Hide/Quit,
+         it does not pick up Application.Name). Avalonia still adds Services/Hide/Quit around this. -->
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="About TheDoomBuilder" Click="OnAboutMenuItemClick" />
+        </NativeMenu>
+    </NativeMenu.Menu>
 </Application>

@@ -138,7 +138,7 @@ public class UDBScriptTests : EditorTestBase
         int things = General.Map.Map.Things.Count, undos = General.Map.UndoRedo.GetUndoList().Count;
 
         string text = null;
-        WhenShown<UDBScriptErrorForm>(w => { text = w.StackTrace.Text; Click(w.GetVisualDescendantsOf<Button>().First(b => (string)b.Content == "OK")); });
+        WhenShown<UDBScriptErrorForm>(w => { text = w.StackTrace.Text; Click(w.GetVisualDescendantsOf<Button>().First(b => b.Content as string == "OK")); });
         Run(script);
         Assert.Contains("boom", text);
         Assert.Equal(things, General.Map.Map.Things.Count);

@@ -154,6 +154,105 @@ public class ShellWindowTests : EditorTestBase
         Assert.Null(General.Map);                      // builder_closemap ran
     }
 
+    [AvaloniaFact]
+    public void Toolbar_separators_only_show_between_visible_buttons()
+    {
+        OpenEditor();
+        RefreshShell();
+        AssertSeparatorsTidy();                          // with a map
+
+        General.Actions.InvokeAction("builder_closemap");
+        Assert.Null(General.Map);
+        RefreshShell();
+        AssertSeparatorsTidy();                          // without one: only New/Open/Save are left, no row of empty separators
+
+        // Like UDB: New and Open are usable, Save is there but grayed out
+        var buttons = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<ToggleButton>()
+            .Where(b => b.IsVisible && Avalonia.Controls.ToolTip.GetTip(b) is string).ToList();
+        Assert.True(buttons.First(b => (string)Avalonia.Controls.ToolTip.GetTip(b) == "New Map").IsEnabled);
+        Assert.False(buttons.First(b => ((string)Avalonia.Controls.ToolTip.GetTip(b)).StartsWith("Save Map")).IsEnabled);
+    }
+
+    [Fact]
+    public void While_the_program_loads_only_the_file_buttons_are_in_the_toolbar()
+    {
+        if (CodeImp.DoomBuilder.General.Settings != null) return;      // only the state before the settings exist is checked here
+        var model = UiModel.Load();
+        foreach (UiItem item in model["toolbar"].Items.Where(i => !i.IsSeparator))
+        {
+            ItemState? state = UiRules.For(item);
+            bool file = item.Name is "buttonnewmap" or "buttonopenmap" or "buttonsavemap";
+            Assert.True(file ? state is { Visible: true } : state is { Visible: false }, item.Name);
+        }
+    }
+
+    [AvaloniaFact]
+    public void The_toolbar_lists_the_things_filters_and_the_linedef_color_presets_of_the_map()
+    {
+        OpenEditor();
+        RefreshShell();
+
+        var all = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Button>().Where(b => b.IsVisible).ToList();
+        string TextOf(Button b) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(b).OfType<TextBlock>().Select(x => x.Text).FirstOrDefault();
+
+        Button filters = all.First(b => Equals(Avalonia.Controls.ToolTip.GetTip(b), "Things filter"));
+        Button presets = all.First(b => Equals(Avalonia.Controls.ToolTip.GetTip(b), "Linedef color presets"));
+        Assert.Equal(General.Map.ThingsFilter.Name, TextOf(filters));         // "(show all)" with no filter selected
+        var preset = General.Map.ConfigSettings.LinedefColorPresets.First();
+        Assert.Contains(preset.Name, TextOf(presets));                        // e.g. "Any action"
+
+        var flyout = (MenuFlyout)filters.Flyout;
+        Assert.True(flyout.Items.Count >= 1);
+        var presetflyout = (MenuFlyout)presets.Flyout;
+        Assert.Equal(General.Map.ConfigSettings.LinedefColorPresets.Length, presetflyout.Items.Count);
+
+        // Clicking a preset turns it off (and the button says so)
+        bool was = preset.Enabled;
+        var first = (MenuItem)presetflyout.Items[0];
+        first.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        Assert.Equal(!was, preset.Enabled);
+        Assert.Same(first, presetflyout.Items[0]);                // the items are kept, so an open menu is not disturbed
+        Assert.Equal(preset.Enabled, first.IsChecked);
+
+        // The menu closes after a plain click, and stays open (to toggle several items) while Shift is held
+        first.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, KeyModifiers = Avalonia.Input.KeyModifiers.None });
+        Assert.False(first.StaysOpenOnClick);
+        first.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter, KeyModifiers = Avalonia.Input.KeyModifiers.Shift });
+        Assert.True(first.StaysOpenOnClick);
+    }
+
+    [AvaloniaFact]
+    public void The_splash_logo_shows_in_the_display_only_while_no_map_is_open()
+    {
+        OpenEditor();
+        RefreshShell();
+        var splash = Avalonia.Controls.NameScopeExtensions.Find<Border>(window, "SplashHost");
+        var image = Avalonia.Controls.NameScopeExtensions.Find<Avalonia.Controls.Image>(window, "SplashImage");
+        Assert.NotNull(splash);
+        Assert.NotNull(image.Source);                    // UDB's logo (Splash3_trans) is loaded
+        Assert.False(splash.IsVisible);                  // a map is open: the display is the map
+
+        General.Actions.InvokeAction("builder_closemap");
+        Assert.Null(General.Map);
+        RefreshShell();
+        Assert.True(splash.IsVisible);                   // no map: the logo, as in UDB
+        Assert.False(splash.IsHitTestVisible);           // the pointer still reaches the display under it
+    }
+
+    private void AssertSeparatorsTidy()
+    {
+        var strip = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<WrapPanel>()
+            .First(p => p.Children.OfType<Border>().Any(b => b.Width == 1) && p.Children.OfType<ToggleButton>().Any());
+        Control previous = null;      // the last visible child
+        foreach (Control child in strip.Children.Where(c => c.IsVisible))
+        {
+            bool separator = child is Border { Width: 1 };
+            if (separator) Assert.True(previous != null && !(previous is Border { Width: 1 }), "a separator at the start or after another separator");
+            previous = child;
+        }
+        Assert.False(previous is Border { Width: 1 }, "a separator at the end of the strip");
+    }
+
     private static System.Collections.Generic.IEnumerable<MenuItem> AllMenuItems(MenuItem root)
     {
         foreach (var child in root.Items.OfType<MenuItem>())

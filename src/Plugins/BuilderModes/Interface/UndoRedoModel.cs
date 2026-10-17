@@ -61,7 +61,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			{
 				// The real beginning
 				bool atfirst = (numundos == 0);
-				rows.Add(new UndoRedoRow { Text = BeginDescription, Kind = atfirst ? UndoRowKind.Current : UndoRowKind.Undo });
+				rows.Add(new UndoRedoRow { Text = CodeImp.DoomBuilder.Localization.Localizer.T(BeginDescription), Kind = atfirst ? UndoRowKind.Current : UndoRowKind.Undo });
 				if(atfirst) CurrentIndex = 0;
 			}
 
@@ -70,7 +70,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 				// No more than MaxDisplayLevels: the last line says there is more below
 				bool toomany = (rows.Count - 1) == MaxDisplayLevels;
 				UndoRowKind kind = (i == numundos - 1) ? UndoRowKind.Current : (i >= numundos ? UndoRowKind.Redo : UndoRowKind.Undo);
-				rows.Add(new UndoRedoRow { Text = toomany ? "..." : levels[i].Description, Kind = toomany ? UndoRowKind.More : kind });
+				rows.Add(new UndoRedoRow { Text = toomany ? "..." : CodeImp.DoomBuilder.Localization.Localizer.T(levels[i].Description), Kind = toomany ? UndoRowKind.More : kind });
 				if(kind == UndoRowKind.Current && !toomany) CurrentIndex = rows.Count - 1;
 				if((rows.Count - 1) > MaxDisplayLevels) break;
 			}

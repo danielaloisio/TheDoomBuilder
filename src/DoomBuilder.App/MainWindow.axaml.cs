@@ -43,6 +43,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
         shell = new AvaloniaShell(Viewport) { WindowIsActive = () => activity.IsActive(PlatformIsActive()) };
         ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
+        SplashImage.Source = DoomBuilder.App.Shell.ImageCache.Get("Splash3_trans");
         MenuHost.Content = ui.Menu;
         ToolbarHost.Content = ui.Toolbar;
         ModesHost.Content = ui.ModesBar;
@@ -73,7 +74,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
         // Offsets that plugins give in display pixels follow the screen's scale
         UpdateDpiScaler();
-        ScalingChanged += (s, e) => UpdateDpiScaler();
+        ScalingChanged += (s, e) => { UpdateDpiScaler(); Viewport.OnScaleChanged(); };
         Opened += (s, e) => UpdateDpiScaler();
 
         // The command palette floats over the top of the display
@@ -87,6 +88,7 @@ public partial class MainWindow : Avalonia.Controls.Window
             if (palette.IsVisible && e.Source is Visual v && !palette.IsVisualAncestorOf(v) && v != palette) palette.Close();
         }, RoutingStrategies.Tunnel);
 
+        shell.LanguageChanged += ApplyLanguage;
         shell.StatusChanged += text => StatusText.Text = text;
         shell.HintsChanged += text => HintsText.Text = RtfText.ToPlain(text).Replace('\n', ' ');
         shell.ZoomChanged += scale => ZoomText.Text = (int)Math.Round(scale * 100) + "%";
@@ -106,7 +108,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         Viewport.ContextFailed += reason => StatusText.Text = "OpenGL is not available: " + reason;
         Viewport.FramePainted += OnFramePainted;
         // A new GL context replaced a lost one: the backend put back what it had copies of; the sky is drawn on the GPU, so it is made again
-        Viewport.Backend.ContextRestored += () => Dispatcher.UIThread.Post(() =>
+        Viewport.ContextRestored += () => Dispatcher.UIThread.Post(() =>
         {
             if (General.Map != null) General.Map.Data.SetupSkybox();
             Viewport.RequestRedraw();
@@ -152,6 +154,13 @@ public partial class MainWindow : Avalonia.Controls.Window
     private readonly DisplayToolTip displayTip;
     private readonly InfoPanel infoPanel;
 
+    /// <summary>Loads the language of the settings and puts the menus and toolbars in it.</summary>
+    internal void ApplyLanguage()
+    {
+        CodeImp.DoomBuilder.Localization.Localizer.Load(General.AppPath, General.Settings?.Language);
+        ui.Retranslate();
+    }
+
     private void UpdateDpiScaler()
     {
         float scale = (float)RenderScaling;
@@ -191,10 +200,11 @@ public partial class MainWindow : Avalonia.Controls.Window
         plugins.Refresh();
         ApplyDockers();
 
+        SplashHost.IsVisible = General.Map == null;
         InfoHost.IsVisible = General.Map != null && shell.IsInfoPanelExpanded;
         if (shell.InfoObject == null) infoPanel.Show(General.Map != null ? CodeImp.DoomBuilder.Windows.ElementInfoBuilder.ForStatistics() : null);   // (the mode or the map changed)
 
-        string program = "TheDoomBuilder";
+        string program = "The Doom Builder";
         if (General.Map != null)
         {
             string maptitle = !string.IsNullOrEmpty(General.Map.Data?.MapInfo?.Title) ? ": " + General.Map.Data.MapInfo.Title : "";
@@ -316,6 +326,7 @@ public partial class MainWindow : Avalonia.Controls.Window
 
         General.ExitRequested += OnExitRequested;                           // the core wants the program to end (fatal errors, Terminate)
         DoomBuilder.UI.DialogHost.Owner = () => this;
+        CodeImp.DoomBuilder.Windows.ScriptEditorForm.HostFactory = () => new Dialogs.ScriptEditorWindow();   // the script editor (AvaloniaEdit)
         System.Windows.Forms.Clipboard.Provider = new SystemClipboard(() => this);   // copy and paste go through the system clipboard
         General.Dialogs = new AvaloniaDialogs(() => this);                  // the real message boxes, file pickers and map options
         General.BuiltInPluginAssemblies.Add(typeof(ViewerPlug).Assembly);   // the viewer edit mode
@@ -344,6 +355,8 @@ public partial class MainWindow : Avalonia.Controls.Window
             return;
         }
 
+        AvaloniaShell.ApplyTheme();
+        ApplyLanguage();                                         // light, dark or the system theme
         RestorePlacement();
         General.Actions.BindMethods(shell);                                 // "showerrors" lives in the shell, like MainForm's actions
         shell.Recent.Load();
@@ -489,9 +502,25 @@ public partial class MainWindow : Avalonia.Controls.Window
     }
 
     // Test/diagnostic hook: UDB_SCREENSHOT=file.png saves the first settled frame with a map in it and exits.
+    private bool openedother;
+    private int otherframes;
+
     private unsafe void OnFramePainted(GL gl, int fb, PixelSize size)
     {
         if (Environment.GetEnvironmentVariable("UDB_LOG_FRAMES") == "1") Console.WriteLine("[frame] " + Environment.TickCount64 + (General.Map != null ? " cam " + General.Map.VisualCamera.AngleXY.ToString("0.0000") + " " + General.Map.VisualCamera.AngleZ.ToString("0.0000") : ""));
+        // UDB_OPEN_AFTER=<wad>|<map> opens that map (as File > Open Map would, without the dialogs) after the second frame: to see what the display does
+        string openafter = Environment.GetEnvironmentVariable("UDB_OPEN_AFTER");
+        if (!string.IsNullOrEmpty(openafter) && General.Map != null && !openedother && ++otherframes == 2)
+        {
+            openedother = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                string[] parts = openafter.Split('|');
+                using var model = new CodeImp.DoomBuilder.Windows.OpenMapOptionsModel(parts[0], null);
+                model.SelectMap(parts[1]);
+                General.OpenMapFileWithOptions(parts[0], model.BuildOptions());
+            });
+        }
         // UDB_SCREENSHOT_PASSIVE=file.png keeps the last frame the program painted by itself (nothing is forced), to see what the user sees
         string passive = Environment.GetEnvironmentVariable("UDB_SCREENSHOT_PASSIVE");
         if (!string.IsNullOrEmpty(passive) && General.Map != null) { SaveFrame(gl, fb, size, passive); return; }

@@ -183,6 +183,24 @@ public class TestMapTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void The_toolbar_has_a_visible_test_map_button()
+    {
+        OpenEditor();
+        window.UpdateLayout();
+        var buttons = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window)
+            .OfType<Avalonia.Controls.Primitives.ToggleButton>()
+            .Where(b => b.IsVisible && Equals(Avalonia.Controls.ToolTip.GetTip(b), "Test Map"));
+        Assert.NotEmpty(buttons);        // a split button without entries used to be dropped
+
+        // ... and clicking it runs the action (it asks for a test program when none is set up)
+        General.Map.ConfigSettings.TestProgram = "";
+        var dialogs = new ScriptedDialogs();
+        General.Dialogs = dialogs;
+        buttons.First().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+        Assert.Contains(dialogs.Messages, m => m.Contains("test program"));
+    }
+
+    [AvaloniaFact]
     public void Test_map_without_an_engine_asks_to_set_one_up_and_starts_nothing()
     {
         OpenEditor();

@@ -21,6 +21,8 @@ using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Windows;
 using DialogResult = System.Windows.Forms.DialogResult;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>The real dialogs of the application, shown as Avalonia windows over the main window.</summary>
@@ -108,12 +110,12 @@ internal sealed class AvaloniaDialogs : NoDialogs
         {
             if (model.LoadError != null)
             {
-                ShowMessage(model.LoadError, "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                ShowMessage(model.LoadError, "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
                 return DialogResult.Cancel;
             }
             if (model.NothingToOpen)
             {
-                ShowMessage("Unable to find maps using any game configuration.\nDoes this wad contain any maps at all?..", "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
+                ShowMessage("Unable to find maps using any game configuration.\nDoes this wad contain any maps at all?..", "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
                 return DialogResult.Cancel;
             }
 
@@ -134,14 +136,18 @@ internal sealed class AvaloniaDialogs : NoDialogs
 
     public override DialogResult ShowChangeMap(ChangeMapForm form)
     {
-        if (Owner == null) return DialogResult.Cancel;
+        if (Owner == null)
+        {
+            General.WriteLogLine("The Change Map dialog cannot be shown: there is no main window to own it.");
+            return DialogResult.Cancel;
+        }
 
         var model = new OpenMapOptionsModel(form.FileName, form.Options);
         try
         {
             if (model.LoadError != null)
             {
-                ShowMessage(model.LoadError, "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                ShowMessage(model.LoadError, "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
                 return DialogResult.Cancel;
             }
 
@@ -176,7 +182,7 @@ internal sealed class AvaloniaDialogs : NoDialogs
         var panel = new PasteOptionsPanel();
         panel.Setup(form.Options);
         var window = new SimpleDialog("Paste Special", panel, 420);
-        window.OkButton.Content = "Paste";
+        window.OkButton.Content = Loc.T("Paste");
         bool ok = DialogPump.Run(() => window.ShowDialog<bool>(Owner));
         if (!ok) return DialogResult.Cancel;
 
@@ -191,7 +197,7 @@ internal sealed class AvaloniaDialogs : NoDialogs
         var model = new MapOptionsModel(form.Options, form.NewMap);
         if (model.Configs.Count == 0)
         {
-            ShowMessage("There is no game configuration enabled. Enable one in the game configurations first.", "TheDoomBuilder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
+            ShowMessage("There is no game configuration enabled. Enable one in the game configurations first.", "The Doom Builder", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
             return DialogResult.Cancel;
         }
 

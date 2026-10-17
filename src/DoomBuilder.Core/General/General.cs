@@ -177,6 +177,7 @@ namespace CodeImp.DoomBuilder
 		private const string SPRITES_DIR = "Sprites";
 		private const string TEXTURES_DIR = "Textures"; //mxd
 		private const string HELP_FILE = "Refmanual.chm";
+		private const string HELP_FOLDER = "Help";
 
 		#endregion
 
@@ -1423,11 +1424,17 @@ namespace CodeImp.DoomBuilder
 			openfile.ValidateNames = true;
 			if(openfile.ShowDialog(mainwindow) == DialogResult.OK)
 			{
+				WriteLogLine("Open Map: file chosen \"" + openfile.FileName + "\"");
+
 				// Update main window
 				mainwindow.Update();
 
 				// Open map file
 				OpenMapFile(openfile.FileName, null);
+			}
+			else
+			{
+				WriteLogLine("Open Map: no file was chosen.");
 			}
 
 			openfile.Dispose();
@@ -1437,8 +1444,10 @@ namespace CodeImp.DoomBuilder
 		[BeginAction("openmapincurrentwad")]
 		internal static void OpenMapInCurrentWad() 
 		{
+			WriteLogLine("Opening a map from the current WAD...");
 			if(map == null || string.IsNullOrEmpty(map.FilePathName) || !File.Exists(map.FilePathName))
 			{
+				WriteLogLine("Unable to open a map from the current WAD: " + (map == null ? "no map is open" : string.IsNullOrEmpty(map.FilePathName) ? "the map has no file yet" : "\"" + map.FilePathName + "\" does not exist"));
 				Interface.DisplayStatus(StatusType.Warning, "Unable to open map from current WAD!");
 				return;
 			}
@@ -1447,11 +1456,19 @@ namespace CodeImp.DoomBuilder
 			Editing.DisengageVolatileMode();
 
 			// Ask the user to save changes (if any)
-			if(!AskSaveMap()) return;
+			if(!AskSaveMap())
+			{
+				WriteLogLine("Opening a map from the current WAD was cancelled when asked to save the changes.");
+				return;
+			}
 
 			// Open map options dialog
 			ChangeMapForm changemapwindow = new ChangeMapForm(map.FilePathName, map.Options);
-			if(changemapwindow.ShowDialog(mainwindow) != DialogResult.OK) return;
+			if(changemapwindow.ShowDialog(mainwindow) != DialogResult.OK)
+			{
+				WriteLogLine("The Change Map dialog was cancelled or could not be shown.");
+				return;
+			}
 
 			// Display status
 			mainwindow.DisplayStatus(StatusType.Busy, "Switching to map \"" + changemapwindow.Options.CurrentName + "\"...");
@@ -1526,6 +1543,12 @@ namespace CodeImp.DoomBuilder
 
 				if(openmapwindow.ShowDialog(mainwindow) == DialogResult.OK)
 					OpenMapFileWithOptions(filename, openmapwindow.Options);
+				else
+					WriteLogLine("Opening \"" + filename + "\": the map options dialog was cancelled or could not be shown.");
+			}
+			else
+			{
+				WriteLogLine("Opening \"" + filename + "\" was aborted: the changes of the open map were not saved (cancelled, or saving failed).");
 			}
 		}
 		
@@ -2184,25 +2207,48 @@ namespace CodeImp.DoomBuilder
 			ShowHelp(pagefile, HELP_FILE);
 		}
 
-		// This shows the reference manual
+		// This shows the reference manual (HTML pages in the Help folder, in the system browser; the CHM of the original is not used)
 		public static void ShowHelp(string pagefile, string chmfile)
 		{
-			// Check if the file can be found in the root
-			string filepathname = Path.Combine(apppath, chmfile);
-			if(!File.Exists(filepathname))
+			string filepathname = FindHelpPage(pagefile);
+			if(filepathname == null)
 			{
-				// Check if the file exists in the plugins directory
-				filepathname = Path.Combine(pluginspath, chmfile);
-				if(!File.Exists(filepathname))
-				{
-					// Fail
-					WriteLogLine("ERROR: Can't find the help file \"" + chmfile + "\"");
-					return;
-				}
+				WriteLogLine("ERROR: Can't find the help page \"" + pagefile + "\" in " + Path.Combine(apppath, HELP_FOLDER));
+				return;
 			}
-			
-			// Show help file
-			Help.ShowHelp(mainwindow, filepathname, HelpNavigator.Topic, pagefile);
+
+			try
+			{
+				string url = new Uri(filepathname).AbsoluteUri + anchor;
+				if(OperatingSystem.IsWindows()) Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+				else Process.Start(OperatingSystem.IsMacOS() ? "open" : "xdg-open", url);
+			}
+			catch(Exception e)
+			{
+				WriteLogLine("ERROR: Can't open the help page \"" + filepathname + "\": " + e.Message);
+			}
+		}
+
+		private static string anchor = "";
+
+		/// <summary>The full path of a help page ("w_scripteditor.html", maybe with a "#anchor"); the table of contents when the page is empty or missing.</summary>
+		internal static string FindHelpPage(string pagefile)
+		{
+			anchor = "";
+			if(!string.IsNullOrEmpty(pagefile))
+			{
+				int hash = pagefile.IndexOf('#');
+				if(hash >= 0) { anchor = pagefile.Substring(hash); pagefile = pagefile.Substring(0, hash); }
+			}
+
+			foreach(string folder in new[] { Path.Combine(apppath, HELP_FOLDER), Path.Combine(pluginspath ?? apppath, HELP_FOLDER) })
+			{
+				string page = Path.Combine(folder, string.IsNullOrEmpty(pagefile) ? "index.html" : pagefile);
+				if(File.Exists(page)) return page;
+				page = Path.Combine(folder, "index.html");
+				if(File.Exists(page)) { anchor = ""; return page; }
+			}
+			return null;
 		}
 
 		// This returns a unique temp filename

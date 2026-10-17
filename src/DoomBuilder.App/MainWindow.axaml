@@ -3,12 +3,15 @@
         xmlns:local="using:DoomBuilder.App"
         x:Class="DoomBuilder.App.MainWindow"
         Width="1200" Height="800"
-        Title="TheDoomBuilder">
+        Title="The Doom Builder">
     <DockPanel>
-        <ContentControl x:Name="MenuHost" DockPanel.Dock="Top" />
+        <!-- As in UDB (flowLayoutPanel): the controls of the active mode share the line of the menu, to its right -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*">
+            <ContentControl x:Name="MenuHost" Grid.Column="0" />
+            <ContentControl x:Name="ModeControlsHost" Grid.Column="1" VerticalAlignment="Center" />
+        </Grid>
         <ContentControl x:Name="ToolbarHost" DockPanel.Dock="Top" />
-        <ContentControl x:Name="ModesHost" DockPanel.Dock="Top" />
-        <ContentControl x:Name="ModeControlsHost" DockPanel.Dock="Top" />
+        <ContentControl x:Name="ModesHost" DockPanel.Dock="Left" />
 
         <Border DockPanel.Dock="Bottom" Padding="8,3" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
@@ -29,6 +32,10 @@
         <!-- The transparent panel is what receives the pointer: a GL control is not hit-testable on its own -->
         <Panel x:Name="InputSurface" Background="Transparent">
             <local:MapViewport x:Name="Viewport" />
+            <!-- What the display shows while no map is open (the splash logo of UDB, on its dark background) -->
+            <Border x:Name="SplashHost" Background="#202028" IsHitTestVisible="False">
+                <Image x:Name="SplashImage" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
         </Panel>
     </DockPanel>
 </Window>

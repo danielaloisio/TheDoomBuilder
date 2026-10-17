@@ -123,6 +123,10 @@ public class VisplaneExplorerTests : EditorTestBase
         OpenRooms();
         Engage();
 
+        // Both rooms must be inside the view: it is narrower with the column of modes at its left
+        ((CodeImp.DoomBuilder.Rendering.Renderer2D)Renderer).ScaleView(2f);
+        Flush();
+
         // Room A: a floor and a ceiling (visplanes), against the limit of the game configuration
         string text = Hover(64, 64);
         Assert.NotNull(text);

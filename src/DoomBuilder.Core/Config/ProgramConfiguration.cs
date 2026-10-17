@@ -98,6 +98,8 @@ namespace CodeImp.DoomBuilder.Config
 		private bool showfps;
 		private int[] colordialogcustomcolors;
 		private bool autolaunchontest;
+		private string language = ""; // the code of the language of the interface ("pt-BR"), empty = follow the system
+		private int theme; // 0 = follow the system, 1 = light, 2 = dark
 		private bool parallelizedlinedefplotting;
 		private bool parallelizedvertexplotting;
 
@@ -220,6 +222,8 @@ namespace CodeImp.DoomBuilder.Config
 		public bool SplitJoinedSectors { get { return splitjoinedsectors; } internal set { splitjoinedsectors = value; } } //mxd
 		public bool ShowFPS { get { return showfps; } internal set { showfps = value; } }
 		public int[] ColorDialogCustomColors { get { return colordialogcustomcolors; } internal set { colordialogcustomcolors = value; } }
+		public string Language { get { return language; } internal set { language = value ?? ""; } }
+		public int Theme { get { return theme; } internal set { theme = value; } }
 		public bool AutoLaunchOnTest { get { return autolaunchontest; } internal set { autolaunchontest = value; } }
 		public bool ParallelizedLinedefPlotting { get { return parallelizedlinedefplotting; } internal set { parallelizedlinedefplotting = value; } }
 		public bool ParallelizedVertexPlotting { get { return parallelizedvertexplotting; } internal set { parallelizedvertexplotting = value; } }
@@ -383,6 +387,8 @@ namespace CodeImp.DoomBuilder.Config
 				switchviewmodes = cfg.ReadSetting("switchviewmodes", false); //mxd
 				showfps = cfg.ReadSetting("showfps", false);
 				autolaunchontest = cfg.ReadSetting("autolaunchontest", false);
+				theme = cfg.ReadSetting("theme", 0);
+				language = cfg.ReadSetting("language", "");
 				parallelizedlinedefplotting = cfg.ReadSetting("parallelizedlinedefplotting", true);
 				parallelizedvertexplotting = cfg.ReadSetting("parallelizedvertexplotting", false);
 
@@ -533,6 +539,8 @@ namespace CodeImp.DoomBuilder.Config
 			cfg.WriteSetting("switchviewmodes", switchviewmodes); //mxd
 			cfg.WriteSetting("showfps", showfps);
 			cfg.WriteSetting("autolaunchontest", autolaunchontest);
+			cfg.WriteSetting("theme", theme);
+			cfg.WriteSetting("language", language);
 
 			//mxd. Script editor
 			cfg.WriteSetting("scriptfontname", scriptfontname);

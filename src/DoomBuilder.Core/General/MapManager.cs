@@ -877,8 +877,10 @@ namespace CodeImp.DoomBuilder
 					// Build the nodes
 					StatusInfo oldstatus = General.MainWindow.Status;
 					General.MainWindow.DisplayStatus(StatusType.Busy, "Building map nodes...");
-					includenodes = (!string.IsNullOrEmpty(nodebuildername) && BuildNodes(nodebuildername, true));
+					nodebuildernotice = null;
+					includenodes = (!string.IsNullOrEmpty(nodebuildername) && BuildNodes(nodebuildername, true, purpose == SavePurpose.Testing));
 					General.MainWindow.DisplayStatus(oldstatus);
+					if(nodebuildernotice != null) General.MainWindow.DisplayStatus(StatusType.Warning, nodebuildernotice);
 				}
 				else
 				{
@@ -1272,7 +1274,10 @@ namespace CodeImp.DoomBuilder
 		}
 
 		// This builds the nodes in the temproary file with the given configuration name
-		private bool BuildNodes(string nodebuildername, bool failaswarning) 
+		private string nodebuildernotice;   // set by BuildNodes when it only wants the status bar to say something once the status is restored
+
+		// 'quiet': when the nodebuilder is not installed, only say so in the status bar and the log (a test map does not need nodes: the engine builds them)
+		private bool BuildNodes(string nodebuildername, bool failaswarning, bool quiet = false) 
 		{
 			bool lumpscomplete = false;
 			WAD buildwad;
@@ -1283,6 +1288,18 @@ namespace CodeImp.DoomBuilder
 			{
 				// Problem! Can't find that nodebuilder!
 				General.ShowWarningMessage("Unable to build the nodes: The configured nodebuilder cannot be found.\nPlease check your game configuration settings!", MessageBoxButtons.OK);
+				return false;
+			}
+			else if(nodebuilder.Compiler != null && !File.Exists(nodebuilder.Compiler.ProgramPath))
+			{
+				// The program is not there (nodebuilders are not shipped for every platform): one message, not one per failed step
+				string missing = nodebuilder.Compiler.ProgramPath;
+				string reason = "The nodebuilder \"" + nodebuilder.Title + "\" is not installed (looked for \"" + missing + "\").";
+				General.WriteLogLine("Unable to build the nodes: " + reason);
+				if(quiet)
+					nodebuildernotice = "Nodebuilder \"" + nodebuilder.Title + "\" is not installed: the map has no nodes.";
+				else
+					General.ShowWarningMessage("Unable to build the nodes: " + reason + "\nThe map will be saved without nodes. Install it, or choose another nodebuilder in the game configuration.", MessageBoxButtons.OK);
 				return false;
 			}
 			else 

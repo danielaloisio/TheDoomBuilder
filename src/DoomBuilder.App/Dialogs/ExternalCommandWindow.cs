@@ -8,6 +8,8 @@ using Avalonia.Threading;
 using System.Linq;
 using CodeImp.DoomBuilder.Windows;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>
@@ -22,9 +24,9 @@ public sealed class ExternalCommandWindow : Window
     private readonly SelectableTextBlock output = new SelectableTextBlock { FontFamily = new FontFamily("Consolas, Menlo, DejaVu Sans Mono, monospace"), TextWrapping = TextWrapping.NoWrap };
     private readonly ScrollViewer scroll;
 
-    public Button ContinueButton { get; } = new Button { Content = "Continue", MinWidth = 90, IsEnabled = false, HorizontalContentAlignment = HorizontalAlignment.Center };
-    public Button RetryButton { get; } = new Button { Content = "Run again", MinWidth = 90, IsEnabled = false, HorizontalContentAlignment = HorizontalAlignment.Center };
-    public Button CancelButton { get; } = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button ContinueButton { get; } = new Button { Content = Loc.T("Continue"), MinWidth = 90, IsEnabled = false, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button RetryButton { get; } = new Button { Content = Loc.T("Run again"), MinWidth = 90, IsEnabled = false, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button CancelButton { get; } = new Button { Content = Loc.T("Cancel"), MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
 
     /// <summary>The text shown so far (tests read it).</summary>
     public string OutputText => string.Concat(output.Inlines.OfType<Run>().Select(r => r.Text));
@@ -33,7 +35,7 @@ public sealed class ExternalCommandWindow : Window
     {
         this.runner = runner;
         autoclose = autoCloseOnSuccess;
-        Title = "Running external command";
+        Title = Loc.T("Running external command");
         Width = 720;
         Height = 420;
         MinWidth = 400;

@@ -40,7 +40,7 @@ namespace System.Windows.Forms
     {
         public static string ExecutablePath => Environment.ProcessPath ?? string.Empty;
         public static string StartupPath => AppContext.BaseDirectory;
-        public static string ProductName => "TheDoomBuilder";
+        public static string ProductName => "The Doom Builder";
         public static string ProductVersion => "0.0";
         public static event Action<object, System.Threading.ThreadExceptionEventArgs> ThreadException { add { } remove { } }
         public static void DoEvents() { }
@@ -57,7 +57,7 @@ namespace System.Windows.Forms
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons, MessageBoxIcon.None);
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon) => Show(text, caption, buttons, icon, MessageBoxDefaultButton.Button1);
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton def)
-            => CodeImp.DoomBuilder.General.Dialogs.ShowMessage(text, caption, buttons, icon, def);
+            => CodeImp.DoomBuilder.General.Dialogs.ShowMessage(CodeImp.DoomBuilder.Localization.Localizer.T(text), CodeImp.DoomBuilder.Localization.Localizer.T(caption), buttons, icon, def);
         public static DialogResult Show(IWin32Window owner, string text) => Show(text);
         public static DialogResult Show(IWin32Window owner, string text, string caption) => Show(text, caption);
         public static DialogResult Show(IWin32Window owner, string text, string caption, MessageBoxButtons buttons) => Show(text, caption, buttons);

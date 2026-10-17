@@ -384,20 +384,19 @@ namespace CodeImp.DoomBuilder
 		/// <param name="statusinfo">StatusInfo to use when toasts are disabled</param>
 		private void CreateToast(string fullname, ToastType type, string title, string message, StatusInfo statusinfo)
 		{
-			if (!enabled || registry[fullname]?.Enabled == false)
+			// A toast that was never registered must not throw (it is shown, with a warning): the indexer used to
+			ToastRegistryEntry entry;
+			bool registered = registry.TryGetValue(fullname, out entry) && entry != null;
+
+			if (!enabled || (registered && entry.Enabled == false))
 			{
 				General.Interface.DisplayStatus(statusinfo);
 				return;
 			}
 
-			if (!registry.ContainsKey(fullname))
+			if (!registered)
 			{
 				General.ErrorLogger.Add(ErrorType.Warning, $"Toast setting for \"{fullname}\" is not in the registry. Defaulting to show the toast.");
-			}
-			else if (registry[fullname].Enabled == false)
-			{
-				General.Interface.DisplayStatus(statusinfo);
-				return;
 			}
 
 			CreateToast(type, title, message);

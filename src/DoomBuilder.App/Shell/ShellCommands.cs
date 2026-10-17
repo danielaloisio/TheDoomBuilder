@@ -44,11 +44,12 @@ public sealed class ShellCommands
             case "ChangeLightRenderingMode": return LightMode(item);
             case "itemzoomfittoscreen_Click": return Classic(mode => mode.CenterInScreen());
             case "itemgridcustom_Click": if (General.Map == null) return false; GridSetup.ShowGridSetup(); return true;
-            case "itemhelpissues_Click": openWebsite("https://github.com/jewalky/GZDoom-Builder-Bugfix/issues"); return true;
+            case "itemhelpissues_Click": openWebsite("https://github.com/danielaloisio/TheDoomBuilder/issues"); return true;
             case "itemhelpeditmode_Click":
                 if (General.Map == null || General.Editing.Mode == null) return false;
                 General.Editing.Mode.OnHelp();
                 return true;
+            case "itemhelprefmanual_Click": General.ShowHelp("introduction.html"); return true;
             case "itemhelpabout_Click": General.Dialogs.ShowAbout(); return true;
             case "warnsLabel_Click": General.MainWindow.ShowErrors(); return true;
             case "itemopenconfigfolder_Click": return OpenFolder(General.SettingsPath);

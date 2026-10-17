@@ -1,6 +1,7 @@
 using DoomBuilder.UI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Avalonia;
@@ -11,6 +12,8 @@ using Avalonia.Platform.Storage;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.Windows;
+
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
 
 namespace DoomBuilder.App.Dialogs;
 
@@ -31,10 +34,10 @@ public sealed class ConfigWindow : Window
     private readonly TextBox program = new TextBox();
     private readonly TextBlock engine = new TextBlock { Opacity = 0.7 };
     private readonly ComboBox skill = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
-    private readonly CheckBox custom = new CheckBox { Content = "Customize parameters" };
+    private readonly CheckBox custom = new CheckBox { Content = Loc.T("Customize parameters") };
     private readonly TextBox parameters = new TextBox();
-    private readonly CheckBox shortpaths = new CheckBox { Content = "Use short paths" };
-    private readonly CheckBox linuxpaths = new CheckBox { Content = "Use Linux-style paths" };
+    private readonly CheckBox shortpaths = new CheckBox { Content = Loc.T("Use short paths") };
+    private readonly CheckBox linuxpaths = new CheckBox { Content = Loc.T("Use Linux-style paths") };
     private readonly TextBlock example = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap, Opacity = 0.7 };
     private readonly StackPanel customarea = new StackPanel { Spacing = 4 };
     private readonly StackPanel modeslist = new StackPanel { Spacing = 2 };
@@ -42,8 +45,8 @@ public sealed class ConfigWindow : Window
     private readonly Dictionary<CheckBox, ModeChoice> modeboxes = new Dictionary<CheckBox, ModeChoice>();
     private bool loading;
 
-    public Button OkButton { get; } = new Button { Content = "OK", MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
-    public Button CancelButton { get; } = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button OkButton { get; } = new Button { Content = Loc.T("OK"), MinWidth = 90, IsDefault = true, HorizontalContentAlignment = HorizontalAlignment.Center };
+    public Button CancelButton { get; } = new Button { Content = Loc.T("Cancel"), MinWidth = 90, IsCancel = true, HorizontalContentAlignment = HorizontalAlignment.Center };
 
     /// <summary>True when OK was chosen and the resources changed.</summary>
     public bool ReloadResources { get { return model.ReloadResources; } }
@@ -64,7 +67,7 @@ public sealed class ConfigWindow : Window
 
     public ConfigWindow(int page = -1)
     {
-        Title = "Game Configurations";
+        Title = Loc.T("Game Configurations");
         Width = 880;
         Height = 560;
         MinWidth = 700;
@@ -128,7 +131,7 @@ public sealed class ConfigWindow : Window
 
     private Control TestingPage_()
     {
-        var browse = new Button { Content = "Browse..." };
+        var browse = new Button { Content = Loc.T("Browse...") };
         browse.Click += (s, e) => BrowseProgram();
         // Watch the property itself so programmatic changes count too, not only typing
         program.PropertyChanged += (s, e) =>
@@ -278,23 +281,77 @@ public sealed class ConfigWindow : Window
         var storage = GetTopLevel(this)?.StorageProvider;
         if (storage == null) return;
 
+        // Start where the program is now, when it is somewhere
+        IStorageFolder start = null;
+        string folder = string.IsNullOrWhiteSpace(program.Text) ? null : Path.GetDirectoryName(program.Text.Trim());
+        if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+            start = DialogPump.Run(() => storage.TryGetFolderFromPathAsync(folder));
+
+        if (OperatingSystem.IsMacOS())
+        {
+            // A test program on macOS is either a plain Unix binary (a file) or an .app bundle (a directory as far as the
+            // OS is concerned). Avalonia's typed StorageProvider can only ask for one of those at a time, and
+            // OpenFilePickerAsync's result silently drops anything the OS calls a directory, even when NSOpenPanel let the
+            // person pick it (confirmed: "files=0" after choosing a .app, independent of FileTypeFilter). osascript's
+            // "choose file" is Cocoa's own open panel with no such split - a bundle is selectable there exactly like in
+            // Finder - and needs no Accessibility/Automation permission (unlike "tell application System Events").
+            string macpath = BrowseProgramMac(folder);
+            if (macpath != null) program.Text = macpath;
+            return;
+        }
+
+        // No type filter outside Windows/macOS: a program there has no extension to filter by
         var files = DialogPump.Run(() => storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Select test program",
+            Title = Loc.T("Select test program"),
             AllowMultiple = false,
+            SuggestedStartLocation = start,
             FileTypeFilter = OperatingSystem.IsWindows()
-                ? new[] { new FilePickerFileType("Programs") { Patterns = new[] { "*.exe", "*.bat", "*.cmd" } }, FilePickerFileTypes.All }
-                : new[] { FilePickerFileTypes.All },
+                ? new[] { new FilePickerFileType("Programs") { Patterns = new[] { "*.exe", "*.bat", "*.cmd" } }, FileFilter.AllFiles }
+                : new[] { FileFilter.AllFiles },
         }));
-        if (files != null && files.Count > 0 && files[0].TryGetLocalPath() is string path) program.Text = path;
+        if (files != null && files.Count > 0 && (files[0].TryGetLocalPath() ?? files[0].Path?.LocalPath) is string path) program.Text = path;
     }
+
+    // osascript's "choose file" is the plain Cocoa open panel, without the file/folder split OpenFilePickerAsync and
+    // OpenFolderPickerAsync each impose - an .app bundle and a bare binary are both selectable in the one dialog, same as
+    // double-clicking in Finder. Returns null on cancel (AppleScript raises -128, osascript exits non-zero) or on failure.
+    private static string BrowseProgramMac(string startFolder)
+    {
+        var script = new System.Text.StringBuilder("POSIX path of (choose file with prompt \"" + AppleScriptEscape(Loc.T("Select test program")) + "\"");
+        if (!string.IsNullOrEmpty(startFolder) && Directory.Exists(startFolder))
+            script.Append(" default location POSIX file \"" + AppleScriptEscape(startFolder) + "\"");
+        script.Append(')');
+
+        try
+        {
+            var psi = new ProcessStartInfo("osascript") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+            psi.ArgumentList.Add("-e");
+            psi.ArgumentList.Add(script.ToString());
+            using Process process = Process.Start(psi);
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0) return null; // includes a plain Cancel
+            // "POSIX path of" always trails a directory with "/" (an .app bundle included); Launcher.CreateTestStartInfo
+            // matches the ".app" suffix literally, so that slash would make it treat a correctly chosen .app as not one.
+            output = output.TrimEnd('\n', '\r').TrimEnd('/');
+            return string.IsNullOrEmpty(output) ? null : output;
+        }
+        catch (Exception ex)
+        {
+            General.WriteLogLine("Browse for test program failed: " + ex.Message);
+            return null;
+        }
+    }
+
+    private static string AppleScriptEscape(string text) => text.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     private async void Accept()
     {
         ConfigEntry bad = model.FindInvalidResources();
         if (bad != null)
         {
-            General.Dialogs.ShowMessage("At least one resource doesn't exist in \"" + bad.Name + "\" game configuration!", "TheDoomBuilder",
+            General.Dialogs.ShowMessage("At least one resource doesn't exist in \"" + bad.Name + "\" game configuration!", "The Doom Builder",
                 System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning, System.Windows.Forms.MessageBoxDefaultButton.Button1);
             tabs.SelectedIndex = ResourcesPage;
             configs.SelectedIndex = model.Entries.ToList().IndexOf(bad);

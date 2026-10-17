@@ -137,7 +137,7 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     // ---- rendering / threading
 
-    public override IRenderBackend CreateRenderBackend() => viewport.Backend;
+    public override IRenderBackend CreateRenderBackend() => viewport.RenewBackend();
 
     /// <summary>How many redraws were asked for (diagnostics and tests).</summary>
     public int RedrawRequests { get; private set; }
@@ -156,10 +156,40 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
     // ---- status
 
+    // UDB's status resetter: a message stays 5 seconds, then the status is computed again (Ready: empty, or "Loading resources..." while images
+    // are still being loaded). Without it "Loading resources..." would stay in the status bar after the loading is done.
+    private const int StatusResetDelay = 5000;
+    private DispatcherTimer statusResetter;
+
+    /// <summary>The status will go back to Ready when its time comes.</summary>
+    public bool StatusResetPending => statusResetter != null && statusResetter.IsEnabled;
+
+    /// <summary>Runs what the status resetter does when its time comes (tests and diagnostics).</summary>
+    internal void ResetStatusNow()
+    {
+        statusResetter?.Stop();
+        DisplayReady();
+    }
+
+    private void RestartStatusReset()
+    {
+        if (statusResetter == null)
+        {
+            statusResetter = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(StatusResetDelay) };
+            statusResetter.Tick += (s, e) => { statusResetter.Stop(); DisplayReady(); };
+        }
+        statusResetter.Stop();
+        statusResetter.Start();
+    }
+
     public override void DisplayStatus(StatusInfo newstatus)
     {
         base.DisplayStatus(newstatus);
-        StatusChanged?.Invoke(newstatus.message);
+        StatusChanged?.Invoke(CodeImp.DoomBuilder.Localization.Localizer.T(newstatus.message));
+
+        // Busy stays until whoever set it says otherwise
+        if (newstatus.type == StatusType.Busy) RunOnUIThread(() => statusResetter?.Stop());
+        else RunOnUIThread(RestartStatusReset);
     }
 
     public override void DisplayStatus(StatusType type, string message) => DisplayStatus(new StatusInfo(type, message));
@@ -188,6 +218,21 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
         RedrawDisplay();
     }
 
+    /// <summary>The preferences were accepted: the window loads the language again, in case it was changed.</summary>
+    public event Action LanguageChanged;
+
+    /// <summary>The theme preference (follow the system, light, dark) on the whole application.</summary>
+    public static void ApplyTheme()
+    {
+        if (Avalonia.Application.Current == null) return;
+        Avalonia.Application.Current.RequestedThemeVariant = General.Settings.Theme switch
+        {
+            1 => Avalonia.Styling.ThemeVariant.Light,
+            2 => Avalonia.Styling.ThemeVariant.Dark,
+            _ => Avalonia.Styling.ThemeVariant.Default,
+        };
+    }
+
     /// <summary>The preferences dialog; on OK the interface, colors, plugins and the open map are brought up to date.</summary>
     [CodeImp.DoomBuilder.Actions.BeginAction("preferences", BaseAction = true)]
     public void ShowPreferences()
@@ -196,6 +241,8 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
 
         if (General.Dialogs.ShowPreferences(out bool reload) != System.Windows.Forms.DialogResult.OK) return;
 
+        ApplyTheme();
+        LanguageChanged?.Invoke();
         UpdateInterface();
         ApplyShortcutKeys();
         General.Colors.CreateCorrectionTable();
@@ -235,6 +282,8 @@ internal sealed class AvaloniaShell : HeadlessMainWindow, IInputHost
     public override void SetupInterface() => RaiseInterfaceChanged();
     public override void UpdateMapChangedStatus() => RaiseInterfaceChanged();
     public override void UpdateThingsFilters() => RaiseInterfaceChanged();
+    public override void UpdateLinedefColorPresets() => RaiseInterfaceChanged();
+    public override void ReflectThingsFilter() => RaiseInterfaceChanged();
     public override void EditModeChanged()
     {
         // As MainForm did: check the button (and menu entry) of the mode that is active now

@@ -16,7 +16,7 @@ public class EditDialogTests : EditorTestBase
     private static void Cancel(EditDialogBase d) => Click(Find<Avalonia.Controls.Button>(d, "Cancel"));
 
     private static T Find<T>(EditDialogBase d, string text) where T : Avalonia.Controls.Button
-        => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(d).OfType<T>().First(b => (string)b.Content == text);
+        => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(d).OfType<T>().First(b => b.Content as string == text);
 
     [AvaloniaFact]
     public void Editing_one_vertex_moves_it_and_one_undo_puts_it_back()

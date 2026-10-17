@@ -250,6 +250,28 @@ namespace CodeImp.DoomBuilder.Rendering
         // See: http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
         public void DrawLineSolid(int x1, int y1, int x2, int y2, ref PixelColor c, uint mask = 0xffffffff)
         {
+            DrawLineSolidThin(x1, y1, x2, y2, ref c, mask);
+
+            // On a high-DPI display one device pixel is too thin: repeat the line next to itself across its minor axis
+            if(Thickness > 1)
+            {
+                bool horizontal = Math.Abs(x2 - x1) >= Math.Abs(y2 - y1);
+                for(int i = 1; i < Thickness; i++)
+                {
+                    if(horizontal) DrawLineSolidThin(x1, y1 + i, x2, y2 + i, ref c, mask);
+                    else DrawLineSolidThin(x1 + i, y1, x2 + i, y2, ref c, mask);
+                }
+            }
+        }
+
+        // Width of the lines in device pixels (the display scale; 1 on a normal display)
+        public int Thickness { get; set; } = 1;
+
+        // The pixel at a position of the buffer (for tests)
+        internal PixelColor GetPixel(int x, int y) { return pixels[y * width + x]; }
+
+        private void DrawLineSolidThin(int x1, int y1, int x2, int y2, ref PixelColor c, uint mask)
+        {
             y1 = TransformY(y1);
             y2 = TransformY(y2);
 

@@ -143,7 +143,7 @@ namespace DoomBuilder.Rendering
 			streamvbo = gl.GenBuffer();
 			gl.BindVertexArray(streamvao);
 			gl.BindBuffer(BufferTargetARB.ArrayBuffer, streamvbo);
-			SetupVertexLayout(VertexFormat.Flat);
+			SetupVertexLayout(VertexFormat.Flat, 0);
 
 			for(int i = 0; i < arenas.Length; i++)
 			{
@@ -284,7 +284,14 @@ namespace DoomBuilder.Rendering
 
 		public string GetError() { return error; }
 
-		private void SetError(string message) { error = message; }
+		private void SetError(string message)
+		{
+			error = message;
+			Diagnostic?.Invoke(message);
+		}
+
+		/// <summary>Every error the backend records (OpenGL errors, shader compile failures...), so the host can log them. May repeat.</summary>
+		public event Action<string> Diagnostic;
 
 		public void DeclareUniform(UniformName name, string glslname, UniformType type)
 		{
@@ -456,6 +463,23 @@ namespace DoomBuilder.Rendering
 			return true;
 		}
 
+		/// <summary>
+		/// Vertex colors are packed as BGRA bytes; on desktop GL, <c>GL_BGRA</c> as the attribute's component count
+		/// swizzles them back on the way in (see <see cref="SetupVertexLayout"/>), but that trick does not exist in
+		/// GLES, so there the R and B bytes of every vertex are swapped here, once, before the data reaches the GPU.
+		/// </summary>
+		private void SwapColorChannelsForGles(Span<byte> data, VertexFormat format)
+		{
+			if(!gles) return;
+			int stride = format == VertexFormat.Flat ? FlatVertex.Stride : WorldVertex.Stride;
+			for(int offset = 12; offset + 2 < data.Length; offset += stride)
+			{
+				byte r = data[offset];
+				data[offset] = data[offset + 2];
+				data[offset + 2] = r;
+			}
+		}
+
 		private void SetVertexBufferDataNow(VertexBuffer buffer, byte[] data, int size, VertexFormat format)
 		{
 			GlVertexBuffer vb = buffer.BackendData as GlVertexBuffer;
@@ -477,6 +501,7 @@ namespace DoomBuilder.Rendering
 
 			vb.Format = format;
 			vb.Range = arena.Allocate(size, vb);
+			if(data != null) SwapColorChannelsForGles(data, format);
 			vb.Shadow = data ?? new byte[size];   // (a buffer that is only reserved is filled later by sub-data)
 
 			if(data != null)
@@ -498,6 +523,7 @@ namespace DoomBuilder.Rendering
 			{
 				GlVertexBuffer vb = buffer.BackendData as GlVertexBuffer;
 				if(vb == null || vb.Range == null) return;
+				SwapColorChannelsForGles(copy, vb.Format);
 				if(vb.Shadow == null || vb.Shadow.Length < destOffset + copy.Length) Array.Resize(ref vb.Shadow, (int)destOffset + copy.Length);
 				System.Buffer.BlockCopy(copy, 0, vb.Shadow, (int)destOffset, copy.Length);
 				gl.BindBuffer(BufferTargetARB.ArrayBuffer, arenabuffers[(int)vb.Format]);
@@ -574,26 +600,36 @@ namespace DoomBuilder.Rendering
 				arenavaos[f] = gl.GenVertexArray();
 				gl.BindVertexArray(arenavaos[f]);
 				gl.BindBuffer(BufferTargetARB.ArrayBuffer, arenabuffers[f]);
-				SetupVertexLayout((VertexFormat)f);
+				SetupVertexLayout((VertexFormat)f, 0);
 				gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 			}
 			return arenavaos[f];
 		}
 
-		private void SetupVertexLayout(VertexFormat format)
+		/// <summary>
+		/// On desktop GL, <paramref name="baseVertex"/> is always 0: the whole arena buffer is bound once and
+		/// <see cref="GlShader.AttrPosition"/> etc. point at its start, with <c>glDrawElementsBaseVertex</c>/absolute
+		/// <c>glDrawArrays</c> indices doing the offsetting into a vertex buffer's range at draw time. GLES 3.0 has no
+		/// base-vertex draw call, so there <paramref name="baseVertex"/> is the active vertex buffer's range start
+		/// (in vertices) and the attribute pointers are rebound to it whenever the vertex buffer changes
+		/// (see <see cref="ApplyVertexBuffer"/>); draw calls then use buffer-relative (0-based) indices.
+		/// </summary>
+		private void SetupVertexLayout(VertexFormat format, uint baseVertex)
 		{
 			uint stride = (uint)(format == VertexFormat.Flat ? FlatVertex.Stride : WorldVertex.Stride);
+			nuint byteOffset = (nuint)baseVertex * stride;
 			gl.EnableVertexAttribArray(GlShader.AttrPosition);
 			gl.EnableVertexAttribArray(GlShader.AttrColor);
 			gl.EnableVertexAttribArray(GlShader.AttrUV);
-			gl.VertexAttribPointer(GlShader.AttrPosition, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
-			// Colors are stored as BGRA bytes; GL_BGRA as the component count swizzles them (core since GL 3.2)
-			gl.VertexAttribPointer(GlShader.AttrColor, gles ? 4 : GL_BGRA, VertexAttribPointerType.UnsignedByte, true, stride, (void*)12);
-			gl.VertexAttribPointer(GlShader.AttrUV, 2, VertexAttribPointerType.Float, false, stride, (void*)16);
+			gl.VertexAttribPointer(GlShader.AttrPosition, 3, VertexAttribPointerType.Float, false, stride, (void*)(byteOffset + 0));
+			// Colors are stored as BGRA bytes; GL_BGRA as the component count swizzles them (core since GL 3.2, not in GLES:
+			// there the bytes are swapped on upload instead, see SwapColorChannelsForGles)
+			gl.VertexAttribPointer(GlShader.AttrColor, gles ? 4 : GL_BGRA, VertexAttribPointerType.UnsignedByte, true, stride, (void*)(byteOffset + 12));
+			gl.VertexAttribPointer(GlShader.AttrUV, 2, VertexAttribPointerType.Float, false, stride, (void*)(byteOffset + 16));
 			if(format == VertexFormat.World)
 			{
 				gl.EnableVertexAttribArray(GlShader.AttrNormal);
-				gl.VertexAttribPointer(GlShader.AttrNormal, 3, VertexAttribPointerType.Float, false, stride, (void*)24);
+				gl.VertexAttribPointer(GlShader.AttrNormal, 3, VertexAttribPointerType.Float, false, stride, (void*)(byteOffset + 24));
 			}
 		}
 
@@ -707,6 +743,16 @@ namespace DoomBuilder.Rendering
 
 		private void UploadPixels(GlTexture data, BaseTexture info, TextureTarget bindtarget, TextureTarget imagetarget, byte[] pixels, bool mipmaps, bool remember = true)
 		{
+			// Bgra8 pixels are stored R/B-swapped relative to GLES's Rgba upload (see ToDataFormat); desktop GL
+			// uploads them as-is, declared PixelFormat.Bgra, so no swap is needed there.
+			if(gles && info.Format == TextureFormat.Bgra8)
+				for(int i = 0; i + 2 < pixels.Length; i += 4)
+				{
+					byte r = pixels[i];
+					pixels[i] = pixels[i + 2];
+					pixels[i + 2] = r;
+				}
+
 			if(remember)
 			{
 				int face = info.IsCube ? Array.IndexOf(CubeFaces, imagetarget) : 0;
@@ -800,15 +846,22 @@ namespace DoomBuilder.Rendering
 		private bool DrawNow(PrimitiveType type, int startIndex, int primitiveCount)
 		{
 			if(needapply && !ApplyChanges()) return false;
-			gl.DrawArrays(Modes[(int)type], VertexBufferStartIndex + startIndex, (uint)(ToVertexStart[(int)type] + primitiveCount * ToVertexCount[(int)type]));
+			uint count = (uint)(ToVertexStart[(int)type] + primitiveCount * ToVertexCount[(int)type]);
+			// Under GLES the range start is already baked into the attribute pointers (see ApplyVertexBuffer): indices are buffer-relative
+			int first = gles ? startIndex : VertexBufferStartIndex + startIndex;
+			gl.DrawArrays(Modes[(int)type], first, count);
 			return CheckGLError();
 		}
 
 		private bool DrawIndexedNow(PrimitiveType type, int startIndex, int primitiveCount)
 		{
 			if(needapply && !ApplyChanges()) return false;
-			gl.DrawElementsBaseVertex(Modes[(int)type], (uint)(ToVertexStart[(int)type] + primitiveCount * ToVertexCount[(int)type]),
-				DrawElementsType.UnsignedInt, (void*)(startIndex * sizeof(uint)), VertexBufferStartIndex);
+			uint count = (uint)(ToVertexStart[(int)type] + primitiveCount * ToVertexCount[(int)type]);
+			if(gles)
+				// No glDrawElementsBaseVertex in GLES 3.0: the range start is baked into the attribute pointers instead
+				gl.DrawElements(Modes[(int)type], count, DrawElementsType.UnsignedInt, (void*)(startIndex * sizeof(uint)));
+			else
+				gl.DrawElementsBaseVertex(Modes[(int)type], count, DrawElementsType.UnsignedInt, (void*)(startIndex * sizeof(uint)), VertexBufferStartIndex);
 			return CheckGLError();
 		}
 
@@ -818,8 +871,18 @@ namespace DoomBuilder.Rendering
 			if(needapply && !ApplyChanges()) return false;
 
 			gl.BindBuffer(BufferTargetARB.ArrayBuffer, streamvbo);
-			fixed(byte* p = flatvertices)
-				gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vertcount * FlatVertex.Stride), p + startIndex * FlatVertex.Stride, BufferUsageARB.StreamDraw);
+			if(gles)
+			{
+				byte[] swapped = flatvertices.Slice(startIndex * FlatVertex.Stride, vertcount * FlatVertex.Stride).ToArray();
+				SwapColorChannelsForGles(swapped, VertexFormat.Flat);
+				fixed(byte* p = swapped)
+					gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)swapped.Length, p, BufferUsageARB.StreamDraw);
+			}
+			else
+			{
+				fixed(byte* p = flatvertices)
+					gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vertcount * FlatVertex.Stride), p + startIndex * FlatVertex.Stride, BufferUsageARB.StreamDraw);
+			}
 			gl.BindVertexArray(streamvao);
 			gl.DrawArrays(Modes[(int)type], 0, (uint)vertcount);
 			if(!CheckGLError()) return false;
@@ -1068,7 +1131,18 @@ namespace DoomBuilder.Rendering
 		private bool ApplyVertexBuffer()
 		{
 			if(vertexbuffer != null)
+			{
 				gl.BindVertexArray(GetArenaVao((int)vertexbuffer.Format));
+				// GLES has no base-vertex draw call: bake the range's start into the attribute pointers instead (see SetupVertexLayout).
+				// glVertexAttribPointer reads its buffer from whatever is bound to GL_ARRAY_BUFFER right now, which GetArenaVao
+				// only bound on the VAO's first creation, so it must be rebound here or GLES treats the offset as a client pointer.
+				if(gles)
+				{
+					gl.BindBuffer(BufferTargetARB.ArrayBuffer, arenabuffers[(int)vertexbuffer.Format]);
+					SetupVertexLayout(vertexbuffer.Format, (uint)VertexBufferStartIndex);
+					gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
+				}
+			}
 			vertexbufferchanged = false;
 			return CheckGLError();
 		}
@@ -1176,8 +1250,12 @@ namespace DoomBuilder.Rendering
 
 		#endregion
 
+		/// <summary>True once <see cref="Dispose"/> ran: the backend cannot draw again, the host makes a new one for the next map.</summary>
+		public bool IsDisposed { get; private set; }
+
 		public void Dispose()
 		{
+			IsDisposed = true;
 			if(gl != null)
 			{
 				ProcessReleases();

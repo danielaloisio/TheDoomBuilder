@@ -8,6 +8,8 @@ using Avalonia.Layout;
 using CodeImp.DoomBuilder;
 using DoomBuilder.App.Shell;
 
+using Loc = CodeImp.DoomBuilder.Localization.Localizer;
+
 namespace DoomBuilder.App.Dialogs;
 
 /// <summary>Program name, version and the links of UDB's AboutForm.</summary>
@@ -15,7 +17,7 @@ public sealed class AboutWindow : Window
 {
     private static readonly (string Label, string Url)[] Links =
     {
-        ("TheDoomBuilder: port of Ultimate Doom Builder to Avalonia", "https://github.com/danielaloisio/TheDoomBuilder"),
+        ("The Doom Builder: port of Ultimate Doom Builder to Avalonia", "https://github.com/danielaloisio/TheDoomBuilder"),
         ("Ultimate Doom Builder", "https://github.com/jewalky/UltimateDoomBuilder"),
         ("Ultimate Doom Builder thread on the ZDoom forum", "https://forum.zdoom.org/viewtopic.php?f=232&t=66745"),
         ("GZDoom Builder (mxd)", "https://github.com/m-x-d/GZDoom-Builder"),
@@ -24,7 +26,7 @@ public sealed class AboutWindow : Window
 
     public AboutWindow()
     {
-        Title = "About";
+        Title = Loc.T("About");
         SizeToContent = SizeToContent.WidthAndHeight;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -37,7 +39,10 @@ public sealed class AboutWindow : Window
         panel.Children.Add(new TextBlock
         {
             Text = "Based on Doom Builder by Pascal vd Heiden, with the changes of GZDoom Builder and Ultimate Doom Builder. Released under the GNU General Public License.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap, MaxWidth = 380, Opacity = 0.7, Margin = new Thickness(0, 6, 0, 6),
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            MaxWidth = 380,
+            Opacity = 0.7,
+            Margin = new Thickness(0, 6, 0, 6),
         });
         foreach (var (label, url) in Links)
         {
@@ -48,13 +53,13 @@ public sealed class AboutWindow : Window
             panel.Children.Add(link);
         }
 
-        var copy = new Button { Content = "Copy version" };
+        var copy = new Button { Content = Loc.T("Copy version") };
         copy.Click += async (s, e) =>
         {
             var clipboard = GetTopLevel(this)?.Clipboard;
             if (clipboard != null) try { await clipboard.SetTextAsync(PlainVersion); } catch (Exception) { }
         };
-        var close = new Button { Content = "Close", MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center, IsDefault = true };
+        var close = new Button { Content = Loc.T("Close"), MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center, IsDefault = true };
         close.Click += (s, e) => Close();
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8, Margin = new Thickness(0, 12, 0, 0) };
         row.Children.Add(copy);
@@ -65,7 +70,7 @@ public sealed class AboutWindow : Window
 
     public TextBlock VersionBlock { get; }
 
-    public static string ProductName => "TheDoomBuilder";
+    public static string ProductName => "The Doom Builder";
 
     /// <summary>The version number, without the commit hash a build from git adds after a plus sign.</summary>
     public static string PlainVersion

@@ -32,7 +32,7 @@ public class PreferencesModelTests : IDisposable
     {
         var model = new PreferencesModel();
 
-        Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors" }, model.Tabs);
+        Assert.Equal(new[] { "Interface", "Display", "Recovery", "Colors", "Script editor" }, model.Tabs);
         Assert.Equal(model.Items.Count, model.Items.Select(i => i.Key).Distinct().Count());
         Assert.All(model.Items, i => Assert.False(i.IsChanged));
     }

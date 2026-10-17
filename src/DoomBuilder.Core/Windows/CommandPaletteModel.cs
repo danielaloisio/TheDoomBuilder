@@ -18,7 +18,7 @@ namespace CodeImp.DoomBuilder.Windows
 			Title = action.Title;
 			Shortcut = CodeImp.DoomBuilder.Actions.Action.GetShortcutKeyDesc(action.ShortcutKey);
 			string category;
-			Category = General.Actions.Categories.TryGetValue(action.Category, out category) ? category : string.Empty;
+			Category = General.Actions.Categories.TryGetValue(action.Category, out category) ? CodeImp.DoomBuilder.Localization.Localizer.T(category) : string.Empty;
 		}
 
 		internal CodeImp.DoomBuilder.Actions.Action Action { get; private set; }
