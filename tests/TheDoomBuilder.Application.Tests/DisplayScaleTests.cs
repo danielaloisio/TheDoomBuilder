@@ -32,6 +32,30 @@ public class DisplayScaleTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void Moving_to_a_screen_with_another_scale_rescales_the_zoom_to_match()
+    {
+        // The window's logical size does not change when it moves to a screen with another scale, only its size in
+        // device pixels (see MapViewport.OnScaleChanged, which resizes the GL surface to match). Combined with that,
+        // rescaling "zoom" (device pixels per map unit) by the same ratio here keeps the field of view (in map units)
+        // the same on a real screen; without it the map used to shrink on a denser screen and grow on a sparser one.
+        OpenEditor();
+        SizeF original = MainForm.DPIScaler;
+        try
+        {
+            var renderer = (Renderer2D)General.Map.Renderer2D;
+            MainForm.DPIScaler = new SizeF(1f, 1f);
+            renderer.ScaleView(4f);
+
+            MainForm.DPIScaler = new SizeF(2f, 2f);           // no explicit ScaleView call: must rescale on its own
+            Assert.Equal(8f, renderer.Scale, 3);
+
+            MainForm.DPIScaler = new SizeF(1f, 1f);
+            Assert.Equal(4f, renderer.Scale, 3);
+        }
+        finally { MainForm.DPIScaler = original; }
+    }
+
+    [AvaloniaFact]
     public void A_change_of_the_display_scale_is_announced()
     {
         SizeF original = MainForm.DPIScaler;
