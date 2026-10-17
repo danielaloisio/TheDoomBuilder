@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DoomBuilder.Core\DoomBuilder.Core.csproj" />
+    <ProjectReference Include="..\..\src\TheDoomBuilder.Core\TheDoomBuilder.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

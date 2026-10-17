@@ -5,7 +5,7 @@ The WinForms designer file is regular: every ToolStrip item is `this.<name> = ne
 `this.<name>.<Property> = ...` lines, and containers list their children in Items/DropDownItems.AddRange.
 
 Usage (repo root):
-    python3 tools/extract_mainform_ui.py <path to UDB Source/Core/Windows/MainForm.Designer.cs> > src/DoomBuilder.App/Resources/mainform-ui.json
+    python3 tools/extract_mainform_ui.py <path to UDB Source/Core/Windows/MainForm.Designer.cs> > src/TheDoomBuilder.App/Resources/mainform-ui.json
 """
 import json, re, sys
 from collections import OrderedDict

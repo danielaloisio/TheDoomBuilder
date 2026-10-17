@@ -12,11 +12,17 @@ version="${2:-dev}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 out="$root/artifacts/publish-$rid"
 name="TheDoomBuilder-$version-$rid"
-exe="DoomBuilder.App"
+publishedexe="TheDoomBuilder.App"
+exe="TheDoomBuilder"
 
 rm -rf "$out"
-dotnet publish "$root/src/DoomBuilder.App" -c Release -r "$rid" --self-contained -o "$out/$name"
+dotnet publish "$root/src/TheDoomBuilder.App" -c Release -r "$rid" --self-contained -o "$out/$name"
 find "$out/$name" -name '*.pdb' -delete
+
+# Cosmetic rename for the end user: the assembly is "TheDoomBuilder.App" (what plugins/InternalsVisibleTo know it as),
+# only the apphost executable on disk is renamed.
+suffix=""; case "$rid" in win-*) suffix=".exe" ;; esac
+mv "$out/$name/$publishedexe$suffix" "$out/$name/$exe$suffix"
 
 mkdir -p "$root/artifacts"
 case "$rid" in

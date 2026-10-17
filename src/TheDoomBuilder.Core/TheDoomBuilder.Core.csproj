@@ -26,11 +26,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="DoomBuilder.Core.Tests" />
-    <InternalsVisibleTo Include="DoomBuilder.App" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Core.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.App" />
     <InternalsVisibleTo Include="DoomBuilder.UI" />
-    <InternalsVisibleTo Include="DoomBuilder.Rendering.Tests" />
-    <InternalsVisibleTo Include="DoomBuilder.App.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Rendering.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.App.Tests" />
   </ItemGroup>
 
 </Project>

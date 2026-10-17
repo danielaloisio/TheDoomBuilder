@@ -6,6 +6,9 @@
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- The project/folder name tracks the product name; the C# namespace and assembly name stay as they were. -->
+    <RootNamespace>DoomBuilder.Rendering</RootNamespace>
+    <AssemblyName>DoomBuilder.Rendering</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,11 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DoomBuilder.Core\DoomBuilder.Core.csproj" />
+    <ProjectReference Include="..\TheDoomBuilder.Core\TheDoomBuilder.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="DoomBuilder.Rendering.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Rendering.Tests" />
   </ItemGroup>
 
 </Project>

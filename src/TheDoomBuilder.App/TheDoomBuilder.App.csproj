@@ -9,6 +9,9 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
+    <!-- The C# namespace (DoomBuilder.App.*) stays as-is; only the project/assembly name changes to match the product name. -->
+    <RootNamespace>DoomBuilder.App</RootNamespace>
+    <AssemblyName>TheDoomBuilder.App</AssemblyName>
   </PropertyGroup>
 
   <!-- The editor's game configurations, scripts, snippets, sprites... (the same layout UDB ships next to its executable) -->
@@ -35,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DoomBuilder.Rendering\DoomBuilder.Rendering.csproj" />
+    <ProjectReference Include="..\TheDoomBuilder.Rendering\TheDoomBuilder.Rendering.csproj" />
     <ProjectReference Include="..\Plugins\BuilderModes\BuilderModes.csproj" />
     <ProjectReference Include="..\Plugins\ThreeDFloorMode\ThreeDFloorMode.csproj" />
     <ProjectReference Include="..\Plugins\StairSectorBuilder\StairSectorBuilder.csproj" />
@@ -54,8 +57,8 @@
     <ProjectReference Include="..\Plugins\TagExplorer\TagExplorer.csproj" />
     <ProjectReference Include="..\Plugins\TagRange\TagRange.csproj" />
     <ProjectReference Include="..\Plugins\CommentsPanel\CommentsPanel.csproj" />
-    <ProjectReference Include="..\DoomBuilder.Core\DoomBuilder.Core.csproj" />
-    <ProjectReference Include="..\DoomBuilder.UI\DoomBuilder.UI.csproj" />
+    <ProjectReference Include="..\TheDoomBuilder.Core\TheDoomBuilder.Core.csproj" />
+    <ProjectReference Include="..\TheDoomBuilder.UI\TheDoomBuilder.UI.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Actions.cfg" />
@@ -63,7 +66,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="DoomBuilder.App.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.App.Tests" />
   </ItemGroup>
 
 </Project>

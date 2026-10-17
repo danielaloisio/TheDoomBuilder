@@ -14,8 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\DoomBuilder.Core\DoomBuilder.Core.csproj" />
-    <ProjectReference Include="..\..\DoomBuilder.UI\DoomBuilder.UI.csproj" />
+    <ProjectReference Include="..\..\TheDoomBuilder.Core\TheDoomBuilder.Core.csproj" />
+    <ProjectReference Include="..\..\TheDoomBuilder.UI\TheDoomBuilder.UI.csproj" />
     <!-- The UDB plugin links BuilderModes.dll too (Association, LinedefProperties, SectorProperties...) -->
     <ProjectReference Include="..\BuilderModes\BuilderModes.csproj" />
     <!-- The plugin's panels and dialogs are Avalonia controls; the Core stays free of UI types -->
@@ -27,9 +27,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="DoomBuilder.App" />
-    <InternalsVisibleTo Include="DoomBuilder.App.Tests" />
-    <InternalsVisibleTo Include="DoomBuilder.Core.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.App" />
+    <InternalsVisibleTo Include="TheDoomBuilder.App.Tests" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Core.Tests" />
   </ItemGroup>
 
 </Project>

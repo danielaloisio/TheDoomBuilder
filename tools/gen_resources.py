@@ -8,7 +8,7 @@ Usage (repo root): python3 tools/gen_resources.py <UDB Source/Core/Properties/Re
   (the embedded files are then "<namespace>.Resources.<file>", as MSBuild names the project's Resources folder)
 """
 import re, sys
-OUT = sys.argv[2] if len(sys.argv) > 2 else 'src/DoomBuilder.Core/Properties/Resources.cs'
+OUT = sys.argv[2] if len(sys.argv) > 2 else 'src/TheDoomBuilder.Core/Properties/Resources.cs'
 NS = sys.argv[3] if len(sys.argv) > 3 else 'CodeImp.DoomBuilder'
 res = open(sys.argv[1], encoding='utf-8-sig').read()
 items = re.findall(r'<data name="([^"]+)" type="System.Resources.ResXFileRef[^"]*">\s*<value>([^;<]+);([^<]*)</value>', res)
