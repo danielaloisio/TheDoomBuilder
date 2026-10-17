@@ -41,6 +41,7 @@ public sealed class RelativePointerTracker
     private int unanswered;
     private bool settling;
     private long settlingsince;
+    private bool sawfarwhilesettling;
 
     public RelativePointerTracker() : this(() => Stopwatch.GetTimestamp() * 1000 / Stopwatch.Frequency) { }
 
@@ -85,9 +86,17 @@ public sealed class RelativePointerTracker
         if (settling)
         {
             bool stillsettling = clock() - settlingsince <= SettleWindowMilliseconds;
-            if (stillsettling && DistanceToCenter(x, y) > SettleRadius) return false;
-            settling = false;    // close to the center (the warp caught up), or the window ran out: movement counts again from here
-            return false;        // either way, this particular event is not read as movement itself
+            if (stillsettling && DistanceToCenter(x, y) > SettleRadius)
+            {
+                sawfarwhilesettling = true;
+                return false;
+            }
+            settling = false;
+            // A far position (or more than one) came first: this event is the warp's own jump catching up (or the window simply ran
+            // out while still far away), not movement either - it only closes the gap the stale position(s) opened.
+            if (sawfarwhilesettling) return false;
+            // Nothing was ever far: the first position already was close to the baseline set in Begin(), so there is nothing to
+            // distinguish from ordinary movement - let it fall through and be read like any other event.
         }
 
         if (UsesWarp && warppending)
@@ -139,11 +148,12 @@ public sealed class RelativePointerTracker
     /// </summary>
     public void Begin()
     {
-        haslast = false;
+        lastx = centerx; lasty = centery; haslast = true;
         warppending = false;
         unanswered = 0;
         settling = true;
         settlingsince = clock();
+        sawfarwhilesettling = false;
     }
 
     /// <summary>Movement in pixels since the last call.</summary>
