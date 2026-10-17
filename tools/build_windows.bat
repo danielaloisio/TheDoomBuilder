@@ -23,14 +23,13 @@ set "NAME=TheDoomBuilder-%PKGVER%-%RID%"
 set "OUT=%ROOT%\artifacts\publish-%RID%"
 
 if exist "%OUT%" rd /s /q "%OUT%"
-dotnet publish "%ROOT%\src\DoomBuilder.App" -c Release -r %RID% --self-contained -o "%OUT%\%NAME%"
+dotnet publish "%ROOT%\src\TheDoomBuilder.Application" -c Release -r %RID% --self-contained -o "%OUT%\%NAME%"
 if errorlevel 1 exit /b 1
 
 del /s /q "%OUT%\%NAME%\*.pdb" >nul 2>&1
 
-rem Cosmetic rename for the end user: the assembly stays "DoomBuilder.App" (plugins' InternalsVisibleTo and the
-rem embedded Actions.cfg action prefix depend on that name), only the apphost .exe on disk is renamed.
-ren "%OUT%\%NAME%\DoomBuilder.App.exe" "DoomBuilder.exe"
+rem Cosmetic rename for the end user: the assembly is "TheDoomBuilder.Application", only the apphost .exe on disk is renamed.
+ren "%OUT%\%NAME%\TheDoomBuilder.Application.exe" "TheDoomBuilder.exe"
 if errorlevel 1 exit /b 1
 
 if not exist "%ROOT%\artifacts" mkdir "%ROOT%\artifacts"

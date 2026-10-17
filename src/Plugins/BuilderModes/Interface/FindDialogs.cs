@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.BuilderModes
 {

@@ -22,7 +22,7 @@ using CodeImp.DoomBuilder.Geometry;
 using CodeImp.DoomBuilder.IO;
 using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Windows;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvControl = Avalonia.Controls.Control;
 using AvCheckBox = Avalonia.Controls.CheckBox;
 using AvButton = Avalonia.Controls.Button;

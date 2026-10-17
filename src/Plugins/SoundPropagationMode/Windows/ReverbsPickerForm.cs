@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using Avalonia;
 using Avalonia.Controls;
 using CodeImp.DoomBuilder.Map;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.SoundPropagationMode
 {

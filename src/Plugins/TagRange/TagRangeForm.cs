@@ -9,7 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Types;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.TagRange
 {

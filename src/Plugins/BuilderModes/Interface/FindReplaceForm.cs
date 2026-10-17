@@ -10,7 +10,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvCheckBox = Avalonia.Controls.CheckBox;
 using AvButton = Avalonia.Controls.Button;
 
