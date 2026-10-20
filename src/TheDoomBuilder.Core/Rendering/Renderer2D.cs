@@ -89,6 +89,7 @@ namespace CodeImp.DoomBuilder.Rendering
 		private ViewMode viewmode;
 		private float scale;
 		private float scaleinv;
+		private float lastdpi; // the MainForm.DPIScaler.Width last seen (see OnDpiScalerChanged)
 		private float offsetx;
 		private float offsety;
 		private float translatex;
@@ -151,7 +152,11 @@ namespace CodeImp.DoomBuilder.Rendering
 
 			// Create rendertargets
 			CreateRendertargets();
-			
+
+			// React to the window moving to a screen with another scale (see OnDpiScalerChanged)
+			lastdpi = Math.Max(1f, CodeImp.DoomBuilder.Windows.MainForm.DPIScaler.Width);
+			CodeImp.DoomBuilder.Windows.MainForm.DPIScalerChanged += OnDpiScalerChanged;
+
 			// We have no destructor
 			GC.SuppressFinalize(this);
 		}
@@ -162,14 +167,32 @@ namespace CodeImp.DoomBuilder.Rendering
 			// Not already disposed?
 			if(!isdisposed)
 			{
+				CodeImp.DoomBuilder.Windows.MainForm.DPIScalerChanged -= OnDpiScalerChanged;
+
 				// Destroy rendertargets
 				DestroyRendertargets();
-				
+
 				// Dispose surface manager
 				surfaces.Dispose();
-				
+
 				// Done
 				base.Dispose();
+			}
+		}
+
+		// The window moved to a screen with another scale, or the system scale changed: its size in device
+		// pixels changes (see MapViewport.OnScaleChanged) even though its logical size did not. Vertex size,
+		// line thickness and label font size already compensate for DPI (see UpdateTransformations below),
+		// but the zoom itself did not: windowsize (device pixels) changing at a fixed "scale" (device pixels
+		// per map unit) shifted how much map fits on screen. Rescale "scale" by the same ratio so the field
+		// of view stays the same.
+		private void OnDpiScalerChanged()
+		{
+			float dpi = Math.Max(1f, CodeImp.DoomBuilder.Windows.MainForm.DPIScaler.Width);
+			if(dpi != lastdpi)
+			{
+				ScaleView(scale * (dpi / lastdpi));
+				lastdpi = dpi;
 			}
 		}
 

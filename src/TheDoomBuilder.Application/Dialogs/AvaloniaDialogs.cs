@@ -13,6 +13,7 @@ using StackPanel = Avalonia.Controls.StackPanel;
 using TextBlock = Avalonia.Controls.TextBlock;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
@@ -35,7 +36,21 @@ internal sealed class AvaloniaDialogs : NoDialogs
         this.owner = owner;
     }
 
-    private Window Owner { get { return owner(); } }
+    // A dialog must attach to the window the user is actually looking at, not always MainWindow: a secondary
+    // top-level window (e.g. the Script Editor) that opens its own dialogs would otherwise anchor them to
+    // MainWindow, which on macOS can show as a sheet behind whatever window is currently in front and go unseen.
+    private Window Owner
+    {
+        get
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                Window active = desktop.Windows.FirstOrDefault(w => w.IsActive);
+                if (active != null) return active;
+            }
+            return owner();
+        }
+    }
 
     public override DialogResult ShowMessage(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton defaultbutton)
     {
