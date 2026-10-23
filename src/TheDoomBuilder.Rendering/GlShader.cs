@@ -19,7 +19,6 @@ namespace TheDoomBuilder.Rendering
 
 		public uint Program { get; private set; }
 		public int[] UniformLocations = Array.Empty<int>();
-		public int[] UniformLastUpdates = Array.Empty<int>();
 
 		public void Setup(string identifier, string vertexText, string fragmentText, bool alphatest)
 		{
@@ -99,7 +98,6 @@ namespace TheDoomBuilder.Rendering
 				return;
 			}
 
-			UniformLastUpdates = new int[uniformNames.Count];
 			UniformLocations = new int[uniformNames.Count];
 			for(int i = 0; i < uniformNames.Count; i++)
 				UniformLocations[i] = string.IsNullOrEmpty(uniformNames[i]) ? -1 : gl.GetUniformLocation(Program, uniformNames[i]);
@@ -150,7 +148,6 @@ namespace TheDoomBuilder.Rendering
 			built = false;
 			errors = string.Empty;
 			UniformLocations = Array.Empty<int>();
-			UniformLastUpdates = Array.Empty<int>();
 		}
 
 		public void ReleaseResources(GL gl)

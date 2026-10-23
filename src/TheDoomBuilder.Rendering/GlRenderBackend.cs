@@ -1022,8 +1022,22 @@ namespace TheDoomBuilder.Rendering
 		private bool CopyTextureNow(CubeTexture dst, CubeMapFace face)
 		{
 			GlTexture data = EnsureTextureData(dst);
-			gl.BindTexture(TextureTarget.TextureCubeMap, GetTexture(data));
-			gl.CopyTexSubImage2D(CubeFaces[(int)face], 0, 0, 0, 0, 0, (uint)dst.Width, (uint)dst.Height);
+			uint texture = GetTexture(data);
+
+			// Not glCopyTexSubImage2D: on the macOS Intel driver only the first copy into the cube map lands, the other
+			// five faces stay empty (the sky rendered black/garbage). Reading the render target back and uploading it is
+			// the same image (both are bottom-up) and only happens when a skybox is made.
+			byte[] pixels = new byte[dst.Width * dst.Height * 4];
+			gl.BindBuffer(BufferTargetARB.PixelPackBuffer, 0);
+			gl.BindBuffer(BufferTargetARB.PixelUnpackBuffer, 0);
+			gl.PixelStore(PixelStoreParameter.PackAlignment, 4);
+			gl.PixelStore(PixelStoreParameter.UnpackAlignment, 4);
+			fixed(byte* p = pixels)
+			{
+				gl.ReadPixels(0, 0, (uint)dst.Width, (uint)dst.Height, PixelFormat.Rgba, PixelType.UnsignedByte, p);
+				gl.BindTexture(TextureTarget.TextureCubeMap, texture);
+				gl.TexSubImage2D(CubeFaces[(int)face], 0, 0, 0, (uint)dst.Width, (uint)dst.Height, PixelFormat.Rgba, PixelType.UnsignedByte, p);
+			}
 			if(face == CubeMapFace.NegativeZ) gl.GenerateMipmap(TextureTarget.TextureCubeMap);
 			gl.BindTexture(TextureTarget.TextureCubeMap, 0);
 			textureschanged = true;
@@ -1154,8 +1168,10 @@ namespace TheDoomBuilder.Rendering
 			for(int i = 0; i < count; i++)
 			{
 				UniformInfo info = uniforms[i];
-				if(shader.UniformLastUpdates[i] == info.LastUpdate) continue;
-
+				// Not cached against shader.UniformLastUpdates: that cache compares a per-uniform counter that is shared
+				// across every GlShader against a per-shader "last seen" value, which goes stale whenever the same uniform
+				// is updated several times in a row on one shader without an intervening draw on a different shader (e.g.
+				// rendering the skybox's 6 cubemap faces back to back) - only some of the updates would ever reach the GPU.
 				int location = shader.UniformLocations[i];
 				if(location >= 0 && info.Data.Length > 0)
 				{
@@ -1180,7 +1196,6 @@ namespace TheDoomBuilder.Rendering
 						}
 					}
 				}
-				shader.UniformLastUpdates[i] = info.LastUpdate;
 			}
 			uniformschanged = false;
 			return CheckGLError();
@@ -1205,9 +1220,11 @@ namespace TheDoomBuilder.Rendering
 				ref UnitState unit = ref units[index];
 				if(unit.Tex != null)
 				{
+					// GetTexture may create the texture, which switches the active unit to 0: resolve it before picking the unit
+					uint texture = GetTexture(unit.Tex);
 					gl.ActiveTexture((Silk.NET.OpenGL.TextureUnit)((int)Silk.NET.OpenGL.TextureUnit.Texture0 + index));
 					TextureTarget target = TextureInfo(unit.Tex).IsCube ? TextureTarget.TextureCubeMap : TextureTarget.Texture2D;
-					gl.BindTexture(target, GetTexture(unit.Tex));
+					gl.BindTexture(target, texture);
 
 					// Samplers are cached per (filter, anisotropy) with one object per wrap mode
 					SamplerKey key = new SamplerKey(ToGlMinFilter(unit.MagFilter, unit.MipFilter), unit.MagFilter == TextureFilter.Linear ? (int)GLEnum.Linear : (int)GLEnum.Nearest, unit.MaxAnisotropy);
