@@ -26,6 +26,7 @@ public sealed class ResourcesEditor : UserControl
     private readonly Button down = new Button { Content = Loc.T("Down") };
     private readonly Button addfile = new Button { Content = Loc.T("Add file...") };
     private readonly Button addfolder = new Button { Content = Loc.T("Add folder...") };
+    private readonly Button options = new Button { Content = Loc.T("Options...") };
 
     /// <summary>The user added, removed or moved a resource.</summary>
     public event Action Changed;
@@ -36,7 +37,7 @@ public sealed class ResourcesEditor : UserControl
     public ResourcesEditor()
     {
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 6, 0, 0) };
-        foreach (Button b in new[] { addfile, addfolder, remove, up, down }) buttons.Children.Add(b);
+        foreach (Button b in new[] { addfile, addfolder, options, remove, up, down }) buttons.Children.Add(b);
 
         var panel = new StackPanel { Spacing = 4 };
         panel.Children.Add(new TextBlock { Text = "Resources", FontWeight = Avalonia.Media.FontWeight.SemiBold });
@@ -47,10 +48,12 @@ public sealed class ResourcesEditor : UserControl
 
         addfile.Click += (s, e) => AddFiles();
         addfolder.Click += (s, e) => AddFolder();
+        options.Click += (s, e) => EditSelected();
         remove.Click += (s, e) => Remove();
         up.Click += (s, e) => Move(-1);
         down.Click += (s, e) => Move(1);
         list.SelectionChanged += (s, e) => UpdateButtons();
+        list.DoubleTapped += (s, e) => { if (options.IsEnabled) EditSelected(); };
         UpdateButtons();
     }
 
@@ -92,8 +95,25 @@ public sealed class ResourcesEditor : UserControl
     {
         int i = list.SelectedIndex;
         remove.IsEnabled = i >= 0;
+        options.IsEnabled = i >= 0;
         up.IsEnabled = i > 0;
         down.IsEnabled = i >= 0 && i < resources.Count - 1;
+    }
+
+    private void EditSelected()
+    {
+        int i = list.SelectedIndex;
+        if (i < 0) return;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        var dialog = new ResourceOptionsWindow(resources[i], Loc.T("Resource Options"), startpath);
+        bool ok = owner != null && DialogPump.Run(() => dialog.ShowDialog<bool>(owner));
+        if (!ok) return;
+
+        resources[i] = dialog.ResourceLocation;
+        Refresh();
+        list.SelectedIndex = i;
+        Changed?.Invoke();
     }
 
     /// <summary>Adds a resource, deciding the kind from the path (folder, WAD or archive).</summary>
