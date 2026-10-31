@@ -117,6 +117,20 @@ public class ShellWindowTests : EditorTestBase
     }
 
     [AvaloniaFact]
+    public void The_coordinates_show_dashes_when_the_mouse_leaves_the_display()
+    {
+        OpenEditor();
+        RefreshShell();
+
+        window.MouseMove(InView(100, 100));
+        var coords = window.FindControl<TextBlock>("CoordsText");
+        Assert.NotEqual("-- --", coords.Text);
+
+        General.Editing.Mode.OnMouseLeave(EventArgs.Empty);
+        Assert.Equal("-- --", coords.Text);
+    }
+
+    [AvaloniaFact]
     public void Undo_is_disabled_until_there_is_something_to_undo()
     {
         OpenEditor();

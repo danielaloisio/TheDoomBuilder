@@ -93,7 +93,7 @@ public partial class MainWindow : Avalonia.Controls.Window
         shell.HintsChanged += text => HintsText.Text = RtfText.ToPlain(text).Replace('\n', ' ');
         shell.ZoomChanged += scale => ZoomText.Text = (int)Math.Round(scale * 100) + "%";
         shell.GridChanged += size => GridText.Text = size == 0 ? "--" : size + " mp";
-        shell.CoordinatesChanged += (coords, snapped) => CoordsText.Text = $"{coords.x:0}, {coords.y:0}";
+        shell.CoordinatesChanged += (coords, snapped) => CoordsText.Text = double.IsNaN(coords.x) || double.IsNaN(coords.y) ? "-- --" : $"{coords.x:0}, {coords.y:0}";
         shell.WarningsChanged += (count, blink) => WarningsText.Text = count.ToString();
         WarningsText.Cursor = new Avalonia.Input.Cursor(StandardCursorType.Hand);
         WarningsText.PointerPressed += (s, e) => { if (EditorRunning) shell.ShowErrors(); };
