@@ -711,4 +711,27 @@ public class PreferencesWindowTests : EditorTestBase
         General.Actions.InvokeAction("builder_newmap");
         Dispatcher.UIThread.RunJobs();
     }
+
+    [AvaloniaFact]
+    public void Adding_gzdoom_pk3_excludes_it_from_testing_parameters_by_default()
+    {
+        OpenEditor(withMap: false);
+        string gzdoompk3 = Path.Combine(dir, "gzdoom.pk3");
+        File.WriteAllBytes(gzdoompk3, Array.Empty<byte>());
+        string extra = Path.Combine(dir, "extra.pk3");
+        File.WriteAllBytes(extra, Array.Empty<byte>());
+
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            dialog.ResourcesBox.Add(gzdoompk3);
+            dialog.ResourcesBox.Add(extra);
+
+            Assert.True(dialog.ResourcesBox.Locations[0].notfortesting);
+            Assert.False(dialog.ResourcesBox.Locations[1].notfortesting);
+            Click(dialog.CancelButton);
+        });
+
+        General.Actions.InvokeAction("builder_newmap");
+        Dispatcher.UIThread.RunJobs();
+    }
 }

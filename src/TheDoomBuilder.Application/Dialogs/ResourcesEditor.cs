@@ -122,7 +122,8 @@ public sealed class ResourcesEditor : UserControl
         int type = Directory.Exists(path) ? DataLocation.RESOURCE_DIRECTORY
                  : path.EndsWith(".wad", StringComparison.OrdinalIgnoreCase) ? DataLocation.RESOURCE_WAD : DataLocation.RESOURCE_PK3;
 
-        var location = new DataLocation(type, path, false, false, false, new List<string>());
+        bool notfortesting = string.Equals(Path.GetFileName(path), "gzdoom.pk3", StringComparison.OrdinalIgnoreCase);
+        var location = new DataLocation(type, path, false, false, notfortesting, new List<string>());
         if (!resources.Contains(location)) resources.Add(location);
         Refresh();
         list.SelectedIndex = resources.Count - 1;
