@@ -15,6 +15,7 @@ using Button = Avalonia.Controls.Button;
 using ListBox = Avalonia.Controls.ListBox;
 using TextBox = Avalonia.Controls.TextBox;
 using ComboBox = Avalonia.Controls.ComboBox;
+using CheckBox = Avalonia.Controls.CheckBox;
 
 namespace TheDoomBuilder.Application.Tests;
 
@@ -661,5 +662,53 @@ public class PreferencesWindowTests : EditorTestBase
 
         Assert.Equal(8, tabs);                    // the program's five (with the script editor), then the plugins' (BuilderModes, ThreeDFloorMode, UDBScript)
         Assert.True(editors > 40);
+    }
+
+    /// <summary>Like WhenShown&lt;T&gt;, but looks in <paramref name="parent"/>.OwnedWindows instead of the MainWindow's:
+    /// needed for a dialog whose owner is the currently-active window rather than MainWindow (see AvaloniaDialogs.Owner).</summary>
+    private void WhenShownOn<T>(Window parent, Action<T> act) where T : Window
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5) };
+        timer.Tick += (s, e) =>
+        {
+            var dialog = parent.OwnedWindows.OfType<T>().FirstOrDefault();
+            if (dialog == null || !dialog.IsVisible) return;
+            timer.Stop();
+            act(dialog);
+        };
+        timer.Start();
+    }
+
+    [AvaloniaFact]
+    public void Resource_options_can_exclude_a_resource_from_testing_parameters()
+    {
+        OpenEditor(withMap: false);
+        string pk3 = Path.Combine(dir, "extra.pk3");
+        File.WriteAllBytes(pk3, Array.Empty<byte>());
+
+        WhenShown<MapOptionsWindow>(dialog =>
+        {
+            dialog.ResourcesBox.Add(pk3);
+            var list = dialog.ResourcesBox.GetVisualDescendants().OfType<ListBox>().First(l => l.ItemCount > 0);
+            list.SelectedIndex = 0;
+            var optionsbutton = dialog.ResourcesBox.GetVisualDescendants().OfType<Button>().First(b => (string)b.Content == "Options...");
+
+            // ResourceOptionsWindow's owner is the active window (MapOptionsWindow here), not MainWindow,
+            // so it shows up in dialog.OwnedWindows, not window.OwnedWindows: WhenShown cannot see it.
+            WhenShownOn<ResourceOptionsWindow>(dialog, options =>
+            {
+                var notfortesting = options.GetVisualDescendants().OfType<CheckBox>().First(c => (string)c.Content == "Exclude this resource from testing parameters");
+                notfortesting.IsChecked = true;
+                var ok = options.GetVisualDescendants().OfType<Button>().First(b => (string)b.Content == "OK");
+                Click(ok);
+            });
+            Click(optionsbutton);
+
+            Assert.True(dialog.ResourcesBox.Locations[0].notfortesting);
+            Click(dialog.CancelButton);
+        });
+
+        General.Actions.InvokeAction("builder_newmap");
+        Dispatcher.UIThread.RunJobs();
     }
 }

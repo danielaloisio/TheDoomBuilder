@@ -34,6 +34,14 @@ internal sealed class PluginUi
     private readonly Dictionary<string, AvControl> modeMenuGroups = new Dictionary<string, AvControl>();
     private readonly Dictionary<string, AvControl> modeBarGroups = new Dictionary<string, AvControl>();
 
+    // UpdateCurrentEditModes() tears down and rebuilds every edit mode separator/button from scratch on every call
+    // (confirming the game configuration dialog, reloading resources...). A plugin that adds its own button relative
+    // to an edit mode group's separator (e.g. ColorPicker, via AddModesButton("002_modify")) ends up interleaved
+    // between edit mode controls, not simply after the whole block, so appending the rebuilt controls to the end
+    // would shift that plugin button too. This remembers the exact slots the removed edit mode controls held and
+    // hands them out again, in order, as the same controls (same count, same relative order) are rebuilt.
+    private readonly Queue<int> editModeSlots = new Queue<int>();
+
     public PluginUi(ShellUi ui)
     {
         this.ui = ui;
@@ -58,8 +66,25 @@ internal sealed class PluginUi
 
     // ---- menus
 
+    /// <summary>Drops any earlier placement of this exact item: a plugin that registers the same ToolStripItem instance
+    /// again (e.g. on OnReloadResources, without unregistering first) replaces it instead of adding a second control.
+    /// WinForms' ToolStripItemCollection.Add does this implicitly (an item can only be in one collection); Avalonia's
+    /// controls don't, since AddButton/AddMenu always build a fresh control.</summary>
+    private void RemoveExisting(ToolStripItem item)
+    {
+        foreach (Placement p in placements.Where(p => p.Item == item).ToList())
+        {
+            if (p.InMenu) ui.RemoveFromMenus(p.Control);
+            else if (p.InModesBar) ui.ModesPanel.Children.Remove(p.Control);
+            else if (p.InControlsBar) ui.ModeControlsPanel.Children.Remove(p.Control);
+            else if (p.InMainBar) ui.RemoveFromToolbar(p.Control);
+            placements.Remove(p);
+        }
+    }
+
     public void AddMenu(ToolStripItem item, MenuSection section, string plugin)
     {
+        RemoveExisting(item);
         RenameTags(item, plugin);
         AvControl control = binder.CreateMenuControl(item);
         if (ui.InsertInMenu(section, control)) placements.Add(new Placement { Item = item, Control = control, InMenu = true });
@@ -70,6 +95,7 @@ internal sealed class PluginUi
     /// <summary>An entry of the Mode menu, below the separator of a group of modes.</summary>
     public void AddModesMenu(ToolStripItem item, string group, string plugin)
     {
+        RemoveExisting(item);
         RenameTags(item, plugin);
         AvControl control = binder.CreateMenuControl(item);
         AvMenu menu = ui.FindMenu("menumode");
@@ -95,6 +121,7 @@ internal sealed class PluginUi
 
     public void AddButton(ToolStripItem item, ToolbarSection section, string plugin)
     {
+        RemoveExisting(item);
         RenameTags(item, plugin);
         AvControl control = binder.CreateToolbarControl(item, () => SectionShown(section));
         var placement = new Placement { Item = item, Control = control, Section = section };
@@ -115,6 +142,7 @@ internal sealed class PluginUi
     /// <summary>A button of the modes bar, below the separator of a group of modes.</summary>
     public void AddModesButton(ToolStripItem item, string group, string plugin)
     {
+        RemoveExisting(item);
         RenameTags(item, plugin);
         AvControl control = binder.CreateToolbarControl(item);
         int at = modeBarGroups.TryGetValue(group, out AvControl separator) ? ui.ModesPanel.Children.IndexOf(separator) + 1 : ui.ModesPanel.Children.Count;
@@ -163,7 +191,7 @@ internal sealed class PluginUi
         var menu = new ToolStripSeparator { Text = group };
         AvControl barControl = binder.CreateToolbarControl(bar);
         AvControl menuControl = binder.CreateMenuControl(menu);
-        ui.ModesPanel.Children.Add(barControl);
+        InsertEditModeControl(barControl);
         ui.AddToMenu("menumode", menuControl);
         modeBarGroups[group] = barControl;
         modeMenuGroups[group] = menuControl;
@@ -176,7 +204,7 @@ internal sealed class PluginUi
     {
         var button = new ToolStripActionButton(modeinfo.ButtonDesc, modeinfo.ButtonImage, EditModeButtonHandler) { DisplayStyle = ToolStripItemDisplayStyle.Image, Tag = modeinfo };
         button.UpdateToolTip();
-        ui.ModesPanel.Children.Add(binder.CreateToolbarControl(button));
+        InsertEditModeControl(binder.CreateToolbarControl(button));
         editmodeitems.Add(button);
 
         var menu = new ToolStripMenuItem(modeinfo.ButtonDesc.Replace("&", "&&"), modeinfo.ButtonImage, EditModeButtonHandler) { Tag = modeinfo };
@@ -187,6 +215,20 @@ internal sealed class PluginUi
         Refresh();
     }
 
+    // How many edit mode controls InsertEditModeControl has already placed back in this rebuild: each queued slot
+    // counts only the OTHER plugins' controls before it, so this makes up the rest of the insertion index.
+    private int editModesInsertedSoFar;
+
+    /// <summary>Puts a rebuilt edit mode control into the next slot <see cref="RemoveEditModeButtons"/> recorded
+    /// (see <see cref="editModeSlots"/>), instead of appending it past whatever plugin buttons follow it.</summary>
+    private void InsertEditModeControl(AvControl control)
+    {
+        int at = editModeSlots.Count > 0 ? editModeSlots.Dequeue() + editModesInsertedSoFar : ui.ModesPanel.Children.Count;
+        at = Math.Min(at, ui.ModesPanel.Children.Count);
+        ui.ModesPanel.Children.Insert(at, control);
+        editModesInsertedSoFar++;
+    }
+
     private static void EditModeButtonHandler(object sender, EventArgs e)
     {
         if (sender is ToolStripItem { Tag: EditModeInfo mode })
@@ -195,6 +237,26 @@ internal sealed class PluginUi
 
     public void RemoveEditModeButtons()
     {
+        // Each removed control's slot is recorded as "how many controls that are NOT being removed sit before it"
+        // (the controls of other plugins, which never move). Handing out slots in that unit, in order, as the
+        // rebuilt controls are inserted one by one reproduces the original interleaving exactly, including any gap
+        // left by a plugin button sitting in the middle of the edit mode block (e.g. ColorPicker's).
+        editModeSlots.Clear();
+        editModesInsertedSoFar = 0;
+        var removed = new HashSet<AvControl>();
+        foreach (ToolStripItem item in editmodeitems)
+        {
+            AvControl control = binder.ControlOf(item);
+            if (control != null) removed.Add(control);
+        }
+
+        int kept = 0;
+        foreach (AvControl child in ui.ModesPanel.Children)
+        {
+            if (removed.Contains(child)) editModeSlots.Enqueue(kept);
+            else kept++;
+        }
+
         foreach (ToolStripItem item in editmodeitems)
         {
             AvControl control = binder.ControlOf(item);

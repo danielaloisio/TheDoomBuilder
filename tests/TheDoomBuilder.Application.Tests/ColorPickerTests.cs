@@ -265,4 +265,48 @@ public class ColorPickerTests : EditorTestBase
         Assert.Equal(64, Light.Args[3]);
         Assert.Equal(255, Light.Args[0]);
     }
+
+    // ---------------------------------------------------------------- reload resources
+
+    [AvaloniaFact]
+    public void Reloading_resources_does_not_duplicate_the_plugin_button()
+    {
+        // BuilderPlug.OnReloadResources calls ToolsForm.Register() again without unregistering first (same as
+        // UDB's original code): with WinForms, re-adding the same ToolStripItem to a collection implicitly moves
+        // it, so this was never visible there; PluginUi.AddButton/AddModesButton build a fresh Avalonia control
+        // each time, so without PluginUi.RemoveExisting this used to leave a second copy of the button and menu
+        // entry behind every time the game configuration's resources changed.
+        OpenMap();
+
+        int ButtonCount() => window.GetVisualDescendants().OfType<Button>().Count(b => Equals(ToolTip.GetTip(b), "Pick Sector/Light Color"));
+        int before = ButtonCount();
+        Assert.Equal(1, before);
+
+        General.Map.ReloadResources(true, false);
+        Flush();
+
+        Assert.Equal(1, ButtonCount());
+    }
+
+    [AvaloniaFact]
+    public void Updating_edit_modes_does_not_move_the_plugin_button_in_the_modes_bar()
+    {
+        // UpdateCurrentEditModes() (called whenever the game configuration dialog is confirmed, even when nothing
+        // was changed, and again by ReloadResources) tears down and rebuilds every edit mode separator/button from
+        // scratch. The ColorPicker button sits interleaved in that same panel (it anchors to the "002_modify" edit
+        // mode group's separator), so its position relative to the rebuilt edit mode controls must not shift.
+        OpenMap();
+
+        var modespanel = window.GetVisualDescendants().OfType<WrapPanel>().First(p => p.Orientation == Avalonia.Layout.Orientation.Vertical);
+        bool IsColorPicker(Control c) => c is Button b && Equals(ToolTip.GetTip(b), "Pick Sector/Light Color")
+            || c.GetVisualDescendants().OfType<Button>().Any(b => Equals(ToolTip.GetTip(b), "Pick Sector/Light Color"));
+        int ColorPickerIndex() => modespanel.Children.OfType<Control>().ToList().FindIndex(IsColorPicker);
+        int before = ColorPickerIndex();
+        Assert.True(before >= 0);
+
+        General.Editing.UpdateCurrentEditModes();
+        Flush();
+
+        Assert.Equal(before, ColorPickerIndex());
+    }
 }

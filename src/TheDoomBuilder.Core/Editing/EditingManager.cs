@@ -250,10 +250,12 @@ namespace CodeImp.DoomBuilder.Editing
 				{
 					// Include the mode if it supports current map format (mxd) and map features
 					// Also include the mode when it is listed and enabled or when it's not optional
-					if( (emi.Attributes.SupportedMapFormats == null || Array.IndexOf(emi.Attributes.SupportedMapFormats, General.Map.Config.FormatInterface) != -1) &&
+					// Never include a Hidden mode: it has no UI to turn it on, so ignore any value saved for it earlier
+					if( !emi.Attributes.Hidden &&
+						(emi.Attributes.SupportedMapFormats == null || Array.IndexOf(emi.Attributes.SupportedMapFormats, General.Map.Config.FormatInterface) != -1) &&
 						(emi.Attributes.RequiredMapFeatures == null || General.Map.Config.SupportsMapFeatures(emi.Attributes.RequiredMapFeatures)) &&
-						((General.Map.ConfigSettings.EditModes.ContainsKey(emi.Type.FullName) && 
-						General.Map.ConfigSettings.EditModes[emi.Type.FullName] ) 
+						((General.Map.ConfigSettings.EditModes.ContainsKey(emi.Type.FullName) &&
+						General.Map.ConfigSettings.EditModes[emi.Type.FullName] )
 						 || !emi.IsOptional) )
 					{
 						// Add the mode to be used and bind switch action
