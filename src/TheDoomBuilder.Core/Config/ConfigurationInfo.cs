@@ -475,8 +475,8 @@ namespace CodeImp.DoomBuilder.Config
 			// Go for all available editing modes
 			foreach(EditModeInfo info in General.Editing.ModesInfo)
 			{
-				// Is this a mode that is optional?
-				if(info.IsOptional)
+				// Is this a mode that is optional and not hidden?
+				if(info.IsOptional && !info.Attributes.Hidden)
 				{
 					// Add if not listed yet
 					if(!editmodes.ContainsKey(info.Type.FullName))

@@ -54,7 +54,7 @@ namespace CodeImp.DoomBuilder.Windows
 			Nodebuilders.AddRange(General.Nodebuilders);
 
 			foreach(EditModeInfo emi in General.Editing.ModesInfo)
-				if(emi.IsOptional) modes.Add(new ModeChoice(emi));
+				if(emi.IsOptional && !emi.Attributes.Hidden) modes.Add(new ModeChoice(emi));
 		}
 
 		#region ================== Properties

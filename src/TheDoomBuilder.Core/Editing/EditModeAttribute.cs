@@ -38,6 +38,7 @@ namespace CodeImp.DoomBuilder.Editing
 		private string buttongroup = "~none";
 		private bool optional = true;
 		private bool isvolatile;
+		private bool hidden;
 		private string displayname = "<unnamed mode>";
 		private bool allowcopypaste = true;
 		private bool usebydefault;
@@ -94,6 +95,13 @@ namespace CodeImp.DoomBuilder.Editing
 		/// a non-volatile mode.
 		/// </summary>
 		public bool Volatile { get { return isvolatile; } set { isvolatile = value; } }
+
+		/// <summary>
+		/// When set to true, this mode is left out of the game configuration's "Editing modes" list
+		/// and is never switched to automatically, regardless of any value saved for it earlier.
+		/// Use for modes that exist only as example/demo code, not real editing functionality.
+		/// </summary>
+		public bool Hidden { get { return hidden; } set { hidden = value; } }
 
 		/// <summary>
 		/// Name to display in the game configuration editing modes list and on the
