@@ -69,6 +69,45 @@ public static class ImageCache
         return result;
     }
 
+    private static readonly Dictionary<string, Bitmap> lightcache = new Dictionary<string, Bitmap>(StringComparer.Ordinal);
+
+    /// <summary>The icon recolored light gray with boosted opacity. UDB's faint icons (e.g. WarningOff) are near-transparent
+    /// black, meant to barely show on a light status bar; on a dark background that is invisible, so dark theme uses this instead.</summary>
+    public static Bitmap GetLight(string resourceName)
+    {
+        if (string.IsNullOrEmpty(resourceName)) return null;
+        if (lightcache.TryGetValue(resourceName, out Bitmap cached)) return cached;
+
+        Bitmap result = null;
+        if (FileOf(resourceName) is string file)
+        {
+            using Stream stream = core.GetManifestResourceStream("CodeImp.DoomBuilder.Resources." + file);
+            if (stream != null)
+            {
+                using SKBitmap source = SKBitmap.Decode(stream);
+                if (source != null)
+                {
+                    SKColor[] pixels = source.Pixels;
+                    for (int i = 0; i < pixels.Length; i++)
+                    {
+                        SKColor c = pixels[i];
+                        byte alpha = (byte)Math.Min(255, c.Alpha * 3);           // boost: as faint as the original looks on a light background
+                        pixels[i] = new SKColor(190, 190, 190, alpha);
+                    }
+                    using var light8 = new SKBitmap(new SKImageInfo(source.Width, source.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+                    light8.Pixels = pixels;
+                    using SKImage image = SKImage.FromBitmap(light8);
+                    using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+                    using var memory = new MemoryStream(data.ToArray());
+                    result = new Bitmap(memory);
+                }
+            }
+        }
+
+        lightcache[resourceName] = result;
+        return result;
+    }
+
     // Properties.Resources is internal to the Core (visible here through InternalsVisibleTo)
     private static string FileOf(string resourceName)
     {

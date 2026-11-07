@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using CodeImp.DoomBuilder;
 using CodeImp.DoomBuilder.Editing;
 using TheDoomBuilder.Application.Shell;
+using TheDoomBuilder.Application.Dialogs;
 using Xunit;
 
 namespace TheDoomBuilder.Application.Tests;
@@ -128,6 +129,32 @@ public class ShellWindowTests : EditorTestBase
 
         General.Editing.Mode.OnMouseLeave(EventArgs.Empty);
         Assert.Equal("-- --", coords.Text);
+    }
+
+    [AvaloniaFact]
+    public void The_warnings_indicator_shows_an_icon_and_blinks_on_new_errors()
+    {
+        OpenEditor();
+        RefreshShell();
+
+        var text = window.FindControl<TextBlock>("WarningsText");
+        var icon = window.FindControl<Image>("WarningsIcon");
+
+        General.ErrorLogger.Clear();
+        Assert.Equal("0", text.Text);
+        Assert.Same(ImageCache.Get("WarningOff"), icon.Source);
+        Assert.False(window.WarningsBlinking);
+
+        General.ErrorLogger.Add(CodeImp.DoomBuilder.ErrorType.Error, "boom");
+
+        Assert.Equal("1", text.Text);
+        Assert.Same(ImageCache.Get("Warning"), icon.Source);
+        Assert.True(window.WarningsBlinking);          // the indicator blinks while new errors keep coming in
+
+        // clicking it (what ShowErrors does) quiets the blink, like UDB
+        WhenShown<ErrorsWindow>(w => w.Close());
+        General.MainWindow.ShowErrors();
+        Assert.False(window.WarningsBlinking);
     }
 
     [AvaloniaFact]
