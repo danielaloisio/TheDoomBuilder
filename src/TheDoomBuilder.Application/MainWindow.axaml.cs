@@ -44,6 +44,8 @@ public partial class MainWindow : Avalonia.Controls.Window
         shell = new AvaloniaShell(Viewport) { WindowIsActive = () => activity.IsActive(PlatformIsActive()) };
         ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
         SplashImage.Source = TheDoomBuilder.Application.Shell.ImageCache.Get("Splash3_trans");
+        RefreshWarningsIcon();
+        ActualThemeVariantChanged += (s, e) => RefreshWarningsIcon();
         MenuHost.Content = ui.Menu;
         ToolbarHost.Content = ui.Toolbar;
         ModesHost.Content = ui.ModesBar;
@@ -94,15 +96,20 @@ public partial class MainWindow : Avalonia.Controls.Window
         shell.ZoomChanged += scale => ZoomText.Text = (int)Math.Round(scale * 100) + "%";
         shell.GridChanged += size => GridText.Text = size == 0 ? "--" : size + " mp";
         shell.CoordinatesChanged += (coords, snapped) => CoordsText.Text = double.IsNaN(coords.x) || double.IsNaN(coords.y) ? "-- --" : $"{coords.x:0}, {coords.y:0}";
-        shell.WarningsChanged += (count, blink) => WarningsText.Text = count.ToString();
-        WarningsText.Cursor = new Avalonia.Input.Cursor(StandardCursorType.Hand);
-        WarningsText.PointerPressed += (s, e) => { if (EditorRunning) shell.ShowErrors(); };
+        shell.WarningsChanged += UpdateWarningsIndicator;
+        warningsBlinkTimer.Tick += (s, e) =>
+        {
+            warningsBlinkOn = !warningsBlinkOn;
+            WarningsPanel.Background = warningsBlinkOn ? Avalonia.Media.Brushes.Red : Avalonia.Media.Brushes.Transparent;
+        };
+        WarningsPanel.Cursor = new Avalonia.Input.Cursor(StandardCursorType.Hand);
+        WarningsPanel.PointerPressed += (s, e) => { if (EditorRunning) shell.ShowErrors(); };
         shell.InterfaceChanged += RefreshInterface;
         shell.RecentFilesChanged += ShowRecentFiles;
         Closing += OnClosing;
         PositionChanged += (s, e) => RememberNormalBounds();
         PropertyChanged += (s, e) => { if (e.Property == WidthProperty || e.Property == HeightProperty) RememberNormalBounds(); };
-        Closed += (s, e) => General.ExitRequested -= OnExitRequested;
+        Closed += (s, e) => { General.ExitRequested -= OnExitRequested; warningsBlinkTimer.Stop(); };
 
         Viewport.Paint += OnPaint;
         Viewport.ContextFailed += reason => StatusText.Text = "OpenGL is not available: " + reason;
@@ -180,6 +187,40 @@ public partial class MainWindow : Avalonia.Controls.Window
 
     /// <summary>The side panel of the dockers (tests look into it).</summary>
     internal DockerPanel Dockers => dockers;
+
+    // The status bar's warnings indicator blinks red (like UDB's warnsLabel) while new errors keep coming in
+    private readonly DispatcherTimer warningsBlinkTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+    private bool warningsBlinkOn;
+    private int warningsCount;
+
+    /// <summary>Whether the warnings indicator is currently blinking (tests look into it instead of waiting on the timer).</summary>
+    internal bool WarningsBlinking => warningsBlinkTimer.IsEnabled;
+
+    // UDB's "no warnings" icon is near-transparent black, made to barely show on its light status bar; that is
+    // invisible on a dark one, so dark theme shows a lightened version instead (same shape, enough contrast to see).
+    private void RefreshWarningsIcon()
+    {
+        bool dark = ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark;
+        WarningsIcon.Source = warningsCount > 0 ? ImageCache.Get("Warning")
+            : dark ? ImageCache.GetLight("WarningOff") : ImageCache.Get("WarningOff");
+    }
+
+    private void UpdateWarningsIndicator(int count, bool blink)
+    {
+        warningsCount = count;
+        WarningsText.Text = count.ToString();
+        RefreshWarningsIcon();
+        if (count > 0 && blink)
+        {
+            warningsBlinkTimer.Start();
+        }
+        else
+        {
+            warningsBlinkTimer.Stop();
+            warningsBlinkOn = false;
+            WarningsPanel.Background = Avalonia.Media.Brushes.Transparent;
+        }
+    }
 
     // Shown when a map is open and there is at least one docker; on the side the settings say (0 left, 1 right, 2 hidden)
     private void ApplyDockers()

@@ -22,7 +22,12 @@
                 <TextBlock x:Name="GridText" Grid.Column="3" Text="--" MinWidth="50" />
                 <TextBlock x:Name="ZoomText" Grid.Column="4" Text="100%" MinWidth="44" />
                 <TextBlock x:Name="CoordsText" Grid.Column="5" Text="0, 0" MinWidth="80" />
-                <TextBlock x:Name="WarningsText" Grid.Column="6" Text="0" MinWidth="24" />
+                <Border x:Name="WarningsPanel" Grid.Column="6" Padding="4,0" CornerRadius="3" Background="Transparent">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock x:Name="WarningsText" Text="0" MinWidth="16" VerticalAlignment="Center" />
+                        <Image x:Name="WarningsIcon" Width="16" Height="16" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
