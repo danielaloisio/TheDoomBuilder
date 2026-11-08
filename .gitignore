@@ -4,6 +4,6 @@ obj/
 .idea/
 *.user
 *.suo
-artifacts/
+build/
 TestResults/
 .DS_Store
