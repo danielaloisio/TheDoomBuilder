@@ -20,7 +20,7 @@ exit /b 0
 :package
 set "RID=%~1"
 set "NAME=TheDoomBuilder-%PKGVER%-%RID%"
-set "OUT=%ROOT%\artifacts\publish-%RID%"
+set "OUT=%ROOT%\build\publish-%RID%"
 
 if exist "%OUT%" rd /s /q "%OUT%"
 dotnet publish "%ROOT%\src\TheDoomBuilder.Application" -c Release -r %RID% --self-contained -o "%OUT%\%NAME%"
@@ -32,8 +32,8 @@ rem Cosmetic rename for the end user: the assembly is "TheDoomBuilder.Applicatio
 ren "%OUT%\%NAME%\TheDoomBuilder.Application.exe" "TheDoomBuilder.exe"
 if errorlevel 1 exit /b 1
 
-if not exist "%ROOT%\artifacts" mkdir "%ROOT%\artifacts"
-set "ZIP=%ROOT%\artifacts\%NAME%.zip"
+if not exist "%ROOT%\build" mkdir "%ROOT%\build"
+set "ZIP=%ROOT%\build\%NAME%.zip"
 if exist "%ZIP%" del /q "%ZIP%"
 
 powershell -NoProfile -Command "Compress-Archive -Path '%OUT%\%NAME%' -DestinationPath '%ZIP%' -Force"

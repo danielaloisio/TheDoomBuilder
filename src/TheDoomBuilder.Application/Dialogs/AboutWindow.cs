@@ -88,8 +88,10 @@ public sealed class AboutWindow : Window
     {
         get
         {
-            string hash = General.CommitHash;
-            return ProductName + " v" + PlainVersion + (string.IsNullOrEmpty(hash) ? "" : " (" + hash + ")");
+            // Commit hash disabled for now: no build step sets a real one (General.CommitHash always falls back to "0000000").
+            // string hash = General.CommitHash;
+            // return ProductName + " v" + PlainVersion + (string.IsNullOrEmpty(hash) ? "" : " (" + hash + ")");
+            return ProductName + " v" + PlainVersion;
         }
     }
 }

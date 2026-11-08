@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds a self-contained package of the editor for one runtime id.
 #   tools/package.sh [rid] [version]      rid: linux-x64 (default), linux-arm64, win-x64, osx-x64, osx-arm64
-# Output: artifacts/TheDoomBuilder-<version>-<rid>.tar.gz (zip for win-x64).
+# Output: build/TheDoomBuilder-<version>-<rid>.tar.gz (zip for win-x64).
 # osx-*: the publish output is wrapped in a TheDoomBuilder.app bundle (Info.plist) before taring, so the macOS menu
 # bar shows "TheDoomBuilder" instead of Avalonia's fallback name ("Avalonia Application", shown when there is no
 # bundle). No code signing: Apple Silicon still runs it (dotnet ad-hoc signs osx-arm64 builds on publish); only
@@ -10,7 +10,7 @@ set -euo pipefail
 rid="${1:-linux-x64}"
 version="${2:-dev}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
-out="$root/artifacts/publish-$rid"
+out="$root/build/publish-$rid"
 name="TheDoomBuilder-$version-$rid"
 publishedexe="TheDoomBuilder.Application"
 exe="TheDoomBuilder"
@@ -24,10 +24,10 @@ find "$out/$name" -name '*.pdb' -delete
 suffix=""; case "$rid" in win-*) suffix=".exe" ;; esac
 mv "$out/$name/$publishedexe$suffix" "$out/$name/$exe$suffix"
 
-mkdir -p "$root/artifacts"
+mkdir -p "$root/build"
 case "$rid" in
   win-*)
-    (cd "$out" && if command -v zip >/dev/null; then zip -qr "$root/artifacts/$name.zip" "$name"; else 7z a -tzip -bso0 "$root/artifacts/$name.zip" "$name"; fi)
+    (cd "$out" && if command -v zip >/dev/null; then zip -qr "$root/build/$name.zip" "$name"; else 7z a -tzip -bso0 "$root/build/$name.zip" "$name"; fi)
     ;;
   osx-*)
     bundle="$out/TheDoomBuilder.app"
@@ -65,10 +65,10 @@ case "$rid" in
 </dict>
 </plist>
 PLIST
-    (cd "$out" && tar -czf "$root/artifacts/$name.tar.gz" "TheDoomBuilder.app")
+    (cd "$out" && tar -czf "$root/build/$name.tar.gz" "TheDoomBuilder.app")
     ;;
   *)
-    tar -C "$out" -czf "$root/artifacts/$name.tar.gz" "$name"
+    tar -C "$out" -czf "$root/build/$name.tar.gz" "$name"
     ;;
 esac
-echo "Package: $root/artifacts/$name.*"
+echo "Package: $root/build/$name.*"
