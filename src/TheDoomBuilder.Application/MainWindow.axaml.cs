@@ -41,6 +41,9 @@ public partial class MainWindow : Avalonia.Controls.Window
         InitializeComponent();
         PlatformIsActive = () => IsActive;
 
+        using (Stream iconStream = typeof(MainWindow).Assembly.GetManifestResourceStream("TheDoomBuilder.Application.Resources.AppIcon.png"))
+            if (iconStream != null) Icon = new WindowIcon(iconStream);
+
         shell = new AvaloniaShell(Viewport) { WindowIsActive = () => activity.IsActive(PlatformIsActive()) };
         ui = new ShellUi(new ShellCommands(exit: Close, openWebsite: ShellCommands.OpenWebsiteInBrowser));
         SplashImage.Source = TheDoomBuilder.Application.Shell.ImageCache.Get("Splash3_trans");

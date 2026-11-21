@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -62,6 +63,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Actions.cfg" />
     <EmbeddedResource Include="Resources\mainform-ui.json" />
+    <EmbeddedResource Include="Resources\AppIcon.png" />
   </ItemGroup>
 
   <ItemGroup>

@@ -35,6 +35,7 @@ case "$rid" in
     (shopt -s dotglob; mv "$out/$name"/* "$bundle/Contents/MacOS/")
     rm -rf "$out/$name"
     chmod +x "$bundle/Contents/MacOS/$exe"
+    cp "$root/tools/icons/AppIcon.icns" "$bundle/Contents/Resources/AppIcon.icns"
     cat > "$bundle/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -54,6 +55,8 @@ case "$rid" in
 	<string>APPL</string>
 	<key>CFBundleExecutable</key>
 	<string>$exe</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>LSMinimumSystemVersion</key>
@@ -68,6 +71,28 @@ PLIST
     (cd "$out" && tar -czf "$root/build/$name.tar.gz" "TheDoomBuilder.app")
     ;;
   *)
+    cp "$root/src/TheDoomBuilder.Application/Resources/AppIcon.png" "$out/$name/AppIcon.png"
+    cat > "$out/$name/install-desktop-entry.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+# Registers TheDoomBuilder in the desktop's application menu (GNOME/KDE/...), pointing at this
+# extracted folder. Run once after extracting the package; run again if you move the folder.
+set -euo pipefail
+dir="$(cd "$(dirname "$0")" && pwd)"
+apps="$HOME/.local/share/applications"
+mkdir -p "$apps"
+cat > "$apps/thedoombuilder.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=The Doom Builder
+Comment=Doom map editor
+Exec=$dir/TheDoomBuilder %f
+Icon=$dir/AppIcon.png
+Terminal=false
+Categories=Development;Game;
+DESKTOP
+echo "Installed $apps/thedoombuilder.desktop (pointing at $dir)"
+SCRIPT
+    chmod +x "$out/$name/install-desktop-entry.sh"
     tar -C "$out" -czf "$root/build/$name.tar.gz" "$name"
     ;;
 esac
