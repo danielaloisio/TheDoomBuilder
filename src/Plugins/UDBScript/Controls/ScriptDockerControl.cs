@@ -13,7 +13,7 @@ using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Styling;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvButton = Avalonia.Controls.Button;
 
 namespace CodeImp.DoomBuilder.UDBScript

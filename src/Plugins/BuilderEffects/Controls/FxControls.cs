@@ -36,7 +36,7 @@ namespace CodeImp.DoomBuilder.BuilderEffects
 		public FxButton(string text, string tooltip = null, System.Drawing.Image image = null)
 		{
 			view = new AvButton { Content = text, HorizontalContentAlignment = HorizontalAlignment.Center };
-			if(image != null) view.Content = new Avalonia.Controls.Image { Source = global::DoomBuilder.UI.ImageConvert.ToAvalonia(image), Width = 16, Height = 16 };
+			if(image != null) view.Content = new Avalonia.Controls.Image { Source = global::TheDoomBuilder.UI.ImageConvert.ToAvalonia(image), Width = 16, Height = 16 };
 			if(tooltip != null) ToolTip.SetTip(view, tooltip);
 			view.Click += (s, e) => { if(Click != null) Click(this, EventArgs.Empty); };
 		}
@@ -124,8 +124,8 @@ namespace CodeImp.DoomBuilder.BuilderEffects
 	/// <summary>The picker of a texture of the jitter window (TextureSelectorControl of UDB).</summary>
 	internal class FxTexture
 	{
-		private readonly global::DoomBuilder.UI.TextureSelector view = new global::DoomBuilder.UI.TextureSelector { Width = 120, Height = 150 };
-		public global::DoomBuilder.UI.TextureSelector View { get { return view; } }
+		private readonly global::TheDoomBuilder.UI.TextureSelector view = new global::TheDoomBuilder.UI.TextureSelector { Width = 120, Height = 150 };
+		public global::TheDoomBuilder.UI.TextureSelector View { get { return view; } }
 		public event EventHandler OnValueChanged;
 		public string TextureName { get { return view.TextureName; } set { view.TextureName = value; } }
 		public bool Enabled { get { return view.IsEnabled; } set { view.IsEnabled = value; } }

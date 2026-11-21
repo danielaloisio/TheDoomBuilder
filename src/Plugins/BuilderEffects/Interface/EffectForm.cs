@@ -4,7 +4,7 @@
 using System;
 using System.Windows.Forms;
 using Avalonia.Controls;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvButton = Avalonia.Controls.Button;
 
 namespace CodeImp.DoomBuilder.BuilderEffects

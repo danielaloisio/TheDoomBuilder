@@ -5,7 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Windows;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.BuilderModes.Interface
 {

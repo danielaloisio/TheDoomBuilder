@@ -13,7 +13,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CodeImp.DoomBuilder.BuilderModes.IO;
 using CodeImp.DoomBuilder.Map;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvButton = Avalonia.Controls.Button;
 using AvCheckBox = Avalonia.Controls.CheckBox;
 using AvControl = Avalonia.Controls.Control;

@@ -1,0 +1,10 @@
+Third-party assets used by The Doom Builder
+=============================================
+
+App icon ("TDB" wordmark) and startup logo ("THE DOOM BUILDER")
+-----------------------------------------------------------------
+Font: "Nosifer" by Typomondo (pixelated/retro treatment applied for this project)
+https://fonts.google.com/specimen/Nosifer
+Copyright (c) 2011, Typomondo, with Reserved Font Name "Nosifer"
+Licensed under the SIL Open Font License, Version 1.1
+https://scripts.sil.org/OFL

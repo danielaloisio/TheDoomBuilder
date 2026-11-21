@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Windows.Forms;
 using Avalonia.Controls;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.UDBScript
 {

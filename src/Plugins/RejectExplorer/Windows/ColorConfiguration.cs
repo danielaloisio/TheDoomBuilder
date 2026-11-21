@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using Avalonia;
 using Avalonia.Controls;
 using CodeImp.DoomBuilder.Rendering;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.RejectExplorer
 {

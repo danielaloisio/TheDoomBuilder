@@ -5,7 +5,7 @@ using System.Windows.Forms;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvCheckBox = Avalonia.Controls.CheckBox;
 using Control = Avalonia.Controls.Control;
 

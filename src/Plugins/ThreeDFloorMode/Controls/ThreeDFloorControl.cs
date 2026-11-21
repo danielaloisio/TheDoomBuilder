@@ -11,7 +11,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using CodeImp.DoomBuilder.Map;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvButton = Avalonia.Controls.Button;
 using Control = Avalonia.Controls.Control;
 using CodeImp.DoomBuilder.Windows;

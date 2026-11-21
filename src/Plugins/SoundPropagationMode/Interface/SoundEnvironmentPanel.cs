@@ -18,7 +18,7 @@ using Avalonia.Threading;
 using CodeImp.DoomBuilder.Editing;
 using CodeImp.DoomBuilder.Geometry;
 using CodeImp.DoomBuilder.Map;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 
 namespace CodeImp.DoomBuilder.SoundPropagationMode
 {
