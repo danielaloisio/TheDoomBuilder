@@ -10,7 +10,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using CodeImp.DoomBuilder.Config;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvButton = Avalonia.Controls.Button;
 using AvComboBox = Avalonia.Controls.ComboBox;
 

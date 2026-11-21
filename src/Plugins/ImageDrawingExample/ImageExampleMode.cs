@@ -78,7 +78,8 @@ namespace CodeImp.DoomBuilder.Statistics
 			  ButtonImage = "ImageIcon.png",
 			  ButtonOrder = 300,
 			  ButtonGroup = "002_tools",
-			  UseByDefault = true)]
+			  UseByDefault = false,
+			  Hidden = true)]
 	
 	public class ImageExampleMode : ClassicMode
 	{

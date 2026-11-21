@@ -36,7 +36,7 @@ namespace CodeImp.DoomBuilder.StairSectorBuilderMode
 		public FxButton(string text, string tooltip = null, System.Drawing.Image image = null)
 		{
 			view = new AvButton { Content = text, HorizontalContentAlignment = HorizontalAlignment.Center };
-			if(image != null) view.Content = new Avalonia.Controls.Image { Source = global::DoomBuilder.UI.ImageConvert.ToAvalonia(image), Width = 16, Height = 16 };
+			if(image != null) view.Content = new Avalonia.Controls.Image { Source = global::TheDoomBuilder.UI.ImageConvert.ToAvalonia(image), Width = 16, Height = 16 };
 			if(tooltip != null) ToolTip.SetTip(view, tooltip);
 			view.Click += (s, e) => { if(Click != null) Click(this, EventArgs.Empty); };
 		}
@@ -125,8 +125,8 @@ namespace CodeImp.DoomBuilder.StairSectorBuilderMode
 	/// <summary>The picker of a texture of the jitter window (TextureSelectorControl of UDB).</summary>
 	internal class FxTexture
 	{
-		private readonly global::DoomBuilder.UI.TextureSelector view = new global::DoomBuilder.UI.TextureSelector { Width = 120, Height = 150 };
-		public global::DoomBuilder.UI.TextureSelector View { get { return view; } }
+		private readonly global::TheDoomBuilder.UI.TextureSelector view = new global::TheDoomBuilder.UI.TextureSelector { Width = 120, Height = 150 };
+		public global::TheDoomBuilder.UI.TextureSelector View { get { return view; } }
 		public event EventHandler OnValueChanged;
 		public string TextureName { get { return view.TextureName; } set { view.TextureName = value; } }
 		public bool Enabled { get { return view.IsEnabled; } set { view.IsEnabled = value; } }
@@ -137,8 +137,8 @@ namespace CodeImp.DoomBuilder.StairSectorBuilderMode
 	/// <summary>A number box of the plugin (ButtonsNumericTextbox of UDB): Text, GetResult and WhenTextChanged.</summary>
 	internal class FxNum
 	{
-		private readonly global::DoomBuilder.UI.NumberBox view;
-		public global::DoomBuilder.UI.NumberBox View { get { return view; } }
+		private readonly global::TheDoomBuilder.UI.NumberBox view;
+		public global::TheDoomBuilder.UI.NumberBox View { get { return view; } }
 		public event EventHandler WhenTextChanged;
 		public string Text { get { return view.Text; } set { view.Text = value; } }
 		public bool Enabled { get { return view.IsEnabled; } set { view.IsEnabled = value; } }
@@ -146,7 +146,7 @@ namespace CodeImp.DoomBuilder.StairSectorBuilderMode
 
 		public FxNum(bool allownegative)
 		{
-			view = new global::DoomBuilder.UI.NumberBox { AllowDecimal = false, AllowNegative = allownegative, MinWidth = 100 };
+			view = new global::TheDoomBuilder.UI.NumberBox { AllowDecimal = false, AllowNegative = allownegative, MinWidth = 100 };
 			view.WhenTextChanged += (s, e) => { if(WhenTextChanged != null) WhenTextChanged(this, EventArgs.Empty); };
 		}
 	}
@@ -154,8 +154,8 @@ namespace CodeImp.DoomBuilder.StairSectorBuilderMode
 	/// <summary>The picker of a flat of the window (FlatSelectorControl of UDB).</summary>
 	internal class FxFlat
 	{
-		private readonly global::DoomBuilder.UI.FlatSelector view = new global::DoomBuilder.UI.FlatSelector { Width = 120, Height = 150 };
-		public global::DoomBuilder.UI.FlatSelector View { get { return view; } }
+		private readonly global::TheDoomBuilder.UI.FlatSelector view = new global::TheDoomBuilder.UI.FlatSelector { Width = 120, Height = 150 };
+		public global::TheDoomBuilder.UI.FlatSelector View { get { return view; } }
 		public string TextureName { get { return view.TextureName; } set { view.TextureName = value; } }
 		public bool Enabled { get { return view.IsEnabled; } set { view.IsEnabled = value; } }
 	}

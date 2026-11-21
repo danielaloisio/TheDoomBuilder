@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>TheDoomBuilder.UI</RootNamespace>
+    <AssemblyName>TheDoomBuilder.UI</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Avalonia controls and helpers shared by the app and the plugins (texture/flat selectors, image browser, dialog pump). -->
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheDoomBuilder.Core\TheDoomBuilder.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TheDoomBuilder.Application" />
+    <InternalsVisibleTo Include="TheDoomBuilder.Application.Tests" />
+  </ItemGroup>
+</Project>

@@ -250,7 +250,7 @@ namespace CodeImp.DoomBuilder.StairSectorBuilderMode
         public void Show(IWin32Window owner)
         {
             // Position at left-top of the main window
-            Window main = global::DoomBuilder.UI.DialogHost.Owner == null ? null : global::DoomBuilder.UI.DialogHost.Owner();
+            Window main = global::TheDoomBuilder.UI.DialogHost.Owner == null ? null : global::TheDoomBuilder.UI.DialogHost.Owner();
             window.WindowStartupLocation = WindowStartupLocation.Manual;
             if(main != null) window.Position = new Avalonia.PixelPoint(main.Position.X + 20, main.Position.Y + 90);
 

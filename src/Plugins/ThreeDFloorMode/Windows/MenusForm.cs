@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using Avalonia.Controls;
 using CodeImp.DoomBuilder.Controls;
 using CodeImp.DoomBuilder.Map;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvMenuItem = Avalonia.Controls.MenuItem;
 
 namespace CodeImp.DoomBuilder.ThreeDFloorMode

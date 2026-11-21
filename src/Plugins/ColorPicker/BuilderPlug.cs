@@ -165,7 +165,7 @@ namespace CodeImp.DoomBuilder.ColorPicker
 				if(formLocation.X == 0 && formLocation.Y == 0) 
 				{
 					// The first time: at the top right of the main window
-					Avalonia.Controls.Window main = global::DoomBuilder.UI.DialogHost.Owner == null ? null : global::DoomBuilder.UI.DialogHost.Owner();
+					Avalonia.Controls.Window main = global::TheDoomBuilder.UI.DialogHost.Owner == null ? null : global::TheDoomBuilder.UI.DialogHost.Owner();
 					if(main != null) formLocation = new Avalonia.PixelPoint((int)(main.Position.X + main.Bounds.Width - form.Width - 16), main.Position.Y + 80);
 				} 
 				form.Location = formLocation;

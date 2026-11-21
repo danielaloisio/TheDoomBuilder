@@ -8,7 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using CodeImp.DoomBuilder.Geometry;
 using CodeImp.DoomBuilder.Map;
-using DoomBuilder.UI;
+using TheDoomBuilder.UI;
 using AvControl = Avalonia.Controls.Control;
 using AvButton = Avalonia.Controls.Button;
 using AvCheckBox = Avalonia.Controls.CheckBox;
